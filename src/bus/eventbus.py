@@ -1,16 +1,13 @@
 import typing
-from abc import abstractmethod
 from collections import deque
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
+
+from src.bus.events import Event
 from src.helpers.decorators import singleton
 
 
 class Command(BaseModel):
-    uuid: UUID = Field(default_factory=uuid4)
-
-
-class Event(BaseModel):
     uuid: UUID = Field(default_factory=uuid4)
 
 

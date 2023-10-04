@@ -1,4 +1,5 @@
-from src.bus.eventbus import Event, Queue, EventBus, register
+from src.bus.eventbus import Queue, EventBus, register
+from src.bus.events import Event
 
 
 def test_register_decorator():
