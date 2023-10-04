@@ -1,4 +1,5 @@
 import typing
+from abc import abstractmethod
 from collections import deque
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
@@ -63,3 +64,4 @@ def register(msg: typing.Type[Message]):
         bus.register(msg, fn)
 
     return decorator
+
