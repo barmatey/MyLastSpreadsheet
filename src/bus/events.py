@@ -25,3 +25,19 @@ class Updated(Event, Generic[T]):
 class Deleted(Event, Generic[T]):
     entity: T
     uuid: UUID = Field(default_factory=uuid4)
+
+
+P = TypeVar("P")
+S = TypeVar("S")
+
+
+class Subscribed(Event, Generic[P, S]):
+    pubs: list[P]
+    sub: S
+    uuid: UUID = Field(default_factory=uuid4)
+
+
+class Unsubscribed(Event, Generic[P, S]):
+    pubs: list[P]
+    sub: S
+    uuid: UUID = Field(default_factory=uuid4)

@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from src.bus.broker import Broker
 from src.bus.eventbus import Queue
-from src.bus.events import Event, Created, Updated, Deleted
+from src.bus.events import Event, Created, Updated, Deleted, Subscribed, Unsubscribed
 from src.spreadsheet.sheet.domain import Sheet
 
 CellValue = Union[int, float, str, bool, datetime, None]
@@ -48,16 +48,12 @@ class CellDeleted(Deleted[Cell]):
     pass
 
 
-class CellFollowed(Event):
-    pubs: list[Cell]
-    sub: CellSubscriber
-    uuid: UUID = Field(default_factory=uuid4)
+class CellSubscribed(Subscribed[Cell, CellSubscriber]):
+    pass
 
 
-class CellUnfollowed(Event):
-    pubs: list[Cell]
-    sub: CellSubscriber
-    uuid: UUID = Field(default_factory=uuid4)
+class CellUnsubscribed(Unsubscribed[Cell, CellSubscriber]):
+    pass
 
 
 class CellPubsub(CellSubscriber):
