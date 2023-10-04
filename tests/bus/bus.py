@@ -1,12 +1,14 @@
-from src.bus.eventbus import Queue, EventBus, register
+from src.bus.eventbus import Queue, EventBus
 from src.bus.events import Event
 
 
 def test_register_decorator():
+    bus = EventBus()
+
     class SimpleEvent(Event):
         pass
 
-    @register(SimpleEvent)
+    @bus.register(SimpleEvent)
     def simple_event_handler(_):
         return "handled"
 

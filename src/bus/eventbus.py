@@ -42,8 +42,11 @@ class EventBus:
         handler = self._handlers[type(msg)]
         return handler(msg)
 
-    def register(self, msg: typing.Type[Message], handler):
-        self._handlers[msg] = handler
+    def register(self, msg: typing.Type[Message]):
+        def decorator(fn):
+            self._handlers[msg] = fn
+
+        return decorator
 
     def run(self):
         while not self._commands.empty:
@@ -53,12 +56,3 @@ class EventBus:
             while not self._events.empty:
                 event = self._events.popleft()
                 self.results[event.uuid] = self._handle(event)
-
-
-def register(msg: typing.Type[Message]):
-    def decorator(fn):
-        bus = EventBus()
-        bus.register(msg, fn)
-
-    return decorator
-

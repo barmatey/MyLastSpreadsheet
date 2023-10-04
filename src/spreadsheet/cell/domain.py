@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 from datetime import datetime
 from pydantic import BaseModel, Field
 
+from src.bus.broker import Broker
 from src.bus.eventbus import Queue
 from src.bus.events import Event, Created, Updated, Deleted
 from src.spreadsheet.sheet.domain import Sheet
@@ -15,18 +16,6 @@ class Cell(BaseModel):
     sheet: Sheet
     value: CellValue = None
     uuid: UUID = Field(default_factory=uuid4)
-
-
-class CellCreated(Created[Cell]):
-    pass
-
-
-class CellUpdated(Updated[Cell]):
-    pass
-
-
-class CellDeleted(Deleted[Cell]):
-    pass
 
 
 class CellSubscriber(ABC):
@@ -45,6 +34,18 @@ class CellSubscriber(ABC):
     @abstractmethod
     def on_cell_deleted(self, pub: Cell):
         raise NotImplemented
+
+
+class CellCreated(Created[Cell]):
+    pass
+
+
+class CellUpdated(Updated[Cell]):
+    pass
+
+
+class CellDeleted(Deleted[Cell]):
+    pass
 
 
 class CellFollowed(Event):
