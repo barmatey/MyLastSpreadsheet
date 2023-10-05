@@ -1,16 +1,24 @@
-from src.bus.eventbus import EventBus
-from src.bus.broker import Broker
+from uuid import UUID, uuid4
 
+from src.bus.eventbus import EventBus, Queue
+from src.bus.broker import Broker
+from .entity import CellValue, Cell
+
+from ..sheet.entity import Sheet
 from .repository import CellRepo, CellRepoFake
 from .subscriber import CellSubscriber
 from . import events
 
+
+def create_cell(sheet: Sheet, value: CellValue, uuid: UUID = None, repo: CellRepo = CellRepoFake()) -> UUID:
+    if uuid is None:
+        uuid = uuid4()
+    cell = Cell(sheet=sheet, value=value, uuid=uuid)
+    repo.add(cell)
+    return cell.uuid
+
+
 bus = EventBus()
-
-
-@bus.register(events.CellCreated)
-def handle_cell_created(event: events.CellCreated, repo: CellRepo = CellRepoFake()):
-    repo.add(event.entity)
 
 
 @bus.register(events.CellUpdated)

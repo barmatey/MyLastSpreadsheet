@@ -1,5 +1,8 @@
+from uuid import UUID
+
 from src.bus.broker import Broker
 from src.bus.eventbus import EventBus
+from .entity import Sheet
 
 from .repository import SheetRepo, SheetRepoFake
 from .subscriber import SheetSubscriber
@@ -34,3 +37,13 @@ def handle_sheet_subscribed(event: events.SheetSubscribed):
 @bus.register(events.SheetUnsubscribed)
 def handle_sheet_unsubscribed(event: events.SheetUnsubscribed):
     Broker().unsubscribe_from_many(event.pubs, event.sub)
+
+
+def create_sheet(repo: SheetRepo = SheetRepoFake()) -> UUID:
+    sheet = Sheet()
+    repo.add(sheet)
+    return sheet.uuid
+
+
+def update_sheet(sheet: Sheet, repo: SheetRepo = SheetRepoFake()):
+    repo.update(sheet)

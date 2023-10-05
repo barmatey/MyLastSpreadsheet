@@ -2,7 +2,7 @@ from abc import abstractmethod, ABC
 from uuid import UUID
 
 from src.helpers.decorators import singleton
-from src.spreadsheet.cell.domain import Cell
+from src.spreadsheet.cell.entity import Cell
 
 
 class CellRepo(ABC):

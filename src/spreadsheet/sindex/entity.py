@@ -2,7 +2,7 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
-from ..sheet.domain import Sheet
+from ..sheet.entity import Sheet
 
 
 class Sindex(BaseModel):
