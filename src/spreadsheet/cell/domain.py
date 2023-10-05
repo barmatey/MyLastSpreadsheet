@@ -34,3 +34,23 @@ class CellSubscriber(ABC):
     @abstractmethod
     def on_cell_deleted(self, pub: Cell):
         raise NotImplemented
+
+
+class CellCreated(Created[Cell]):
+    pass
+
+
+class CellUpdated(Updated[Cell]):
+    pass
+
+
+class CellDeleted(Deleted[Cell]):
+    pass
+
+
+class CellSubscribed(Subscribed):
+    pass
+
+
+class CellUnsubscribed(Unsubscribed):
+    pass
