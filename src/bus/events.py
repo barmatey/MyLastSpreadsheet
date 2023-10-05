@@ -1,4 +1,4 @@
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, Mapping
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
@@ -37,13 +37,13 @@ P = TypeVar("P")
 S = TypeVar("S")
 
 
-class Subscribed(Event, Generic[P, S]):
+class Subscribed(Event):
     pubs: list[P]
     sub: S
     uuid: UUID = Field(default_factory=uuid4)
 
 
-class Unsubscribed(Event, Generic[P, S]):
+class Unsubscribed(Event):
     pubs: list[P]
     sub: S
     uuid: UUID = Field(default_factory=uuid4)
