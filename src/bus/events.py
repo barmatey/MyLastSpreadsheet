@@ -7,6 +7,12 @@ from pydantic import BaseModel, Field
 class Event(BaseModel):
     uuid: UUID = Field(default_factory=uuid4)
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}"
+
+    def __str__(self):
+        return f"{self.__class__.__name__}"
+
 
 T = TypeVar("T")
 

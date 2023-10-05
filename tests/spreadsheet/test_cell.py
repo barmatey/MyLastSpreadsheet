@@ -18,14 +18,6 @@ def test_create_cell_pubsub():
     CellPubsub(entity=cell)
 
 
-def test_created_cell_saved_in_repo():
-    sheet = Sheet()
-    cell = Cell(sheet=sheet)
-    CellPubsub(entity=cell)
-    bus = EventBus()
-    bus.run()
-
-
 def test_fake_repo(repo: CellRepo):
     sheet = Sheet()
     cell = Cell(sheet=sheet)
@@ -33,4 +25,15 @@ def test_fake_repo(repo: CellRepo):
     assert cell.uuid == repo.get_one_by_uuid(cell.uuid).uuid
 
 
+def test_subscribed_cell_changes_value_when_subscribing(repo: CellRepo):
+    sheet = Sheet()
+    parent_cell = CellPubsub(entity=Cell(sheet=sheet, value=1)).create()
+    child_cell = CellPubsub(entity=Cell(sheet=sheet)).create()
+    child_cell.follow_cells([parent_cell.entity])
 
+    bus = EventBus()
+    bus.run()
+
+    parent_cell = repo.get_one_by_uuid(parent_cell.entity.uuid)
+    child_cell = repo.get_one_by_uuid(child_cell.entity.uuid)
+    assert parent_cell.value == child_cell.value

@@ -23,6 +23,9 @@ class Cell(BaseModel):
     def __repr__(self):
         return f"Cell(uuid={self.uuid})"
 
+    def __hash__(self):
+        return self.uuid.__hash__()
+
 
 class CellSubscriber(ABC):
     @abstractmethod

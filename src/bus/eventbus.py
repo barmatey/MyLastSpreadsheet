@@ -1,6 +1,8 @@
 import typing
 from collections import deque
 from uuid import UUID, uuid4
+
+from loguru import logger
 from pydantic import BaseModel, Field
 
 from src.bus.events import Event
@@ -24,10 +26,13 @@ class Queue:
         return len(self._queue) == 0
 
     def append(self, msg: Message):
+        logger.debug(f"appended: {msg}")
         self._queue.append(msg)
 
     def popleft(self) -> Message:
-        return self._queue.popleft()
+        msg = self._queue.popleft()
+        logger.debug(f"extracted: {msg}")
+        return msg
 
 
 @singleton
@@ -49,10 +54,6 @@ class EventBus:
         return decorator
 
     def run(self):
-        while not self._commands.empty:
-            cmd = self._commands.popleft()
-            self.results[cmd.uuid] = self._handle(cmd)
-
-            while not self._events.empty:
-                event = self._events.popleft()
-                self.results[event.uuid] = self._handle(event)
+        while not self._events.empty:
+            event = self._events.popleft()
+            self.results[event.uuid] = self._handle(event)
