@@ -1,35 +1,36 @@
 from src.bus.broker import Broker
 from src.bus.eventbus import EventBus
 
-from .pubsub import SheetSubscriber, SheetCreated, SheetSizeUpdated, SheetDeleted, SheetSubscribed, SheetUnsubscribed
 from .repository import SheetRepo, SheetRepoFake
+from .subscriber import SheetSubscriber
+from . import events
 
 bus = EventBus()
 
 
-@bus.register(SheetCreated)
-def handle_sheet_created(event: SheetCreated, repo: SheetRepo = SheetRepoFake()):
+@bus.register(events.SheetCreated)
+def handle_sheet_created(event: events.SheetCreated, repo: SheetRepo = SheetRepoFake()):
     repo.add(event.entity)
 
 
-@bus.register(SheetSizeUpdated)
-def handle_sheet_updated(event: SheetSizeUpdated, repo: SheetRepo = SheetRepoFake()):
+@bus.register(events.SheetSizeUpdated)
+def handle_sheet_updated(event: events.SheetSizeUpdated, repo: SheetRepo = SheetRepoFake()):
     repo.update(event.new_entity)
 
 
-@bus.register(SheetDeleted)
-def handle_sheet_deleted(event: SheetDeleted, repo: SheetRepo = SheetRepoFake()):
+@bus.register(events.SheetDeleted)
+def handle_sheet_deleted(event: events.SheetDeleted, repo: SheetRepo = SheetRepoFake()):
     subs: set[SheetSubscriber] = Broker().get_subscribers(event.entity)
     for sub in subs:
         sub.on_sheet_deleted()
     repo.remove_one(event.entity)
 
 
-@bus.register(SheetSubscribed)
-def handle_sheet_subscribed(event: SheetSubscribed):
+@bus.register(events.SheetSubscribed)
+def handle_sheet_subscribed(event: events.SheetSubscribed):
     Broker().subscribe_to_many(event.pubs, event.sub)
 
 
-@bus.register(SheetUnsubscribed)
-def handle_sheet_unsubscribed(event: SheetUnsubscribed):
+@bus.register(events.SheetUnsubscribed)
+def handle_sheet_unsubscribed(event: events.SheetUnsubscribed):
     Broker().unsubscribe_from_many(event.pubs, event.sub)

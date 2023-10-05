@@ -13,3 +13,4 @@ class AppendRows(BaseModel):
 
     def execute(self):
         pass
+    
