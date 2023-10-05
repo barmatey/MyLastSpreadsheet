@@ -3,7 +3,7 @@ from loguru import logger
 
 from src.bus.eventbus import Queue, EventBus
 from src.spreadsheet.cell.domain import Cell, CellCreated
-from src.spreadsheet.cell.pubsub import CellPubsub
+from src.spreadsheet.cell.pubsub import CellService
 from src.spreadsheet.cell.repository import CellRepo, CellRepoFake
 from src.spreadsheet.sheet.domain import Sheet
 
@@ -16,7 +16,7 @@ def repo():
 def test_create_cell_pubsub():
     sheet = Sheet()
     cell = Cell(sheet=sheet)
-    CellPubsub(entity=cell)
+    CellService(entity=cell)
 
 
 def test_fake_repo(repo: CellRepo):
@@ -39,8 +39,8 @@ def test_deep_copy_in_fake_repo(repo: CellRepo):
 
 def test_subscribed_cell_changes_value_when_subscribing(repo: CellRepo):
     sheet = Sheet()
-    parent_cell = CellPubsub(entity=Cell(sheet=sheet, value=1)).create()
-    child_cell = CellPubsub(entity=Cell(sheet=sheet, value=33)).create()
+    parent_cell = CellService(entity=Cell(sheet=sheet, value=1)).create()
+    child_cell = CellService(entity=Cell(sheet=sheet, value=33)).create()
     child_cell.follow_cells([parent_cell.entity])
 
     bus = EventBus()

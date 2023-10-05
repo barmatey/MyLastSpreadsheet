@@ -1,8 +1,7 @@
 from src.bus.broker import Broker
 from src.bus.eventbus import EventBus
 
-from .domain import SheetCreated, SheetUpdated, SheetDeleted, SheetSubscribed, SheetUnsubscribed
-from .pubsub import SheetSubscriber
+from .pubsub import SheetSubscriber, SheetCreated, SheetSizeUpdated, SheetDeleted, SheetSubscribed, SheetUnsubscribed
 from .repository import SheetRepo, SheetRepoFake
 
 bus = EventBus()
@@ -13,8 +12,8 @@ def handle_sheet_created(event: SheetCreated, repo: SheetRepo = SheetRepoFake())
     repo.add(event.entity)
 
 
-@bus.register(SheetUpdated)
-def handle_sheet_updated(event: SheetUpdated, repo: SheetRepo = SheetRepoFake()):
+@bus.register(SheetSizeUpdated)
+def handle_sheet_updated(event: SheetSizeUpdated, repo: SheetRepo = SheetRepoFake()):
     repo.update(event.new_entity)
 
 

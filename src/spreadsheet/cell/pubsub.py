@@ -1,9 +1,9 @@
 from src.bus.eventbus import Queue
 from .domain import CellSubscriber, Cell, CellCreated, CellDeleted
-from .handlers import CellUpdated, CellSubscribed, CellUnsubscribed
+from .domain import CellUpdated, CellSubscribed, CellUnsubscribed
 
 
-class CellPubsub(CellSubscriber):
+class CellService(CellSubscriber):
     def __init__(self, entity: Cell):
         self._events = Queue()
         self._entity = entity

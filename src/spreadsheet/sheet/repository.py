@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from .domain import Sheet
+from .entity import Sheet
 from ...helpers.decorators import singleton
 
 
