@@ -1,57 +1,10 @@
-from abc import ABC, abstractmethod
-from uuid import UUID, uuid4
-
-from pydantic import Field
-
 from src.bus.eventbus import Queue
-from src.bus.events import Created, Updated, Deleted, Subscribed, Unsubscribed, Event
+from .subscriber import SheetSubscriber
 
-from ..cell.domain import CellValue, Cell
+from ..cell.entity import CellValue, Cell
 from ..cell.pubsub import CellService
 from ..sheet.entity import Sheet
-
-
-class SheetCreated(Created[Sheet]):
-    pass
-
-
-class SheetSizeUpdated(Updated[Sheet]):
-    pass
-
-
-class SheetDeleted(Deleted[Sheet]):
-    pass
-
-
-class SheetSubscribed(Subscribed):
-    pass
-
-
-class SheetUnsubscribed(Unsubscribed):
-    pass
-
-
-class SheetRowsAppended(Event):
-    table: list[list[CellValue]]
-    uuid: UUID = Field(default_factory=uuid4)
-
-
-class SheetSubscriber(ABC):
-    @abstractmethod
-    def follow_sheet(self, pub: Sheet):
-        raise NotImplemented
-
-    @abstractmethod
-    def unfollow_sheet(self, pub: Sheet):
-        raise NotImplemented
-
-    @abstractmethod
-    def on_rows_appended(self, table: list[list[CellValue]]):
-        raise NotImplemented
-
-    @abstractmethod
-    def on_sheet_deleted(self):
-        raise NotImplemented
+from . import events
 
 
 class SheetService(SheetSubscriber):
@@ -64,7 +17,7 @@ class SheetService(SheetSubscriber):
         return self._entity.model_copy(deep=True)
 
     def create(self):
-        self._events.append(SheetCreated(entity=self._entity))
+        self._events.append(events.SheetCreated(entity=self._entity))
         return self
 
     def append_rows(self, table: list[CellValue] | list[list[CellValue]]):
@@ -83,18 +36,17 @@ class SheetService(SheetSubscriber):
                 CellService(Cell(sheet=self._entity, value=cell_value)).create()
 
         self._entity.size = (self._entity.size[0] + len(table), self._entity.size[1])
-        self._events.append(SheetSizeUpdated(old_entity=old, new_entity=self._entity))
+        self._events.append(events.SheetSizeUpdated(old_entity=old, new_entity=self._entity))
         # self._events.append(SheetRowsAppended(table=table))
 
     def follow_sheet(self, pub: Sheet):
-        if self._entity.size != (0, 0):
-            raise Exception
+        raise NotImplemented
 
     def unfollow_sheet(self, pub: Sheet):
-        pass
+        raise NotImplemented
 
     def on_rows_appended(self, table: list[list[CellValue]]):
-        pass
+        raise NotImplemented
 
     def on_sheet_deleted(self):
-        pass
+        raise NotImplemented
