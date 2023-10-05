@@ -16,7 +16,7 @@ def handle_cell_created(event: CellCreated, repo: CellRepo = CellRepoFake()):
 def handle_cell_updated(event: CellUpdated, repo: CellRepo = CellRepoFake()):
     repo.update_one(event.new_entity)
 
-    subs: list[CellSubscriber] = Broker().get_subscribers(event.new_entity)
+    subs: set[CellSubscriber] = Broker().get_subscribers(event.old_entity)
     for sub in subs:
         sub.on_cell_updated(old=event.old_entity, actual=event.new_entity)
 
@@ -24,7 +24,7 @@ def handle_cell_updated(event: CellUpdated, repo: CellRepo = CellRepoFake()):
 @bus.register(CellDeleted)
 def handle_cell_deleted(event: CellDeleted, repo: CellRepo = CellRepoFake()):
     repo.delete_one(event.entity)
-    subs: list[CellSubscriber] = Broker().get_subscribers(event.entity)
+    subs: set[CellSubscriber] = Broker().get_subscribers(event.entity)
     for sub in subs:
         sub.on_cell_deleted(event.entity)
 

@@ -1,5 +1,3 @@
-from loguru import logger
-
 from src.helpers.decorators import singleton
 
 
@@ -15,9 +13,6 @@ class Broker:
 
     def subscribe_to_many(self, pubs, sub):
         for pub in pubs:
-            logger.error(f"\n\nSUBSCRIBE:"
-                         f"\npub: \t{pub}"
-                         f"\nsub:\t{sub}\n")
             self.subscribe(pub, sub)
 
     def unsubscribe(self, pub, sub):
@@ -29,5 +24,8 @@ class Broker:
         for pub in pubs:
             self.unsubscribe(pub, sub)
 
-    def get_subscribers(self, pub):
-        return self._subscribers[pub]
+    def get_subscribers(self, pub) -> set:
+        subs = self._subscribers.get(pub)
+        if subs is None:
+            subs = set()
+        return subs
