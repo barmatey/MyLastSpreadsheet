@@ -1,19 +1,20 @@
 from src.bus.eventbus import EventBus
 from src.bus.broker import Broker
 
-from .domain import CellCreated, CellUpdated, CellSubscribed, CellUnsubscribed, CellDeleted, CellSubscriber
 from .repository import CellRepo, CellRepoFake
+from .subscriber import CellSubscriber
+from . import events
 
 bus = EventBus()
 
 
-@bus.register(CellCreated)
-def handle_cell_created(event: CellCreated, repo: CellRepo = CellRepoFake()):
+@bus.register(events.CellCreated)
+def handle_cell_created(event: events.CellCreated, repo: CellRepo = CellRepoFake()):
     repo.add(event.entity)
 
 
-@bus.register(CellUpdated)
-def handle_cell_updated(event: CellUpdated, repo: CellRepo = CellRepoFake()):
+@bus.register(events.CellUpdated)
+def handle_cell_updated(event: events.CellUpdated, repo: CellRepo = CellRepoFake()):
     repo.update_one(event.new_entity)
 
     subs: set[CellSubscriber] = Broker().get_subscribers(event.old_entity)
@@ -21,19 +22,19 @@ def handle_cell_updated(event: CellUpdated, repo: CellRepo = CellRepoFake()):
         sub.on_cell_updated(old=event.old_entity, actual=event.new_entity)
 
 
-@bus.register(CellDeleted)
-def handle_cell_deleted(event: CellDeleted, repo: CellRepo = CellRepoFake()):
+@bus.register(events.CellDeleted)
+def handle_cell_deleted(event: events.CellDeleted, repo: CellRepo = CellRepoFake()):
     repo.delete_one(event.entity)
     subs: set[CellSubscriber] = Broker().get_subscribers(event.entity)
     for sub in subs:
         sub.on_cell_deleted(event.entity)
 
 
-@bus.register(CellSubscribed)
-def handle_cell_subscribed(event: CellSubscribed):
+@bus.register(events.CellSubscribed)
+def handle_cell_subscribed(event: events.CellSubscribed):
     Broker().subscribe_to_many(event.pubs, event.sub)
 
 
-@bus.register(CellUnsubscribed)
-def handle_cell_unsubscribed(event: CellUnsubscribed):
+@bus.register(events.CellUnsubscribed)
+def handle_cell_unsubscribed(event: events.CellUnsubscribed):
     Broker().unsubscribe_from_many(event.pubs, event.sub)
