@@ -17,6 +17,12 @@ class Cell(BaseModel):
     value: CellValue = None
     uuid: UUID = Field(default_factory=uuid4)
 
+    def __str__(self):
+        return f"Cell(uuid={self.uuid})"
+
+    def __repr__(self):
+        return f"Cell(uuid={self.uuid})"
+
 
 class CellSubscriber(ABC):
     @abstractmethod

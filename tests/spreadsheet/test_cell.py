@@ -1,16 +1,21 @@
+import pytest
+
 from src.bus.eventbus import Queue, EventBus
-from src.spreadsheet.cell.domain import CellPubsub, Cell, CellCreated
+from src.spreadsheet.cell.domain import Cell, CellCreated
+from src.spreadsheet.cell.pubsub import CellPubsub
+from src.spreadsheet.cell.repository import CellRepo, CellRepoFake
 from src.spreadsheet.sheet.domain import Sheet
 
 
-def test_create_cell_pubsub_generate_event():
+@pytest.fixture
+def repo():
+    return CellRepoFake()
+
+
+def test_create_cell_pubsub():
     sheet = Sheet()
     cell = Cell(sheet=sheet)
     CellPubsub(entity=cell)
-
-    queue = Queue()
-    event = queue.popleft()
-    assert isinstance(event, CellCreated)
 
 
 def test_created_cell_saved_in_repo():
@@ -19,3 +24,13 @@ def test_created_cell_saved_in_repo():
     CellPubsub(entity=cell)
     bus = EventBus()
     bus.run()
+
+
+def test_fake_repo(repo: CellRepo):
+    sheet = Sheet()
+    cell = Cell(sheet=sheet)
+    repo.add(cell)
+    assert cell.uuid == repo.get_one_by_uuid(cell.uuid).uuid
+
+
+

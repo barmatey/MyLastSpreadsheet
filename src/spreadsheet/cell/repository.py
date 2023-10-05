@@ -11,7 +11,7 @@ class CellRepo(ABC):
         raise NotImplemented
 
     @abstractmethod
-    def get_one_by_uuid(self, uuid: UUID):
+    def get_one_by_uuid(self, uuid: UUID) -> Cell:
         raise NotImplemented
 
     @abstractmethod
@@ -25,14 +25,23 @@ class CellRepo(ABC):
 
 @singleton
 class CellRepoFake(CellRepo):
-    def add(self, cell: Cell):
-        pass
+    def __init__(self):
+        self._data: dict[UUID, Cell] = {}
 
-    def get_one_by_uuid(self, uuid: UUID):
-        pass
+    def add(self, cell: Cell):
+        if self._data.get(cell.uuid) is not None:
+            raise Exception("already exist")
+        self._data[cell.uuid] = cell.model_copy(deep=True)
+
+    def get_one_by_uuid(self, uuid: UUID) -> Cell:
+        return self._data[uuid].model_copy(deep=True)
 
     def update_one(self, cell: Cell):
-        pass
+        if self._data.get(cell.uuid) is None:
+            raise LookupError
+        self._data[cell.uuid] = cell.model_copy(deep=True)
 
     def delete_one(self, cell: Cell):
-        pass
+        if self._data.get(cell.uuid) is None:
+            raise LookupError
+        del self._data[cell.uuid]
