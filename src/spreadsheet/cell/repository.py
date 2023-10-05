@@ -11,6 +11,10 @@ class CellRepo(ABC):
         raise NotImplemented
 
     @abstractmethod
+    def get_all(self) -> list[Cell]:
+        raise NotImplemented
+
+    @abstractmethod
     def get_one_by_uuid(self, uuid: UUID) -> Cell:
         raise NotImplemented
 
@@ -27,6 +31,9 @@ class CellRepo(ABC):
 class CellRepoFake(CellRepo):
     def __init__(self):
         self._data: dict[UUID, Cell] = {}
+
+    def get_all(self) -> list[Cell]:
+        return list(self._data.values())
 
     def add(self, cell: Cell):
         if self._data.get(cell.uuid) is not None:

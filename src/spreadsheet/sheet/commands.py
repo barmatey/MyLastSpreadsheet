@@ -2,7 +2,8 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
-from src.spreadsheet.sheet import entity as sheet_entity, handlers as sheet_services
+from src.bus.eventbus import Queue
+from src.spreadsheet.sheet import entity as sheet_entity, events as sheet_events, handlers as sheet_services
 from src.spreadsheet.sindex import entity as sindex_entity, handlers as sindex_services
 from src.spreadsheet.cell import entity as cell_entity, handlers as cell_services
 
@@ -14,17 +15,18 @@ class AppendRows(BaseModel):
 
     def execute(self):
         table = self.table
-        sheet = self.sheet
+        sheet = self.sheet.model_copy()
         if len(table) == 0:
             raise Exception
         if sheet.size == (0, 0):
             sheet.size = (0, len(table[0]))
 
         for i, row in enumerate(table):
-            if len(row) != self._entity.size[1]:
+            if len(row) != sheet.size[1]:
                 raise Exception
             for j, cell_value in enumerate(row):
                 cell_services.create_cell(sheet=sheet, value=table[i][j])
 
-        sheet.size = (self._entity.size[0] + len(table), self._entity.size[1])
+        sheet.size = (sheet.size[0] + len(table), sheet.size[1])
         sheet_services.update_sheet(sheet)
+        Queue().append(sheet_events.SheetRowsAppended(table=table))
