@@ -14,39 +14,3 @@ class Sheet(BaseModel):
     uuid: UUID = Field(default_factory=uuid4)
 
 
-class SheetSubscriber(ABC):
-    @abstractmethod
-    def follow_sheet(self, pub: Sheet):
-        raise NotImplemented
-
-    @abstractmethod
-    def unfollow_sheet(self, pub: Sheet):
-        raise NotImplemented
-
-    @abstractmethod
-    def on_rows_appended(self):
-        raise NotImplemented
-
-    @abstractmethod
-    def on_sheet_deleted(self):
-        raise NotImplemented
-
-
-class SheetCreated(Created[Sheet]):
-    pass
-
-
-class SheetUpdated(Updated[Sheet]):
-    pass
-
-
-class SheetDeleted(Deleted[Sheet]):
-    pass
-
-
-class SheetSubscribed(Subscribed):
-    pass
-
-
-class SheetUnsubscribed(Unsubscribed):
-    pass
