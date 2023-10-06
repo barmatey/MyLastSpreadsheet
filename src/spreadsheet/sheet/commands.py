@@ -3,9 +3,20 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
 
 from src.bus.eventbus import Queue
-from src.spreadsheet.sheet import entity as sheet_entity, events as sheet_events, usecases as sheet_usecases
+from src.core import PydanticModel
+from src.spreadsheet.sheet import (entity as sheet_entity, events as sheet_events, usecases as sheet_usecases,
+                                   repository as sheet_repo)
 from src.spreadsheet.sindex import entity as sindex_entity, usecases as sindex_usecases
 from src.spreadsheet.cell import entity as cell_entity, usecases as cell_usecases
+
+
+class CreateSheet(PydanticModel):
+    sheet_repo: sheet_repo.SheetRepo
+    uuid: UUID = Field(default_factory=uuid4)
+
+    async def execute(self) -> UUID:
+        uuid = await sheet_usecases.create_sheet(self.sheet_repo)
+        return uuid
 
 
 class AppendRows(BaseModel):

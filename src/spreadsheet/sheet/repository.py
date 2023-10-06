@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from sqlalchemy import TIMESTAMP, func, Integer
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from .entity import Sheet
@@ -10,7 +11,7 @@ from ...helpers.decorators import singleton
 
 class SheetRepo(ABC):
     @abstractmethod
-    def add(self, sheet: Sheet):
+    async def add(self, sheet: Sheet):
         raise NotImplemented
 
     @abstractmethod
@@ -60,4 +61,22 @@ class SheetModel(Base):
     uuid: Mapped[UUID] = mapped_column(primary_key=True)
     row_size: Mapped[int] = mapped_column(Integer, nullable=False)
     col_size: Mapped[int] = mapped_column(Integer, nullable=False)
-    updated_at: Mapped[TIMESTAMP] = mapped_column(TIMESTAMP(timezone=True), default=func.now, onupdate=func.now)
+    updated_at: Mapped[TIMESTAMP] = mapped_column(TIMESTAMP(timezone=True), default=func.now(), onupdate=func.now())
+
+
+class SheetRepoPostgres(SheetRepo):
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    async def add(self, sheet: Sheet):
+        model = SheetModel(uuid=sheet.uuid, row_size=sheet.size[0], col_size=sheet.size[1])
+        self._session.add(model)
+
+    def update(self, sheet: Sheet):
+        pass
+
+    def get_one_by_uuid(self, uuid: UUID) -> Sheet:
+        pass
+
+    def remove_one(self, sheet: Sheet):
+        pass

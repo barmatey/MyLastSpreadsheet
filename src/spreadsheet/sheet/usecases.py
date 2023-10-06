@@ -4,9 +4,9 @@ from src.spreadsheet.sheet.entity import Sheet
 from src.spreadsheet.sheet.repository import SheetRepo, SheetRepoFake
 
 
-def create_sheet(repo: SheetRepo = SheetRepoFake()) -> UUID:
+async def create_sheet(repo: SheetRepo = SheetRepoFake()) -> UUID:
     sheet = Sheet()
-    repo.add(sheet)
+    await repo.add(sheet)
     return sheet.uuid
 
 
