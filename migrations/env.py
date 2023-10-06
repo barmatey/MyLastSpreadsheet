@@ -5,7 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from db import Base
+from src.spreadsheet.sheet.repository import Base
 
 config = context.config
 
