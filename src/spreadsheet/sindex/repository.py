@@ -11,6 +11,10 @@ class SindexRepo(ABC):
         raise NotImplemented
 
     @abstractmethod
+    def get_all(self) -> list[Sindex]:
+        raise NotImplemented
+
+    @abstractmethod
     def get_many(self, filter_by: dict, order_by: list, asc=True) -> list[Sindex]:
         raise NotImplemented
 
@@ -24,6 +28,14 @@ class SindexRepo(ABC):
         raise NotImplemented
 
     @abstractmethod
+    def update(self, sindex: Sindex):
+        raise NotImplemented
+
+    @abstractmethod
+    def remove(self, sindex: Sindex):
+        raise NotImplemented
+
+    @abstractmethod
     def remove_many_by_position(self, sheet_uuid: UUID, positions: list[int]):
         raise NotImplemented
 
@@ -32,6 +44,7 @@ class SindexRepo(ABC):
         raise NotImplemented
 
 
+@singleton
 class SindexRepoFake(SindexRepo):
     def __init__(self):
         self._data: dict[UUID, Sindex] = {}
@@ -40,6 +53,11 @@ class SindexRepoFake(SindexRepo):
         if self._data.get(sindex.uuid) is not None:
             raise Exception("already exist")
         self._data[sindex.uuid] = sindex.model_copy(deep=True)
+
+    def get_all(self):
+        sindexes = self._data.values()
+        sindexes = sorted(sindexes, key=lambda x: x.position)
+        return sindexes
 
     def get_many(self, filter_by: dict, order_by: list, asc=True) -> list[Sindex]:
         result: list[Sindex] = []
@@ -62,6 +80,14 @@ class SindexRepoFake(SindexRepo):
                 result.append(sindex)
         return result
 
+    def update(self, sindex: Sindex):
+        if self._data.get(sindex.uuid) is None:
+            raise LookupError
+        self._data[sindex.uuid] = sindex.model_copy(deep=True)
+
+    def remove(self, sindex: Sindex):
+        del self._data[sindex.uuid]
+
     def remove_many_by_position(self, sheet_uuid: UUID, positions: list[int]):
         to_remove: list[UUID] = []
         for uuid, sindex in self._data.items():
@@ -74,12 +100,5 @@ class SindexRepoFake(SindexRepo):
         for uuid in uuids:
             del self._data[uuid]
 
-
-@singleton
-class SindexRowRepoFake(SindexRepoFake):
-    pass
-
-
-@singleton
-class SindexColRepoFake(SindexRepoFake):
-    pass
+    def clear(self):
+        self._data = {}
