@@ -1,6 +1,9 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
+from sqlalchemy import String, Integer, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column
+
 from src.helpers.decorators import singleton
 from src.spreadsheet.sindex.entity import Sindex
 
@@ -102,3 +105,6 @@ class SindexRepoFake(SindexRepo):
 
     def clear(self):
         self._data = {}
+
+
+
