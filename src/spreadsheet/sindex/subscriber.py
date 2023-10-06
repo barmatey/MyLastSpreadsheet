@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from .domain import Sindex
+from .entity import Sindex
 
 
 class SindexSubscriber(ABC):
@@ -15,5 +15,3 @@ class SindexSubscriber(ABC):
     @abstractmethod
     def on_sindex_deleted(self, pub: Sindex):
         raise NotImplemented
-
-

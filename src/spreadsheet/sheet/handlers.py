@@ -11,16 +11,6 @@ from . import events
 bus = EventBus()
 
 
-@bus.register(events.SheetCreated)
-def handle_sheet_created(event: events.SheetCreated, repo: SheetRepo = SheetRepoFake()):
-    repo.add(event.entity)
-
-
-@bus.register(events.SheetSizeUpdated)
-def handle_sheet_updated(event: events.SheetSizeUpdated, repo: SheetRepo = SheetRepoFake()):
-    repo.update(event.new_entity)
-
-
 @bus.register(events.SheetDeleted)
 def handle_sheet_deleted(event: events.SheetDeleted, repo: SheetRepo = SheetRepoFake()):
     subs: set[SheetSubscriber] = Broker().get_subscribers(event.entity)
