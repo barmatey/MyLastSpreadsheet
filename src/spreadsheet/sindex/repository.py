@@ -3,7 +3,7 @@ from uuid import UUID
 
 from sqlalchemy import String, Integer, ForeignKey
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.helpers.decorators import singleton
 from src.spreadsheet.sheet.repository import Base
@@ -113,12 +113,14 @@ class RowSindexModel(Base):
     __tablename__ = "row_sindex"
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
+    cells = relationship('CellModel')
 
 
 class ColSindexModel(Base):
     __tablename__ = "col_sindex"
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
+    cells = relationship('CellModel')
 
 
 class SindexRepoPostgres(SindexRepo):

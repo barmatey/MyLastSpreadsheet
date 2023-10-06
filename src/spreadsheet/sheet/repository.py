@@ -3,7 +3,7 @@ from uuid import UUID
 
 from sqlalchemy import Integer, select, TIMESTAMP, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
+from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
 
 from .entity import Sheet
 from ...helpers.decorators import singleton
@@ -61,6 +61,9 @@ class SheetModel(Base):
     __tablename__ = "sheet"
     row_size: Mapped[int] = mapped_column(Integer, nullable=False)
     col_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    row_sindexes = relationship('RowSindexModel', backref='row_sindexes_sheet_model')
+    col_sindexes = relationship('ColSindexModel', backref='col_sindexes_sheet_model')
+    cells = relationship('CellModel', backref='cell_model_sheet_model')
 
     def to_entity(self) -> Sheet:
         return Sheet(uuid=self.uuid, size=(self.row_size, self.col_size))
