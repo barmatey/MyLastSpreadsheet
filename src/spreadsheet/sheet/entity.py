@@ -9,3 +9,6 @@ def size_factory():
 class Sheet(BaseModel):
     size: tuple[int, int] = Field(default_factory=size_factory)
     uuid: UUID = Field(default_factory=uuid4)
+
+    def __eq__(self, other):
+        return self.uuid == other.uuid and self.size == other.size
