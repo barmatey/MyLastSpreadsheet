@@ -5,6 +5,7 @@ from sqlalchemy import String, Integer, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.helpers.decorators import singleton
+from src.spreadsheet.sheet.repository import Base
 from src.spreadsheet.sindex.entity import Sindex
 
 
@@ -107,4 +108,16 @@ class SindexRepoFake(SindexRepo):
         self._data = {}
 
 
+class RowSindexModel(Base):
+    __tablename__ = "row_sindex"
+    direction: Mapped[str] = mapped_column(String(8), nullable=False)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
+
+
+class ColSindexModel(Base):
+    __tablename__ = "col_sindex"
+    direction: Mapped[str] = mapped_column(String(8), nullable=False)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
 

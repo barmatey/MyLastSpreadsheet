@@ -1,8 +1,12 @@
 from abc import abstractmethod, ABC
 from uuid import UUID
 
+from sqlalchemy import String, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column
+
 from src.helpers.decorators import singleton
 from src.spreadsheet.cell.entity import Cell
+from src.spreadsheet.sheet.repository import Base
 
 
 class CellRepo(ABC):
@@ -66,3 +70,12 @@ class CellRepoFake(CellRepo):
 
     def clear(self):
         self._data = {}
+
+
+class CellModel(Base):
+    __tablename__ = "cell"
+    value: Mapped[str] = mapped_column(String(1024), nullable=True)
+    dtype: Mapped[str] = mapped_column(String(8), nullable=False)
+    sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
+    row_sindex_uuid: Mapped[UUID] = mapped_column(ForeignKey("row_sindex.uuid"))
+    col_sindex_uuid: Mapped[UUID] = mapped_column(ForeignKey("col_sindex.uuid"))

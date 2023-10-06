@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
+from sqlalchemy import TIMESTAMP, func, Integer
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from postgres import SheetModel
 from .entity import Sheet
 from ...helpers.decorators import singleton
 
@@ -49,6 +50,17 @@ class SheetRepoFake(SheetRepo):
 
     def clear(self):
         self._data = {}
+
+
+class Base(DeclarativeBase):
+    uuid: Mapped[UUID] = mapped_column(primary_key=True)
+    updated_at: Mapped[TIMESTAMP] = mapped_column(TIMESTAMP(timezone=True), default=func.now(), onupdate=func.now())
+
+
+class SheetModel(Base):
+    __tablename__ = "sheet"
+    row_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    col_size: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 class SheetRepoPostgres(SheetRepo):
