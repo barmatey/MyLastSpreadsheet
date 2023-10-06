@@ -4,6 +4,7 @@ from uuid import UUID
 from sqlalchemy import TIMESTAMP, func, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+from db import Base
 from .entity import Sheet
 from ...helpers.decorators import singleton
 
@@ -51,7 +52,7 @@ class SheetRepoFake(SheetRepo):
         self._data = {}
 
 
-class SheetModel(DeclarativeBase):
+class SheetModel(Base):
     __tablename__ = "sheet"
     uuid: Mapped[UUID] = mapped_column(primary_key=True)
     row_size: Mapped[int] = mapped_column(Integer, nullable=False)

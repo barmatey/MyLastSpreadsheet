@@ -3,10 +3,14 @@ from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import DeclarativeMeta
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import sessionmaker, declarative_base, DeclarativeBase
 
 DATABASE_URL = f"postgresql+asyncpg://postgres:145190hfp@127.0.0.1:5432/spreadsheet_db"
-Base: DeclarativeMeta = declarative_base()
+
+
+class Base(DeclarativeBase):
+    pass
+
 
 async_engine = create_async_engine(DATABASE_URL)
 
