@@ -11,4 +11,4 @@ class Sheet(BaseModel):
     uuid: UUID = Field(default_factory=uuid4)
 
     def __eq__(self, other):
-        return self.uuid == other.uuid and self.size == other.size
+        return self.uuid == other.uuid

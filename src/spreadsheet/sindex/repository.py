@@ -63,7 +63,7 @@ class SindexRepoFake(SindexRepo):
         result: list[Sindex] = []
         for sindex in self._data.values():
             if all([sindex.__getattribute__(key) == value for key, value in filter_by.items()]):
-                result.append(sindex)
+                result.append(sindex.model_copy(deep=True))
         if len(order_by) != 1 or order_by[0] != "position":
             raise Exception
 

@@ -43,3 +43,6 @@ class SheetRepoFake(SheetRepo):
 
     def remove_one(self, sheet: Sheet):
         del self._data[sheet.uuid]
+
+    def clear(self):
+        self._data = {}

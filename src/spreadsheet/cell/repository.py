@@ -63,3 +63,6 @@ class CellRepoFake(CellRepo):
         if self._data.get(cell.uuid) is None:
             raise LookupError
         del self._data[cell.uuid]
+
+    def clear(self):
+        self._data = {}
