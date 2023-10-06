@@ -15,3 +15,14 @@ class SindexSubscriber(ABC):
     @abstractmethod
     def on_sindex_deleted(self, pub: Sindex):
         raise NotImplemented
+
+
+class SindexSelfSubscriber(SindexSubscriber):
+    def follow_sindexes(self, pubs: list[Sindex]):
+        pass
+
+    def unfollow_sindexes(self, pubs: list[Sindex]):
+        pass
+
+    def on_sindex_deleted(self, pub: Sindex):
+        pass

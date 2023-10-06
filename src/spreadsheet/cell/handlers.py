@@ -9,15 +9,6 @@ from .repository import CellRepo, CellRepoFake
 from .subscriber import CellSubscriber
 from . import events
 
-
-def create_cell(sheet: Sheet, value: CellValue, uuid: UUID = None, repo: CellRepo = CellRepoFake()) -> UUID:
-    if uuid is None:
-        uuid = uuid4()
-    cell = Cell(sheet=sheet, value=value, uuid=uuid)
-    repo.add(cell)
-    return cell.uuid
-
-
 bus = EventBus()
 
 

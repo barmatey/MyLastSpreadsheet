@@ -4,7 +4,7 @@ from src.bus.eventbus import EventBus
 from src.spreadsheet.cell.repository import CellRepoFake
 from src.spreadsheet.sheet.commands import AppendRows
 from src.spreadsheet.sheet.repository import SheetRepoFake
-from src.spreadsheet.sheet import entity as sheet_entity, handlers as sheet_services
+from src.spreadsheet.sheet import entity as sheet_entity, usecases as sheet_usecases
 from src.spreadsheet.cell import entity as cell_entity, handlers as cell_services
 from src.spreadsheet.sindex import entity as sindex_entity, handlers as sindex_services
 
@@ -24,7 +24,7 @@ def test_temp():
 
 
 def test_append_sheet_rows(sheet_repo, cell_repo):
-    sheet = sheet_repo.get_one_by_uuid(sheet_services.create_sheet())
+    sheet = sheet_repo.get_one_by_uuid(sheet_usecases.create_sheet())
     assert sheet.size == (0, 0)
     table = [
         [1, 2],

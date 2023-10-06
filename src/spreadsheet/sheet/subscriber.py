@@ -19,3 +19,17 @@ class SheetSubscriber(ABC):
     @abstractmethod
     def on_sheet_deleted(self):
         raise NotImplemented
+
+
+class SheetSelfSubscriber(SheetSubscriber):
+    def follow_sheet(self, pub: Sheet):
+        pass
+
+    def unfollow_sheet(self, pub: Sheet):
+        pass
+
+    def on_rows_appended(self, table: list[list[CellValue]]):
+        pass
+
+    def on_sheet_deleted(self):
+        pass
