@@ -49,7 +49,7 @@ class AppendRows(PydanticModel):
             row_sindex = await sindex_usecases.create_sindex(sheet, i+sheet.size[0], "ROW", self.sindex_repo)
             for j, cell_value in enumerate(row):
                 col_sindex = await sindex_usecases.create_sindex(sheet, j, "COL", self.sindex_repo)
-                cell_usecases.create_cell(sheet, row_sindex, col_sindex, table[i][j], self.cell_repo)
+                await cell_usecases.create_cell(sheet, row_sindex, col_sindex, table[i][j], self.cell_repo)
 
         sheet.size = (sheet.size[0] + len(table), sheet.size[1])
         await sheet_usecases.update_sheet(sheet, self.sheet_repo)

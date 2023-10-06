@@ -105,7 +105,8 @@ class CellRepoPostgres(CellRepo):
 
     async def add(self, cell: Cell):
         model = CellModel(uuid=cell.uuid, value=str(cell.value), dtype=get_dtype(cell.value),
-                          row_sindex_uuid=cell.row_sindex.uuid, col_sindex_uuid=cell.col_sindex.uuid)
+                          row_sindex_uuid=cell.row_sindex.uuid, col_sindex_uuid=cell.col_sindex.uuid,
+                          sheet_uuid=cell.sheet.uuid)
         self._session.add(model)
 
     async def get_all(self) -> list[Cell]:

@@ -5,14 +5,19 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from src.spreadsheet.sheet.repository import Base
+from src.spreadsheet.cell.repository import CellModel
+from src.spreadsheet.sheet.repository import SheetModel, Base
+from src.spreadsheet.sindex.repository import RowSindexModel, ColSindexModel
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = Base.metadata
+target_metadata = [
+    Base.metadata,
+
+]
 
 
 def run_migrations_offline() -> None:

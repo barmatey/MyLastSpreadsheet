@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from sqlalchemy import TIMESTAMP, func, Integer, select
+from sqlalchemy import Integer, select, TIMESTAMP, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 
 from .entity import Sheet
 from ...helpers.decorators import singleton
@@ -75,7 +75,10 @@ class SheetRepoPostgres(SheetRepo):
         self._session.add(model)
 
     async def update(self, sheet: Sheet):
-        raise NotImplemented
+        stmt = select(SheetModel).where(SheetModel.uuid == sheet.uuid)
+        # model = await self._session.scalar(stmt)
+        # model.row_size = sheet.size[0]
+        # model.col_size = sheet.size[1]
 
     async def get_one_by_uuid(self, uuid: UUID) -> Sheet:
         stmt = select(SheetModel).where(SheetModel.uuid == uuid)

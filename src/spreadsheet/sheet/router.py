@@ -28,11 +28,11 @@ async def get_sheet(uuid: UUID) -> Sheet:
         return sheet
 
 
-
-# async def append_rows(sheet: Sheet, table: list[list[CellValue]]):
-#     async with get_asession() as session:
-#         sheet_repo = SheetRepoPostgres(session)
-#         sindex_repo = SindexRepoPostgres(session)
-#         cell_repo = CellRepoPostgres(session)
-#         cmd = AppendRows(sheet_repo=sheet_repo, sindex_repo=sindex_repo, cell_repo=cell_repo, sheet=sheet, table=table)
-#         await cmd.execute()
+async def append_rows(sheet: Sheet, table: list[list[CellValue]]):
+    async with get_asession() as session:
+        sheet_repo = SheetRepoPostgres(session)
+        sindex_repo = SindexRepoPostgres(session)
+        cell_repo = CellRepoPostgres(session)
+        cmd = sheet_commands.AppendRows(sheet_repo=sheet_repo, sindex_repo=sindex_repo, cell_repo=cell_repo, sheet=sheet, table=table)
+        await cmd.execute()
+        await session.commit()
