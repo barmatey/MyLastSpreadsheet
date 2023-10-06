@@ -6,8 +6,8 @@ from src.bus.eventbus import Queue
 from src.core import PydanticModel
 from src.spreadsheet.sheet import (entity as sheet_entity, events as sheet_events, usecases as sheet_usecases,
                                    repository as sheet_repo)
-from src.spreadsheet.sindex import entity as sindex_entity, usecases as sindex_usecases
-from src.spreadsheet.cell import entity as cell_entity, usecases as cell_usecases
+from src.spreadsheet.sindex import (entity as sindex_entity, usecases as sindex_usecases, repository as sindex_repo)
+from src.spreadsheet.cell import (entity as cell_entity, usecases as cell_usecases, repository as cell_repo)
 
 
 class CreateSheet(PydanticModel):
@@ -19,12 +19,23 @@ class CreateSheet(PydanticModel):
         return uuid
 
 
-class AppendRows(BaseModel):
+class GetSheet(PydanticModel):
+    sheet_repo: sheet_repo.SheetRepo
+    uuid: UUID
+
+    async def execute(self) -> sheet_entity.Sheet:
+        return await sheet_usecases.get_sheet_by_uuid(self.uuid, self.sheet_repo)
+
+
+class AppendRows(PydanticModel):
+    sheet_repo: sheet_repo.SheetRepo
+    sindex_repo: sindex_repo.SindexRepo
+    cell_repo: cell_repo.CellRepo
     sheet: sheet_entity.Sheet
     table: list[list[cell_entity.CellValue]]
     uuid: UUID = Field(default_factory=uuid4)
 
-    def execute(self):
+    async def execute(self):
         table = self.table
         sheet = self.sheet.model_copy(deep=True)
         if len(table) == 0:
@@ -35,11 +46,13 @@ class AppendRows(BaseModel):
         for i, row in enumerate(table):
             if len(row) != sheet.size[1]:
                 raise Exception
+            row_sindex = await sindex_usecases.create_sindex(sheet, i+sheet.size[0], "ROW", self.sindex_repo)
             for j, cell_value in enumerate(row):
-                cell_usecases.create_cell(sheet=sheet, value=table[i][j])
+                col_sindex = await sindex_usecases.create_sindex(sheet, j, "COL", self.sindex_repo)
+                cell_usecases.create_cell(sheet, row_sindex, col_sindex, table[i][j], self.cell_repo)
 
         sheet.size = (sheet.size[0] + len(table), sheet.size[1])
-        sheet_usecases.update_sheet(sheet)
+        await sheet_usecases.update_sheet(sheet, self.sheet_repo)
         Queue().append(sheet_events.SheetRowsAppended(table=table))
 
 

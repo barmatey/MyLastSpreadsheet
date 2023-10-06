@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from sqlalchemy import TIMESTAMP, func, Integer
+from sqlalchemy import TIMESTAMP, func, Integer, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -15,7 +15,7 @@ class SheetRepo(ABC):
         raise NotImplemented
 
     @abstractmethod
-    def update(self, sheet: Sheet):
+    async def update(self, sheet: Sheet):
         raise NotImplemented
 
     @abstractmethod
@@ -62,6 +62,9 @@ class SheetModel(Base):
     row_size: Mapped[int] = mapped_column(Integer, nullable=False)
     col_size: Mapped[int] = mapped_column(Integer, nullable=False)
 
+    def to_entity(self) -> Sheet:
+        return Sheet(uuid=self.uuid, size=(self.row_size, self.col_size))
+
 
 class SheetRepoPostgres(SheetRepo):
     def __init__(self, session: AsyncSession):
@@ -71,11 +74,13 @@ class SheetRepoPostgres(SheetRepo):
         model = SheetModel(uuid=sheet.uuid, row_size=sheet.size[0], col_size=sheet.size[1])
         self._session.add(model)
 
-    def update(self, sheet: Sheet):
+    async def update(self, sheet: Sheet):
         raise NotImplemented
 
-    def get_one_by_uuid(self, uuid: UUID) -> Sheet:
-        raise NotImplemented
+    async def get_one_by_uuid(self, uuid: UUID) -> Sheet:
+        stmt = select(SheetModel).where(SheetModel.uuid == uuid)
+        model = await self._session.scalar(stmt)
+        return model.to_entity()
 
     def remove_one(self, sheet: Sheet):
         raise NotImplemented

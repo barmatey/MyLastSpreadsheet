@@ -8,7 +8,12 @@ def print_hi(name):
 
 async def main():
     task1 = asyncio.create_task(router.create_sheet())
-    await task1
+    sheet_id = await task1
+
+    task2 = asyncio.create_task(router.get_sheet(sheet_id))
+    sheet = await task2
+
+    print(sheet)
 
 
 if __name__ == '__main__':

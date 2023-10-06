@@ -7,18 +7,18 @@ from .entity import Sindex, SindexDirection
 from . import events
 
 
-def create_sindex(sheet: Sheet, position: int, direction: SindexDirection, repo: SindexRepo = SindexRepoFake()):
+async def create_sindex(sheet: Sheet, position: int, direction: SindexDirection, repo: SindexRepo):
     sindex = Sindex(sheet=sheet, position=position, direction=direction)
-    repo.add(sindex)
+    await repo.add(sindex)
 
 
-def delete_sindex(sindex: Sindex, sindex_repo: SindexRepo = SindexRepoFake()):
+def delete_sindex(sindex: Sindex, sindex_repo: SindexRepo):
     sindex_repo.remove(sindex)
     queue = Queue()
     queue.append(events.SindexDeleted(entity=sindex))
 
 
-def reindex(sheet: Sheet, direction: SindexDirection, repo: SindexRepo = SindexRepoFake()):
+def reindex(sheet: Sheet, direction: SindexDirection, repo: SindexRepo):
     sindexes = repo.get_many(filter_by={"sheet": sheet, "direction": direction, }, order_by=["position"])
     for i, sindex in enumerate(sindexes):
         sindex.position = i
