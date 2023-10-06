@@ -15,6 +15,10 @@ class CellRepo(ABC):
         raise NotImplemented
 
     @abstractmethod
+    def get_many(self, filter_by: dict, order_by: list[str] = None, asc=True):
+        raise NotImplemented
+
+    @abstractmethod
     def get_one_by_uuid(self, uuid: UUID) -> Cell:
         raise NotImplemented
 
@@ -39,6 +43,13 @@ class CellRepoFake(CellRepo):
         if self._data.get(cell.uuid) is not None:
             raise Exception("already exist")
         self._data[cell.uuid] = cell.model_copy(deep=True)
+
+    def get_many(self, filter_by: dict, order_by: list[str] = None, asc=True):
+        result: list[Cell] = []
+        for cell in self._data.values():
+            if all([cell.__getattribute__(key) == value for key, value in filter_by.items()]):
+                result.append(cell)
+        return result
 
     def get_one_by_uuid(self, uuid: UUID) -> Cell:
         return self._data[uuid].model_copy(deep=True)

@@ -12,24 +12,7 @@ def create_sindex(sheet: Sheet, position: int, direction: SindexDirection, repo:
     repo.add(sindex)
 
 
-def delete_sindex(sindex: Sindex, repo: SindexRepo = SindexRepoFake()):
-    repo.remove(sindex)
-    Queue().append(events.SindexDeleted(entity=sindex))
-
-
-def delete_sindexes(sheet: Sheet, row_indexes: list[int], repo: SindexRepo):
+def delete_sindex(sindex: Sindex, sindex_repo: SindexRepo = SindexRepoFake()):
+    sindex_repo.remove(sindex)
     queue = Queue()
-    sindexes = repo.get_many(filter_by={"sheet": sheet}, order_by=["position"])
-    hashes = {key: 1 for key in row_indexes}
-
-    i = 0
-    for sindex in sindexes:
-        if hashes.get(sindex.position):
-            repo.remove(sindex)
-            queue.append(events.SindexDeleted(entity=sindex))
-        else:
-            new_sindex = sindex.model_copy(deep=True)
-            new_sindex.position = i
-            repo.update(new_sindex)
-            queue.append(events.SindexUpdated(old_entity=sindex, new_entity=new_sindex))
-            i += 1
+    queue.append(events.SindexDeleted(entity=sindex))
