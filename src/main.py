@@ -17,8 +17,8 @@ async def main():
     task3 = asyncio.create_task(router.append_rows(sheet, table))
     await task3
 
-    # task4 = asyncio.create_task(router.get_sheet(sheet_id))
-    # sheet = await task4
+    task4 = asyncio.create_task(router.get_sheet(sheet_id))
+    sheet = await task4
 
     print(sheet)
 

@@ -79,9 +79,9 @@ class SheetRepoPostgres(SheetRepo):
 
     async def update(self, sheet: Sheet):
         stmt = select(SheetModel).where(SheetModel.uuid == sheet.uuid)
-        # model = await self._session.scalar(stmt)
-        # model.row_size = sheet.size[0]
-        # model.col_size = sheet.size[1]
+        model = await self._session.scalar(stmt)
+        model.row_size = sheet.size[0]
+        model.col_size = sheet.size[1]
 
     async def get_one_by_uuid(self, uuid: UUID) -> Sheet:
         stmt = select(SheetModel).where(SheetModel.uuid == uuid)
