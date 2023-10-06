@@ -61,9 +61,9 @@ class SheetModel(Base):
     __tablename__ = "sheet"
     row_size: Mapped[int] = mapped_column(Integer, nullable=False)
     col_size: Mapped[int] = mapped_column(Integer, nullable=False)
-    row_sindexes = relationship('RowSindexModel', backref='row_sindexes_sheet_model')
-    col_sindexes = relationship('ColSindexModel', backref='col_sindexes_sheet_model')
-    cells = relationship('CellModel', backref='cell_model_sheet_model')
+    row_sindexes = relationship('RowSindexModel')
+    col_sindexes = relationship('ColSindexModel')
+    cells = relationship('CellModel')
 
     def to_entity(self) -> Sheet:
         return Sheet(uuid=self.uuid, size=(self.row_size, self.col_size))
