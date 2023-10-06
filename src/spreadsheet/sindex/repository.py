@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from sqlalchemy import String, Integer, ForeignKey
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.helpers.decorators import singleton
@@ -11,40 +12,40 @@ from src.spreadsheet.sindex.entity import Sindex
 
 class SindexRepo(ABC):
     @abstractmethod
-    def add(self, sindex: Sindex):
+    async def add(self, sindex: Sindex):
         raise NotImplemented
 
     @abstractmethod
-    def get_all(self) -> list[Sindex]:
+    async def get_all(self) -> list[Sindex]:
         raise NotImplemented
 
     @abstractmethod
-    def get_many(self, filter_by: dict, order_by: list, asc=True) -> list[Sindex]:
+    async def get_many(self, filter_by: dict, order_by: list, asc=True) -> list[Sindex]:
         raise NotImplemented
 
     @abstractmethod
-    def get_one_by_uuid(self, uuid: UUID) -> Sindex:
+    async def get_one_by_uuid(self, uuid: UUID) -> Sindex:
         raise NotImplemented
 
     @abstractmethod
-    def get_many_by_positions(self, sheet_uuid: UUID, positions: list[int],
-                              order_by: list[str] = None, asc=True) -> list[Sindex]:
+    async def get_many_by_positions(self, sheet_uuid: UUID, positions: list[int],
+                                    order_by: list[str] = None, asc=True) -> list[Sindex]:
         raise NotImplemented
 
     @abstractmethod
-    def update(self, sindex: Sindex):
+    async def update(self, sindex: Sindex):
         raise NotImplemented
 
     @abstractmethod
-    def remove(self, sindex: Sindex):
+    async def remove(self, sindex: Sindex):
         raise NotImplemented
 
     @abstractmethod
-    def remove_many_by_position(self, sheet_uuid: UUID, positions: list[int]):
+    async def remove_many_by_position(self, sheet_uuid: UUID, positions: list[int]):
         raise NotImplemented
 
     @abstractmethod
-    def remove_many_by_uuid(self, uuids: list[UUID]):
+    async def remove_many_by_uuid(self, uuids: list[UUID]):
         raise NotImplemented
 
 
@@ -110,14 +111,50 @@ class SindexRepoFake(SindexRepo):
 
 class RowSindexModel(Base):
     __tablename__ = "row_sindex"
-    direction: Mapped[str] = mapped_column(String(8), nullable=False)
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
 
 
 class ColSindexModel(Base):
     __tablename__ = "col_sindex"
-    direction: Mapped[str] = mapped_column(String(8), nullable=False)
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
 
+
+class SindexRepoPostgres(SindexRepo):
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    async def add(self, sindex: Sindex):
+        if sindex.direction == "ROW":
+            model = RowSindexModel
+        elif sindex.direction == "COL":
+            model = ColSindexModel
+        else:
+            raise ValueError
+        model = model(uuid=sindex.uuid, position=sindex.position, sheet_uuid=sindex.sheet.uuid)
+        self._session.add(model)
+
+    async def get_all(self) -> list[Sindex]:
+        raise NotImplemented
+
+    async def get_many(self, filter_by: dict, order_by: list, asc=True) -> list[Sindex]:
+        raise NotImplemented
+
+    async def get_one_by_uuid(self, uuid: UUID) -> Sindex:
+        raise NotImplemented
+
+    async def get_many_by_positions(self, sheet_uuid: UUID, positions: list[int], order_by: list[str] = None, asc=True):
+        raise NotImplemented
+
+    async def update(self, sindex: Sindex):
+        raise NotImplemented
+
+    async def remove(self, sindex: Sindex):
+        raise NotImplemented
+
+    async def remove_many_by_position(self, sheet_uuid: UUID, positions: list[int]):
+        raise NotImplemented
+
+    async def remove_many_by_uuid(self, uuids: list[UUID]):
+        raise NotImplemented

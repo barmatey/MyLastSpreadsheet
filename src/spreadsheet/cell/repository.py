@@ -1,37 +1,39 @@
 from abc import abstractmethod, ABC
 from uuid import UUID
+from datetime import datetime
 
 from sqlalchemy import String, ForeignKey
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.helpers.decorators import singleton
-from src.spreadsheet.cell.entity import Cell
+from src.spreadsheet.cell.entity import Cell, CellValue, CellDtype
 from src.spreadsheet.sheet.repository import Base
 
 
 class CellRepo(ABC):
     @abstractmethod
-    def add(self, cell: Cell):
+    async def add(self, cell: Cell):
         raise NotImplemented
 
     @abstractmethod
-    def get_all(self) -> list[Cell]:
+    async def get_all(self) -> list[Cell]:
         raise NotImplemented
 
     @abstractmethod
-    def get_many(self, filter_by: dict, order_by: list[str] = None, asc=True):
+    async def get_many(self, filter_by: dict, order_by: list[str] = None, asc=True):
         raise NotImplemented
 
     @abstractmethod
-    def get_one_by_uuid(self, uuid: UUID) -> Cell:
+    async def get_one_by_uuid(self, uuid: UUID) -> Cell:
         raise NotImplemented
 
     @abstractmethod
-    def update_one(self, cell: Cell):
+    async def update_one(self, cell: Cell):
         raise NotImplemented
 
     @abstractmethod
-    def delete_one(self, cell: Cell):
+    async def delete_one(self, cell: Cell):
         raise NotImplemented
 
 
@@ -79,3 +81,44 @@ class CellModel(Base):
     sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
     row_sindex_uuid: Mapped[UUID] = mapped_column(ForeignKey("row_sindex.uuid"))
     col_sindex_uuid: Mapped[UUID] = mapped_column(ForeignKey("col_sindex.uuid"))
+
+
+def get_dtype(value: CellValue) -> CellDtype:
+    if value is None:
+        return "string"
+    if isinstance(value, int):
+        return "int"
+    if isinstance(value, str):
+        return "string"
+    if isinstance(value, float):
+        return "float"
+    if isinstance(value, datetime):
+        return "datetime"
+    if isinstance(value, bool):
+        return "bool"
+    raise TypeError
+
+
+class CellRepoPostgres(CellRepo):
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    async def add(self, cell: Cell):
+        model = CellModel(uuid=cell.uuid, value=str(cell.value), dtype=get_dtype(cell.value),
+                          row_sindex_uuid=cell.row_sindex.uuid, col_sindex_uuid=cell.col_sindex.uuid)
+        self._session.add(model)
+
+    async def get_all(self) -> list[Cell]:
+        raise NotImplemented
+
+    async def get_many(self, filter_by: dict, order_by: list[str] = None, asc=True):
+        raise NotImplemented
+
+    async def get_one_by_uuid(self, uuid: UUID) -> Cell:
+        raise NotImplemented
+
+    async def update_one(self, cell: Cell):
+        raise NotImplemented
+
+    async def delete_one(self, cell: Cell):
+        raise NotImplemented
