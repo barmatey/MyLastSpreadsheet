@@ -61,6 +61,20 @@ async def test_create_sheet():
 async def test_delete_rows(sheet: sheet_entity.Sheet):
     sheet = await sheet
     async with db.get_async_session() as session:
+        sheet_repo = SheetRepoPostgres(session)
+        sindex_repo = SindexRepoPostgres(session)
+        cell_repo = CellRepoPostgres(session)
+        rows = await sindex_repo.get_sheet_rows(sheet)
+
+        to_delete = rows[3:5]
+        cmd = sheet_commands.DeleteSindexes(sheet=sheet, targets=to_delete, sheet_repo=sheet_repo,
+                                            sindex_repo=sindex_repo, cell_repo=cell_repo)
+        await cmd.execute()
+        await session.commit()
+
+    async with db.get_async_session() as session:
         sindex_repo = SindexRepoPostgres(session)
         rows = await sindex_repo.get_sheet_rows(sheet)
         print(rows)
+        assert len(rows) == 9
+

@@ -57,18 +57,14 @@ class AppendRows(PydanticModel):
         Queue().append(sheet_events.SheetRowsAppended(table=table))
 
 
-class DeleteSindexes(BaseModel):
+class DeleteSindexes(PydanticModel):
     sheet: sheet_entity.Sheet
     targets: list[sindex_entity.Sindex]
     uuid: UUID = Field(default_factory=uuid4)
+    sheet_repo: sheet_repo.SheetRepo
+    sindex_repo: sindex_repo.SindexRepo
+    cell_repo: cell_repo.CellRepo
 
-    def execute(self):
-        sheet = self.sheet
-        direction = self.targets[0].direction
-        for sindex in self.targets:
-            if sindex.direction != direction:
-                raise Exception
-            sindex_usecases.delete_sindex(sindex)
-        sindex_usecases.reindex(sheet, direction)
-        sheet.size = (sheet.size[0] - len(self.targets), sheet.size[1])
-        sheet_usecases.update_sheet(sheet)
+    async def execute(self):
+        await sindex_usecases.delete_sindexes(self.targets, self.sindex_repo)
+

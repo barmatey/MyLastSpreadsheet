@@ -19,6 +19,12 @@ def delete_sindex(sindex: Sindex, sindex_repo: SindexRepo):
     queue.append(events.SindexDeleted(entity=sindex))
 
 
+async def delete_sindexes(sindexes: list[Sindex], repo: SindexRepo):
+    await repo.remove_many(sindexes)
+    for sindex in sindexes:
+        Queue().append(events.SindexDeleted(entity=sindex))
+
+
 def reindex(sheet: Sheet, direction: SindexDirection, repo: SindexRepo):
     sindexes = repo.get_many(filter_by={"sheet": sheet, "direction": direction, }, order_by=["position"])
     for i, sindex in enumerate(sindexes):

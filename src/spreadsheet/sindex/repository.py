@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from sqlalchemy import String, Integer, ForeignKey, select
+from sqlalchemy import String, Integer, ForeignKey, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -17,45 +17,15 @@ class SindexRepo(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def get_sheet_rows(self, sheet: Sheet, order_by: str | list[str] = 'position', asc=True) -> list[Sindex]:
+    async def remove_many(self, sindexes: list[Sindex]):
         raise NotImplemented
 
     @abstractmethod
-    async def get_sheet_cols(self, sheet: Sheet, order_by: str | list[str] = 'position', asc=True) -> list[Sindex]:
+    async def get_sheet_rows(self, sheet: Sheet, order_by: str | list[str] = 'position', asc=True) -> list[RowSindex]:
         raise NotImplemented
 
     @abstractmethod
-    async def get_all(self) -> list[Sindex]:
-        raise NotImplemented
-
-    @abstractmethod
-    async def get_many(self, direction: SindexDirection, filter_by: dict,
-                       order_by: str | list[str] = None, asc=True) -> list[Sindex]:
-        raise NotImplemented
-
-    @abstractmethod
-    async def get_one_by_uuid(self, uuid: UUID) -> Sindex:
-        raise NotImplemented
-
-    @abstractmethod
-    async def get_many_by_positions(self, sheet_uuid: UUID, positions: list[int],
-                                    order_by: list[str] = None, asc=True) -> list[Sindex]:
-        raise NotImplemented
-
-    @abstractmethod
-    async def update(self, sindex: Sindex):
-        raise NotImplemented
-
-    @abstractmethod
-    async def remove(self, sindex: Sindex):
-        raise NotImplemented
-
-    @abstractmethod
-    async def remove_many_by_position(self, sheet_uuid: UUID, positions: list[int]):
-        raise NotImplemented
-
-    @abstractmethod
-    async def remove_many_by_uuid(self, uuids: list[UUID]):
+    async def get_sheet_cols(self, sheet: Sheet, order_by: str | list[str] = 'position', asc=True) -> list[ColSindex]:
         raise NotImplemented
 
 
@@ -66,7 +36,7 @@ class RowSindexModel(Base):
     cells = relationship('CellModel')
 
     def to_entity(self, sheet: Sheet) -> RowSindex:
-        return RowSindex(sheet=sheet, position=self.position)
+        return RowSindex(uuid=self.uuid, sheet=sheet, position=self.position)
 
 
 class ColSindexModel(Base):
@@ -76,7 +46,7 @@ class ColSindexModel(Base):
     cells = relationship('CellModel')
 
     def to_entity(self, sheet: Sheet) -> ColSindex:
-        return ColSindex(sheet=sheet, position=self.position)
+        return ColSindex(uuid=self.uuid, sheet=sheet, position=self.position)
 
 
 class SindexRepoPostgres(SindexRepo):
@@ -93,6 +63,12 @@ class SindexRepoPostgres(SindexRepo):
         model = model(uuid=sindex.uuid, position=sindex.position, sheet_uuid=sindex.sheet.uuid)
         self._session.add(model)
 
+    async def remove_many(self, sindexes: list[Sindex]):
+        model = RowSindexModel if isinstance(sindexes[0], RowSindex) else ColSindexModel
+        uuids = [x.uuid for x in sindexes]
+        stmt = delete(model).where(model.uuid.in_(uuids))
+        await self._session.execute(stmt)
+
     async def get_sheet_rows(self, sheet: Sheet, order_by: str | list[str] = 'position', asc=True) -> list[RowSindex]:
         orders = helpers.postgres.parse_order_by(RowSindexModel, order_by, asc)
         stmt = select(RowSindexModel).where(RowSindexModel.sheet_uuid == sheet.uuid).order_by(*orders)
@@ -106,28 +82,3 @@ class SindexRepoPostgres(SindexRepo):
         result = await self._session.execute(stmt)
         result = [x.to_entity(sheet) for x in result.scalars().fetchall()]
         return result
-
-    async def get_all(self) -> list[Sindex]:
-        raise NotImplemented
-
-    async def get_many(self, direction: SindexDirection, filter_by: dict,
-                       order_by: str | list[str] = "position", asc=True) -> list[Sindex]:
-        raise NotImplemented
-
-    async def get_one_by_uuid(self, uuid: UUID) -> Sindex:
-        raise NotImplemented
-
-    async def get_many_by_positions(self, sheet_uuid: UUID, positions: list[int], order_by: list[str] = None, asc=True):
-        raise NotImplemented
-
-    async def update(self, sindex: Sindex):
-        raise NotImplemented
-
-    async def remove(self, sindex: Sindex):
-        raise NotImplemented
-
-    async def remove_many_by_position(self, sheet_uuid: UUID, positions: list[int]):
-        raise NotImplemented
-
-    async def remove_many_by_uuid(self, uuids: list[UUID]):
-        raise NotImplemented
