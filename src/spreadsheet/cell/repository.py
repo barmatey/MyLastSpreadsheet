@@ -2,12 +2,17 @@ from abc import abstractmethod, ABC
 from uuid import UUID
 from datetime import datetime
 
-from sqlalchemy import String, ForeignKey
+from sqlalchemy import String, ForeignKey, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
+from src import helpers
+from src.core import OrderBy
 from src.spreadsheet.cell.entity import Cell, CellValue, CellDtype
+from src.spreadsheet.sheet.entity import Sheet
 from src.spreadsheet.sheet.repository import Base
+from src.spreadsheet.sindex.entity import RowSindex, ColSindex
+from src.spreadsheet.sindex.repository import RowSindexModel, ColSindexModel
 
 
 class CellRepo(ABC):
@@ -16,23 +21,12 @@ class CellRepo(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def get_all(self) -> list[Cell]:
+    async def get_many_by_sheet_filters(self, sheet: Sheet, rows: list[RowSindex] = None, cols: list[ColSindex] = None,
+                                        order_by: OrderBy = None) -> list[Cell]:
         raise NotImplemented
 
     @abstractmethod
-    async def get_many(self, filter_by: dict, order_by: list[str] = None, asc=True):
-        raise NotImplemented
-
-    @abstractmethod
-    async def get_one_by_uuid(self, uuid: UUID) -> Cell:
-        raise NotImplemented
-
-    @abstractmethod
-    async def update_one(self, cell: Cell):
-        raise NotImplemented
-
-    @abstractmethod
-    async def delete_one(self, cell: Cell):
+    async def remove_many(self, cells: list[Cell]):
         raise NotImplemented
 
 
@@ -43,6 +37,26 @@ class CellModel(Base):
     sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
     row_sindex_uuid: Mapped[UUID] = mapped_column(ForeignKey("row_sindex.uuid"))
     col_sindex_uuid: Mapped[UUID] = mapped_column(ForeignKey("col_sindex.uuid"))
+
+    def to_entity(self, sheet: Sheet, row: RowSindex, col: ColSindex):
+        return Cell(sheet=sheet, row_sindex=row, col_sindex=col, value=get_value(self.value, self.dtype),
+                    uuid=self.uuid)
+
+
+def get_value(value: str, dtype: CellDtype) -> CellValue:
+    if dtype == "string":
+        return value
+    if dtype == "int":
+        return int(value)
+    if dtype == "float":
+        return float(value)
+    if dtype == "bool" and value == "True":
+        return True
+    if dtype == "bool" and value == "False":
+        return False
+    if dtype == "datetime":
+        return datetime.fromisoformat(value)
+    raise TypeError(f"{value}, {dtype}")
 
 
 def get_dtype(value: CellValue) -> CellDtype:
@@ -71,17 +85,30 @@ class CellRepoPostgres(CellRepo):
                           sheet_uuid=cell.sheet.uuid)
         self._session.add(model)
 
-    async def get_all(self) -> list[Cell]:
-        raise NotImplemented
+    async def get_many_by_sheet_filters(self, sheet: Sheet, rows: list[RowSindex] = None, cols: list[ColSindex] = None,
+                                        order_by: OrderBy = None) -> list[Cell]:
+        stmt = (
+            select(CellModel, RowSindexModel, ColSindexModel)
+            .join(RowSindexModel, CellModel.row_sindex_uuid == RowSindexModel.uuid)
+            .join(ColSindexModel, CellModel.col_sindex_uuid == ColSindexModel.uuid)
+            .where(CellModel.sheet_uuid == sheet.uuid)
+        )
+        if rows:
+            stmt = stmt.where(CellModel.row_sindex_uuid.in_([x.uuid for x in rows]))
+        if cols:
+            stmt = stmt.where(CellModel.col_sindex_uuid.in_([x.uuid for x in cols]))
+        if order_by:
+            orders = helpers.postgres.parse_order_by(CellModel, *order_by)
+            stmt = stmt.order_by(*orders)
 
-    async def get_many(self, filter_by: dict, order_by: list[str] = None, asc=True):
-        raise NotImplemented
+        result = await self._session.execute(stmt)
+        result = [x[0].to_entity(sheet, row=x[1].to_entity(sheet), col=x[2].to_entity(sheet)) for x in result]
+        for x in result:
+            print(x)
+        stop
+        return result
 
-    async def get_one_by_uuid(self, uuid: UUID) -> Cell:
-        raise NotImplemented
-
-    async def update_one(self, cell: Cell):
-        raise NotImplemented
-
-    async def delete_one(self, cell: Cell):
-        raise NotImplemented
+    async def remove_many(self, cells: list[Cell]):
+        uuids = [x.uuid for x in cells]
+        stmt = delete(CellModel).where(CellModel.uuid.in_(uuids))
+        await self._session.execute(stmt)

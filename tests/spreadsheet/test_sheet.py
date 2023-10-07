@@ -64,10 +64,13 @@ async def test_delete_rows(sheet: sheet_entity.Sheet):
         sheet_repo = SheetRepoPostgres(session)
         sindex_repo = SindexRepoPostgres(session)
         cell_repo = CellRepoPostgres(session)
-        rows = await sindex_repo.get_sheet_rows(sheet)
 
-        to_delete = rows[3:5]
-        cmd = sheet_commands.DeleteSindexes(sheet=sheet, targets=to_delete, sheet_repo=sheet_repo,
+        rows = await sindex_repo.get_sheet_rows(sheet)
+        sindexes_to_delete = rows[3:4]
+
+        cells = await cell_repo.get_many_by_sheet_filters(sheet, sindexes_to_delete)
+
+        cmd = sheet_commands.DeleteSindexes(sheet=sheet, sindexes=sindexes_to_delete, sheet_repo=sheet_repo,
                                             sindex_repo=sindex_repo, cell_repo=cell_repo)
         await cmd.execute()
         await session.commit()

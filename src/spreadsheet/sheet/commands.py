@@ -59,12 +59,14 @@ class AppendRows(PydanticModel):
 
 class DeleteSindexes(PydanticModel):
     sheet: sheet_entity.Sheet
-    targets: list[sindex_entity.Sindex]
+    sindexes: list[sindex_entity.Sindex]
+    cells: list[cell_entity.Cell]
     uuid: UUID = Field(default_factory=uuid4)
     sheet_repo: sheet_repo.SheetRepo
     sindex_repo: sindex_repo.SindexRepo
     cell_repo: cell_repo.CellRepo
 
     async def execute(self):
-        await sindex_usecases.delete_sindexes(self.targets, self.sindex_repo)
+        await cell_usecases.delete_cells(self.cells, self.cell_repo)
+        await sindex_usecases.delete_sindexes(self.sindexes, self.sindex_repo)
 
