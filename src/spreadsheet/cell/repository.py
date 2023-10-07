@@ -103,9 +103,6 @@ class CellRepoPostgres(CellRepo):
 
         result = await self._session.execute(stmt)
         result = [x[0].to_entity(sheet, row=x[1].to_entity(sheet), col=x[2].to_entity(sheet)) for x in result]
-        for x in result:
-            print(x)
-        stop
         return result
 
     async def remove_many(self, cells: list[Cell]):

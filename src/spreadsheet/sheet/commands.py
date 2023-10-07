@@ -69,4 +69,5 @@ class DeleteSindexes(PydanticModel):
     async def execute(self):
         await cell_usecases.delete_cells(self.cells, self.cell_repo)
         await sindex_usecases.delete_sindexes(self.sindexes, self.sindex_repo)
+        await sindex_usecases.reindex_rows(self.sheet, self.sindex_repo)
 

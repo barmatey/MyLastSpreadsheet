@@ -66,12 +66,11 @@ async def test_delete_rows(sheet: sheet_entity.Sheet):
         cell_repo = CellRepoPostgres(session)
 
         rows = await sindex_repo.get_sheet_rows(sheet)
-        sindexes_to_delete = rows[3:4]
+        sindexes_to_delete = rows[3:5]
+        cells_to_delete = await cell_repo.get_many_by_sheet_filters(sheet, sindexes_to_delete)
 
-        cells = await cell_repo.get_many_by_sheet_filters(sheet, sindexes_to_delete)
-
-        cmd = sheet_commands.DeleteSindexes(sheet=sheet, sindexes=sindexes_to_delete, sheet_repo=sheet_repo,
-                                            sindex_repo=sindex_repo, cell_repo=cell_repo)
+        cmd = sheet_commands.DeleteSindexes(sheet=sheet, sindexes=sindexes_to_delete, cells=cells_to_delete,
+                                            sheet_repo=sheet_repo, sindex_repo=sindex_repo, cell_repo=cell_repo)
         await cmd.execute()
         await session.commit()
 
@@ -80,4 +79,5 @@ async def test_delete_rows(sheet: sheet_entity.Sheet):
         rows = await sindex_repo.get_sheet_rows(sheet)
         print(rows)
         assert len(rows) == 9
-
+        for i, row in enumerate(rows):
+            assert row.position == i

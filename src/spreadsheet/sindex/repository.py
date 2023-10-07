@@ -1,14 +1,16 @@
 from abc import ABC, abstractmethod
+from typing import Type
 from uuid import UUID
 
-from sqlalchemy import String, Integer, ForeignKey, select, delete
+from sqlalchemy import Integer, ForeignKey, select, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src import helpers
+from src.core import OrderBy
 from src.spreadsheet.sheet.entity import Sheet
 from src.spreadsheet.sheet.repository import Base
-from src.spreadsheet.sindex.entity import Sindex, SindexDirection, RowSindex, ColSindex
+from src.spreadsheet.sindex.entity import Sindex, RowSindex, ColSindex
 
 
 class SindexRepo(ABC):
@@ -17,15 +19,19 @@ class SindexRepo(ABC):
         raise NotImplemented
 
     @abstractmethod
+    async def update_one(self, sindex: Sindex):
+        raise NotImplemented
+
+    @abstractmethod
     async def remove_many(self, sindexes: list[Sindex]):
         raise NotImplemented
 
     @abstractmethod
-    async def get_sheet_rows(self, sheet: Sheet, order_by: str | list[str] = 'position', asc=True) -> list[RowSindex]:
+    async def get_sheet_rows(self, sheet: Sheet, order_by: OrderBy = None) -> list[RowSindex]:
         raise NotImplemented
 
     @abstractmethod
-    async def get_sheet_cols(self, sheet: Sheet, order_by: str | list[str] = 'position', asc=True) -> list[ColSindex]:
+    async def get_sheet_cols(self, sheet: Sheet, order_by: OrderBy = None) -> list[ColSindex]:
         raise NotImplemented
 
 
@@ -63,22 +69,28 @@ class SindexRepoPostgres(SindexRepo):
         model = model(uuid=sindex.uuid, position=sindex.position, sheet_uuid=sindex.sheet.uuid)
         self._session.add(model)
 
+    async def update_one(self, sindex: Sindex):
+        model = RowSindexModel if isinstance(sindex, RowSindex) else ColSindexModel
+        stmt = update(model).where(model.uuid == sindex.uuid).values(**sindex.model_dump(exclude={"sheet", "uuid"}))
+        await self._session.execute(stmt)
+
+    async def get_sheet_rows(self, sheet: Sheet, order_by: OrderBy = None) -> list[RowSindex]:
+        return await self.__get_sindexes(RowSindexModel, sheet, order_by)
+
+    async def get_sheet_cols(self, sheet: Sheet, order_by: OrderBy = None) -> list[ColSindex]:
+        return await self.__get_sindexes(ColSindexModel, sheet, order_by)
+
     async def remove_many(self, sindexes: list[Sindex]):
         model = RowSindexModel if isinstance(sindexes[0], RowSindex) else ColSindexModel
         uuids = [x.uuid for x in sindexes]
         stmt = delete(model).where(model.uuid.in_(uuids))
         await self._session.execute(stmt)
 
-    async def get_sheet_rows(self, sheet: Sheet, order_by: str | list[str] = 'position', asc=True) -> list[RowSindex]:
-        orders = helpers.postgres.parse_order_by(RowSindexModel, order_by, asc)
-        stmt = select(RowSindexModel).where(RowSindexModel.sheet_uuid == sheet.uuid).order_by(*orders)
-        result = await self._session.execute(stmt)
-        result = [x.to_entity(sheet) for x in result.scalars().fetchall()]
-        return result
-
-    async def get_sheet_cols(self, sheet: Sheet, order_by: str | list[str] = 'position', asc=True) -> list[ColSindex]:
-        orders = helpers.postgres.parse_order_by(ColSindexModel, order_by, asc)
-        stmt = select(ColSindexModel).where(ColSindexModel.sheet_uuid == sheet.uuid).order_by(*orders)
+    async def __get_sindexes(self, model: Type[RowSindexModel] | Type[ColSindexModel], sheet, order_by):
+        stmt = select(model).where(model.sheet_uuid == sheet.uuid)
+        if order_by:
+            orders = helpers.postgres.parse_order_by(RowSindexModel, *order_by)
+            stmt = stmt.order_by(*orders)
         result = await self._session.execute(stmt)
         result = [x.to_entity(sheet) for x in result.scalars().fetchall()]
         return result
