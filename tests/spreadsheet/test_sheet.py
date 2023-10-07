@@ -62,5 +62,5 @@ async def test_delete_rows(sheet: sheet_entity.Sheet):
     sheet = await sheet
     async with db.get_async_session() as session:
         sindex_repo = SindexRepoPostgres(session)
-        rows = await sindex_repo.get_many(direction="ROW", filter_by={"sheet_uuid": sheet.uuid})
+        rows = await sindex_repo.get_sheet_rows(sheet)
         print(rows)

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src import helpers
+from src.spreadsheet.sheet.entity import Sheet
 from src.spreadsheet.sheet.repository import Base
 from src.spreadsheet.sindex.entity import Sindex, SindexDirection
 
@@ -13,6 +14,14 @@ from src.spreadsheet.sindex.entity import Sindex, SindexDirection
 class SindexRepo(ABC):
     @abstractmethod
     async def add(self, sindex: Sindex):
+        raise NotImplemented
+
+    @abstractmethod
+    async def get_sheet_rows(self, sheet: Sheet, order_by: str | list[str] = 'position', asc=True) -> list[Sindex]:
+        raise NotImplemented
+
+    @abstractmethod
+    async def get_sheet_cols(self, sheet: Sheet, order_by: str | list[str] = 'position', asc=True) -> list[Sindex]:
         raise NotImplemented
 
     @abstractmethod
@@ -56,6 +65,9 @@ class RowSindexModel(Base):
     sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
     cells = relationship('CellModel')
 
+    def to_entity(self, sheet: Sheet) -> Sindex:
+        return Sindex(sheet=sheet, direction="ROW", position=self.position)
+
 
 class ColSindexModel(Base):
     __tablename__ = "col_sindex"
@@ -78,6 +90,20 @@ class SindexRepoPostgres(SindexRepo):
         model = model(uuid=sindex.uuid, position=sindex.position, sheet_uuid=sindex.sheet.uuid)
         self._session.add(model)
 
+    async def get_sheet_rows(self, sheet: Sheet, order_by: str | list[str] = 'position', asc=True) -> list[Sindex]:
+        orders = helpers.postgres.parse_order_by(RowSindexModel, order_by, asc)
+        stmt = select(RowSindexModel).where(RowSindexModel.sheet_uuid == sheet.uuid).order_by(*orders)
+        result = await self._session.execute(stmt)
+        result = [x.to_entity(sheet) for x in result.scalars().fetchall()]
+        return result
+
+    async def get_sheet_cols(self, sheet: Sheet, order_by: str | list[str] = 'position', asc=True) -> list[Sindex]:
+        orders = helpers.postgres.parse_order_by(ColSindexModel, order_by, asc)
+        stmt = select(ColSindexModel).where(ColSindexModel.sheet_uuid == sheet.uuid).order_by(*orders)
+        result = await self._session.execute(stmt)
+        result = [x.to_entity(sheet) for x in result.scalars().fetchall()]
+        return result
+
     async def get_all(self) -> list[Sindex]:
         raise NotImplemented
 
@@ -93,7 +119,7 @@ class SindexRepoPostgres(SindexRepo):
         orders = helpers.postgres.parse_order_by(model, order_by, asc)
         stmt = select(model).where(*filters).order_by(*orders)
         result = await self._session.execute(stmt)
-        result = list(result.scalars().fetchall())
+        result = [x.to_entity() for x in result.scalars().fetchall()]
         return result
 
     async def get_one_by_uuid(self, uuid: UUID) -> Sindex:

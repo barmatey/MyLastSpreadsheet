@@ -14,6 +14,12 @@ class Sindex(BaseModel):
     position: int
     uuid: UUID = Field(default_factory=uuid4)
 
+    def __str__(self):
+        return f"{self.__class__.__name__}(position={self.position})"
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(position={self.position})"
+
 
 class RowSindex(Sindex):
     pass
