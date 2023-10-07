@@ -23,6 +23,10 @@ class SindexRepo(ABC):
         raise NotImplemented
 
     @abstractmethod
+    async def remove_one(self, sindex: Sindex):
+        raise NotImplemented
+
+    @abstractmethod
     async def remove_many(self, sindexes: list[Sindex]):
         raise NotImplemented
 
@@ -79,6 +83,11 @@ class SindexRepoPostgres(SindexRepo):
 
     async def get_sheet_cols(self, sheet: Sheet, order_by: OrderBy = None) -> list[ColSindex]:
         return await self.__get_sindexes(ColSindexModel, sheet, order_by)
+
+    async def remove_one(self, sindex: Sindex):
+        model = RowSindexModel if isinstance(sindex, RowSindex) else ColSindexModel
+        stmt = delete(model).where(model.uuid == sindex.uuid)
+        await self._session.execute(stmt)
 
     async def remove_many(self, sindexes: list[Sindex]):
         model = RowSindexModel if isinstance(sindexes[0], RowSindex) else ColSindexModel

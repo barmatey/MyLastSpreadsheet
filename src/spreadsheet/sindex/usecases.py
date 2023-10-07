@@ -7,8 +7,8 @@ from .entity import Sindex, SindexDirection
 from . import events
 
 
-async def create_sindex(sheet: Sheet, position: int, direction: SindexDirection, repo: SindexRepo) -> Sindex:
-    sindex = Sindex(sheet=sheet, position=position, direction=direction)
+async def create_sindex(sheet: Sheet, position: int, repo: SindexRepo) -> Sindex:
+    sindex = Sindex(sheet=sheet, position=position)
     await repo.add(sindex)
     return sindex
 

@@ -81,3 +81,7 @@ async def test_delete_rows(sheet: sheet_entity.Sheet):
         assert len(rows) == 9
         for i, row in enumerate(rows):
             assert row.position == i
+
+        sheet_repo = SheetRepoPostgres(session)
+        sheet = await sheet_repo.get_one_by_uuid(sheet.uuid)
+        assert sheet.size == (9, 5)
