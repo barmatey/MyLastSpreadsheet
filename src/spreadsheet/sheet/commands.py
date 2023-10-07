@@ -15,9 +15,9 @@ class CreateSheet(PydanticModel):
     sheet_repo: sheet_repo.SheetRepo
     uuid: UUID = Field(default_factory=uuid4)
 
-    async def execute(self) -> UUID:
-        uuid = await sheet_usecases.create_sheet(self.sheet_repo)
-        return uuid
+    async def execute(self) -> sheet_entity.Sheet:
+        sheet = await sheet_usecases.create_sheet(self.sheet_repo)
+        return sheet
 
 
 class GetSheet(PydanticModel):

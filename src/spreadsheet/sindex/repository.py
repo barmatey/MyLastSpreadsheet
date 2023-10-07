@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from sqlalchemy import String, Integer, ForeignKey
+from sqlalchemy import String, Integer, ForeignKey, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.helpers.decorators import singleton
+from src import helpers
 from src.spreadsheet.sheet.repository import Base
-from src.spreadsheet.sindex.entity import Sindex
+from src.spreadsheet.sindex.entity import Sindex, SindexDirection
 
 
 class SindexRepo(ABC):
@@ -20,7 +20,8 @@ class SindexRepo(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def get_many(self, filter_by: dict, order_by: list, asc=True) -> list[Sindex]:
+    async def get_many(self, direction: SindexDirection, filter_by: dict,
+                       order_by: str | list[str] = None, asc=True) -> list[Sindex]:
         raise NotImplemented
 
     @abstractmethod
@@ -47,66 +48,6 @@ class SindexRepo(ABC):
     @abstractmethod
     async def remove_many_by_uuid(self, uuids: list[UUID]):
         raise NotImplemented
-
-
-@singleton
-class SindexRepoFake(SindexRepo):
-    def __init__(self):
-        self._data: dict[UUID, Sindex] = {}
-
-    def add(self, sindex: Sindex):
-        if self._data.get(sindex.uuid) is not None:
-            raise Exception("already exist")
-        self._data[sindex.uuid] = sindex.model_copy(deep=True)
-
-    def get_all(self):
-        sindexes = self._data.values()
-        sindexes = sorted(sindexes, key=lambda x: x.position)
-        return sindexes
-
-    def get_many(self, filter_by: dict, order_by: list, asc=True) -> list[Sindex]:
-        result: list[Sindex] = []
-        for sindex in self._data.values():
-            if all([sindex.__getattribute__(key) == value for key, value in filter_by.items()]):
-                result.append(sindex.model_copy(deep=True))
-        if len(order_by) != 1 or order_by[0] != "position":
-            raise Exception
-
-        result.sort(key=lambda x: x.position)
-        return result
-
-    def get_one_by_uuid(self, uuid: UUID) -> Sindex:
-        return self._data[uuid].model_copy(deep=True)
-
-    def get_many_by_positions(self, sheet_uuid: UUID, positions: list[int], order_by: list[str] = None, asc=True):
-        result: list[Sindex] = []
-        for sindex in self._data.values():
-            if all([sindex.sheet.uuid == sheet_uuid, sindex.position in positions]):
-                result.append(sindex)
-        return result
-
-    def update(self, sindex: Sindex):
-        if self._data.get(sindex.uuid) is None:
-            raise LookupError
-        self._data[sindex.uuid] = sindex.model_copy(deep=True)
-
-    def remove(self, sindex: Sindex):
-        del self._data[sindex.uuid]
-
-    def remove_many_by_position(self, sheet_uuid: UUID, positions: list[int]):
-        to_remove: list[UUID] = []
-        for uuid, sindex in self._data.items():
-            if all([sindex.sheet.uuid == sheet_uuid, sindex.position in positions]):
-                to_remove.append(uuid)
-        for uuid in to_remove:
-            del self._data[uuid]
-
-    def remove_many_by_uuid(self, uuids: list[UUID]):
-        for uuid in uuids:
-            del self._data[uuid]
-
-    def clear(self):
-        self._data = {}
 
 
 class RowSindexModel(Base):
@@ -140,8 +81,20 @@ class SindexRepoPostgres(SindexRepo):
     async def get_all(self) -> list[Sindex]:
         raise NotImplemented
 
-    async def get_many(self, filter_by: dict, order_by: list, asc=True) -> list[Sindex]:
-        raise NotImplemented
+    async def get_many(self, direction: SindexDirection, filter_by: dict,
+                       order_by: str | list[str] = "position", asc=True) -> list[Sindex]:
+        if direction == "ROW":
+            model = RowSindexModel
+        elif direction == "COL":
+            model = ColSindexModel
+        else:
+            raise ValueError
+        filters = [model.__table__.c[key] == value for key, value in filter_by.items()]
+        orders = helpers.postgres.parse_order_by(model, order_by, asc)
+        stmt = select(model).where(*filters).order_by(*orders)
+        result = await self._session.execute(stmt)
+        result = list(result.scalars().fetchall())
+        return result
 
     async def get_one_by_uuid(self, uuid: UUID) -> Sindex:
         raise NotImplemented

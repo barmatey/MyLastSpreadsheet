@@ -2,7 +2,7 @@ from uuid import UUID
 
 from src.bus.eventbus import Queue
 from src.spreadsheet.sheet.entity import Sheet
-from .repository import SindexRepo, SindexRepoFake
+from .repository import SindexRepo
 from .entity import Sindex, SindexDirection
 from . import events
 

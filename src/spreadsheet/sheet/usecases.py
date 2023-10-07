@@ -4,10 +4,10 @@ from src.spreadsheet.sheet.entity import Sheet
 from src.spreadsheet.sheet.repository import SheetRepo
 
 
-async def create_sheet(repo: SheetRepo) -> UUID:
+async def create_sheet(repo: SheetRepo) -> Sheet:
     sheet = Sheet()
     await repo.add(sheet)
-    return sheet.uuid
+    return sheet
 
 
 async def get_sheet_by_uuid(uuid: UUID, repo: SheetRepo) -> Sheet:

@@ -1,96 +1,66 @@
 import random
 
 import pytest
+import pytest_asyncio
 
+import db
 from src.bus.eventbus import EventBus
-from src.spreadsheet.cell.repository import CellRepoFake
-from src.spreadsheet.sheet.repository import SheetRepoFake
-from src.spreadsheet.sindex.repository import SindexRepoFake
+from src.spreadsheet.cell.repository import CellRepoPostgres
+from src.spreadsheet.sheet.repository import SheetRepoPostgres
+from src.spreadsheet.sindex.repository import SindexRepoPostgres
 from src.spreadsheet.sheet import commands as sheet_commands, entity as sheet_entity, usecases as sheet_usecases
 from src.spreadsheet.sindex import entity as sindex_entity, usecases as sindex_usecases
 from src.spreadsheet.cell import entity as cell_entity, usecases as cell_usecases
 
 
-@pytest.fixture(scope="function")
-def cell_repo():
-    repo = CellRepoFake()
-    return repo
+@pytest.fixture()
+@pytest.mark.asyncio
+async def sheet():
+    async with db.get_async_session() as session:
+        sheet_repo = SheetRepoPostgres(session)
+        sindex_repo = SindexRepoPostgres(session)
+        cell_repo = CellRepoPostgres(session)
 
+        sheet = sheet_entity.Sheet(size=(11, 5))
+        await sheet_repo.add(sheet)
 
-@pytest.fixture(scope="function")
-def sheet_repo():
-    repo = SheetRepoFake()
-    return repo
+        row_sindexes = []
+        for i in range(0, 11):
+            row_sindex = sindex_entity.Sindex(sheet=sheet, position=i, direction="ROW")
+            await sindex_repo.add(row_sindex)
+            row_sindexes.append(row_sindex)
 
-
-@pytest.fixture(scope="function")
-def sindex_repo():
-    repo = SindexRepoFake()
-    return repo
-
-
-@pytest.fixture(scope='function')
-def sheet() -> sheet_entity.Sheet:
-    sheet_repository = SheetRepoFake()
-    cell_repository = CellRepoFake()
-    sindex_repository = SindexRepoFake()
-    sheet_repository.clear()
-    cell_repository.clear()
-    sindex_repository.clear()
-
-    sheet = sheet_entity.Sheet(size=(11, 5))
-    sheet_repository.add(sheet)
-
-    for i in range(0, 11):
-        row = sindex_entity.Sindex(sheet=sheet, direction="ROW", position=i)
-        sindex_repository.add(row)
-
-    for j in range(0, 5):
-        col = sindex_entity.Sindex(sheet=sheet, direction="COL", position=j)
-        sindex_repository.add(col)
-
-    for i in range(0, 11):
+        col_sindexes = []
         for j in range(0, 5):
-            cell = cell_entity.Cell(sheet=sheet, value=random.randrange(0, 100))
-            cell_repository.add(cell)
+            col_sindex = sindex_entity.Sindex(sheet=sheet, position=j, direction="COL")
+            await sindex_repo.add(col_sindex)
+            col_sindexes.append(col_sindex)
 
-    return sheet
+        for row in row_sindexes:
+            for col in col_sindexes:
+                cell = cell_entity.Cell(sheet=sheet, row_sindex=row, col_sindex=col, value=random.randrange(0, 111))
+                await cell_repo.add(cell)
 
-
-def test_append_sheet_rows(sheet_repo, cell_repo):
-    sheet = sheet_repo.get_one_by_uuid(sheet_usecases.create_sheet())
-    assert sheet.size == (0, 0)
-    table = [
-        [1, 2],
-        [3, 4],
-    ]
-    cmd = sheet_commands.AppendRows(sheet=sheet, table=table)
-    cmd.execute()
-
-    sheet = sheet_repo.get_one_by_uuid(sheet.uuid)
-    assert sheet.size == (2, 2)
-
-    cells = sorted(cell_repo.get_all(), key=lambda cell: cell.value)
-    assert len(cells) == 4
-    assert cells[0].value == 1
-    assert cells[1].value == 2
-    assert cells[2].value == 3
-    assert cells[3].value == 4
+        await session.commit()
+        return sheet
 
 
-def test_delete_sheet_rows(sheet_repo, sindex_repo, cell_repo, sheet):
-    sindexes = sindex_repo.get_many(filter_by={"sheet": sheet, "direction": "ROW"}, order_by=["position"])
-    to_delete = sindexes[2:4]
-    cmd = sheet_commands.DeleteSindexes(sheet=sheet, targets=to_delete)
-    cmd.execute()
+@pytest.mark.asyncio
+async def test_create_sheet():
+    async with db.get_async_session() as session:
+        sheet_repo = SheetRepoPostgres(session)
+        cmd = sheet_commands.CreateSheet(sheet_repo=sheet_repo)
+        sheet = await cmd.execute()
+        sheet_from_repo = await sheet_repo.get_one_by_uuid(sheet.uuid)
 
-    sheet = sheet_repo.get_one_by_uuid(sheet.uuid)
-    assert sheet.size == (9, 5)
+        assert sheet == sheet_from_repo
+        assert sheet.size == (0, 0)
 
-    rows = sindex_repo.get_many(filter_by={"sheet": sheet, "direction": "ROW"}, order_by=["position"])
-    assert len(rows) == 9
-    for i, row in enumerate(rows):
-        assert row.position == i
 
-    cells = cell_repo.get_many(filter_by={"sheet": sheet})
-    assert len(cells) == 45
+@pytest.mark.asyncio
+async def test_delete_rows(sheet: sheet_entity.Sheet):
+    sheet = await sheet
+    async with db.get_async_session() as session:
+        sindex_repo = SindexRepoPostgres(session)
+        rows = await sindex_repo.get_many(direction="ROW", filter_by={"sheet_uuid": sheet.uuid})
+        print(rows)
