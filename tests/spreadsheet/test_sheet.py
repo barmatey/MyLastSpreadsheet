@@ -26,13 +26,13 @@ async def sheet():
 
         row_sindexes = []
         for i in range(0, 11):
-            row_sindex = sindex_entity.Sindex(sheet=sheet, position=i, direction="ROW")
+            row_sindex = sindex_entity.RowSindex(sheet=sheet, position=i)
             await sindex_repo.add(row_sindex)
             row_sindexes.append(row_sindex)
 
         col_sindexes = []
         for j in range(0, 5):
-            col_sindex = sindex_entity.Sindex(sheet=sheet, position=j, direction="COL")
+            col_sindex = sindex_entity.ColSindex(sheet=sheet, position=j)
             await sindex_repo.add(col_sindex)
             col_sindexes.append(col_sindex)
 

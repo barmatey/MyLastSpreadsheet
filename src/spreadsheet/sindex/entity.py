@@ -10,7 +10,6 @@ SindexDirection = Literal["ROW", "COL"]
 
 class Sindex(BaseModel):
     sheet: Sheet
-    direction: SindexDirection
     position: int
     uuid: UUID = Field(default_factory=uuid4)
 
