@@ -2,7 +2,7 @@ from abc import abstractmethod, ABC
 from uuid import UUID
 from datetime import datetime
 
-from sqlalchemy import String, ForeignKey, delete, select, insert
+from sqlalchemy import String, ForeignKey, delete, select, insert, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -28,6 +28,10 @@ class CellRepo(ABC):
     async def get_many_by_sheet_filters(self, sheet: SheetInfo, rows: list[RowSindex] = None,
                                         cols: list[ColSindex] = None,
                                         order_by: OrderBy = None) -> list[Cell]:
+        raise NotImplemented
+
+    @abstractmethod
+    async def update_one(self, cell: Cell):
         raise NotImplemented
 
     @abstractmethod
@@ -102,14 +106,14 @@ class CellRepoPostgres(CellRepo):
         stmt = insert(CellModel)
         await self._session.execute(stmt, data)
 
-    async def get_many_by_sheet_filters(self, sheet: SheetInfo, rows: list[RowSindex] = None,
+    async def get_many_by_sheet_filters(self, sheet_info: SheetInfo, rows: list[RowSindex] = None,
                                         cols: list[ColSindex] = None,
                                         order_by: OrderBy = None) -> list[Cell]:
         stmt = (
             select(CellModel, RowSindexModel, ColSindexModel)
             .join(RowSindexModel, CellModel.row_sindex_uuid == RowSindexModel.uuid)
             .join(ColSindexModel, CellModel.col_sindex_uuid == ColSindexModel.uuid)
-            .where(CellModel.sheet_uuid == sheet.uuid)
+            .where(CellModel.sheet_uuid == sheet_info.uuid)
         )
         if rows:
             stmt = stmt.where(CellModel.row_sindex_uuid.in_([x.uuid for x in rows]))
@@ -120,8 +124,21 @@ class CellRepoPostgres(CellRepo):
             stmt = stmt.order_by(*orders)
 
         result = await self._session.execute(stmt)
-        result = [x[0].to_entity(sheet_info, row=x[1].to_entity(sheet), col=x[2].to_entity(sheet)) for x in result]
+        result = [x[0].to_entity(sheet_info, row=x[1].to_entity(sheet_info), col=x[2].to_entity(sheet_info))
+                  for x in result]
         return result
+
+    async def update_one(self, cell: Cell):
+        data = {
+            "uuid": cell.uuid,
+            "value": str(cell.value),
+            "dtype": get_dtype(cell.value),
+            "row_sindex_uuid": cell.row_sindex.uuid,
+            "col_sindex_uuid": cell.col_sindex.uuid,
+            "sheet_uuid": cell.sheet_info.uuid,
+        }
+        stmt = update(CellModel).where(CellModel.uuid == cell.uuid).values(**data)
+        await self._session.execute(stmt)
 
     async def remove_many(self, cells: list[Cell]):
         uuids = [x.uuid for x in cells]

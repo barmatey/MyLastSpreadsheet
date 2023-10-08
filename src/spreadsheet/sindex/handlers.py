@@ -7,6 +7,11 @@ from ...bus.broker import Broker
 bus = EventBus()
 
 
+@bus.register(sindex_events.SindexCreated)
+async def handle_sindex_created(event: sindex_events.SindexCreated, repo: SindexRepo):
+    await repo.add(event.entity)
+
+
 @bus.register(sindex_events.SindexDeleted)
 async def handle_sindex_deleted(event: sindex_events.SindexDeleted, repo: SindexRepo):
     subs: set[SindexSubscriber] = Broker().get_subscribers(event.entity)
