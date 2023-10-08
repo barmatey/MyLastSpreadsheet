@@ -13,8 +13,8 @@ async def create_row_sindex(sheet_info: SheetInfo, position: int, repo: SindexRe
     return sindex
 
 
-def delete_sindex(sindex: Sindex, sindex_repo: SindexRepo):
-    sindex_repo.remove(sindex)
+async def delete_sindex(sindex: Sindex, sindex_repo: SindexRepo):
+    await sindex_repo.remove_one(sindex)
     queue = Queue()
     queue.append(events.SindexDeleted(entity=sindex))
 
