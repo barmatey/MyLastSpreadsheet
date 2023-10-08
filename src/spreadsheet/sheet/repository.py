@@ -1,14 +1,15 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from sqlalchemy import insert
+from sqlalchemy import insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import entity as sheet_entity
 from ..sindex import entity as sindex_entity
-from ..sindex.repository import RowSindexModel, ColSindexModel
-from ..cell.repository import CellModel, get_dtype, get_value
-from ..sheet_info.repository import SheetInfoModel
+from ..sheet_info import entity as sheet_info_entity
+from ..sindex.repository import RowSindexModel, ColSindexModel, SindexRepoPostgres
+from ..cell.repository import CellModel, get_dtype, get_value, CellRepoPostgres
+from ..sheet_info.repository import SheetInfoModel, SheetInfoRepoPostgres
 
 
 class SheetRepo(ABC):
@@ -22,27 +23,34 @@ class SheetRepo(ABC):
 class SheetRepoPostgres(SheetRepo):
     def __init__(self, session: AsyncSession):
         self._session = session
+        self._sheet_info_repo = SheetInfoRepoPostgres(session)
+        self._cell_repo = CellRepoPostgres(session)
+        self._sindex_repo = SindexRepoPostgres(session)
 
     async def add(self, sheet: sheet_entity.Sheet):
-        sheet_info = SheetInfoModel(row_size=sheet.sheet_info.size[0], col_size=sheet.sheet_info.size[1],
-                                    uuid=sheet.sheet_info.uuid)
-        self._session.add(sheet_info)
+        await self._sheet_info_repo.add(sheet.sheet_info)
+        await self._sindex_repo.add_many(sheet.rows)
+        await self._sindex_repo.add_many(sheet.cols)
+        await self._cell_repo.add_many(sheet.cells)
 
-        data = [{"uuid": x.uuid, "position": x.position, "sheet_uuid": x.sheet.uuid} for x in sheet.rows]
-        stmt = insert(RowSindexModel)
-        await self._session.execute(stmt, data)
+    async def get_by_uuid(self, uuid: UUID) -> sheet_entity.Sheet:
+        stmt = (
+            select(SheetInfoModel, RowSindexModel, ColSindexModel, CellModel)
+            .join(SheetInfoModel, CellModel.sheet_uuid == SheetInfoModel.uuid)
+            .join(RowSindexModel, CellModel.row_sindex_uuid == RowSindexModel.uuid)
+            .join(ColSindexModel, CellModel.col_sindex_uuid == ColSindexModel.uuid)
+            .order_by(RowSindexModel.position, ColSindexModel.position)
+            .where(CellModel.sheet_uuid == uuid)
+        )
+        result = list(await self._session.execute(stmt))
+        sheet_info: sheet_info_entity.SheetInfo = result[0][0].to_entity()
+        rows = [result[x][1].to_entity(sheet_info) for x in range(0, sheet_info.size[0], sheet_info.size[1])]
+        cols = [result[x][2].to_entity(sheet_info) for x in range(0, sheet_info.size[1])]
+        cells = []
+        for i, row in enumerate(rows):
+            for j, col in enumerate(cols):
+                index = i * sheet_info.size[1] + j
+                cells.append(result[index][3].to_entity(sheet_info, row, col))
 
-        data = [{"uuid": x.uuid, "position": x.position, "sheet_uuid": x.sheet.uuid} for x in sheet.cols]
-        stmt = insert(ColSindexModel)
-        await self._session.execute(stmt, data)
-
-        data = [{
-            "uuid": x.uuid,
-            "value": str(x.value),
-            "dtype": get_dtype(x.value),
-            "row_sindex_uuid": x.row_sindex.uuid,
-            "col_sindex_uuid": x.col_sindex.uuid,
-            "sheet_uuid": x.sheet.uuid,
-        } for x in sheet.cells]
-        stmt = insert(CellModel)
-        await self._session.execute(stmt, data)
+        sheet = sheet_entity.Sheet(sheet_info=sheet_info, rows=rows, cols=cols, cells=cells)
+        return sheet

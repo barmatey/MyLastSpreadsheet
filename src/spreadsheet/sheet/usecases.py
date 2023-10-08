@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from ..cell.entity import CellValue, Cell
 from ..sheet_info.entity import SheetInfo
 from ..sindex.entity import RowSindex, ColSindex
@@ -18,3 +20,7 @@ async def create_sheet(table: list[list[CellValue]], sheet_repo: SheetRepo) -> S
     sheet = Sheet(sheet_info=sheet_meta, rows=row_sindexes, cols=col_sindexes, cells=cells)
     await sheet_repo.add(sheet)
     return sheet
+
+
+async def get_by_uuid(uuid: UUID, sheet_repo: SheetRepo) -> Sheet:
+    return await sheet_repo.get_by_uuid(uuid)

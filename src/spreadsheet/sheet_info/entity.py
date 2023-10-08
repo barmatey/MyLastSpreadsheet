@@ -11,4 +11,7 @@ class SheetInfo(BaseModel):
     uuid: UUID = Field(default_factory=uuid4)
 
     def __eq__(self, other):
-        return self.uuid == other.uuid
+        return all([
+            self.size == other.size,
+            self.uuid == other.uuid,
+        ])

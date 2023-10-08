@@ -19,6 +19,13 @@ class Sindex(BaseModel):
     def __repr__(self):
         return f"{self.__class__.__name__}(position={self.position})"
 
+    def __eq__(self, other: 'Sindex'):
+        return all([
+            self.sheet == other.sheet,
+            self.position == other.position,
+            self.uuid == other.uuid,
+        ])
+
 
 class RowSindex(Sindex):
     pass
