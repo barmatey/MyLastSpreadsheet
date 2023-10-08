@@ -24,7 +24,8 @@ class SheetRepoPostgres(SheetRepo):
         self._session = session
 
     async def add(self, sheet: sheet_entity.Sheet):
-        sheet_info = SheetInfoModel(**sheet.sheet_info.model_dump())
+        sheet_info = SheetInfoModel(row_size=sheet.sheet_info.size[0], col_size=sheet.sheet_info.size[1],
+                                    uuid=sheet.sheet_info.uuid)
         self._session.add(sheet_info)
 
         data = [{"uuid": x.uuid, "position": x.position, "sheet_uuid": x.sheet.uuid} for x in sheet.rows]
@@ -33,4 +34,15 @@ class SheetRepoPostgres(SheetRepo):
 
         data = [{"uuid": x.uuid, "position": x.position, "sheet_uuid": x.sheet.uuid} for x in sheet.cols]
         stmt = insert(ColSindexModel)
+        await self._session.execute(stmt, data)
+
+        data = [{
+            "uuid": x.uuid,
+            "value": str(x.value),
+            "dtype": get_dtype(x.value),
+            "row_sindex_uuid": x.row_sindex.uuid,
+            "col_sindex_uuid": x.col_sindex.uuid,
+            "sheet_uuid": x.sheet.uuid,
+        } for x in sheet.cells]
+        stmt = insert(CellModel)
         await self._session.execute(stmt, data)
