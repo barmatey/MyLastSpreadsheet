@@ -8,8 +8,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src import helpers
 from src.core import OrderBy
-from src.spreadsheet.sheet.entity import Sheet
-from src.spreadsheet.sheet.repository import Base
+from src.spreadsheet.sheet_meta.entity import SheetMeta
+from src.spreadsheet.sheet_meta.repository import Base
 from src.spreadsheet.sindex.entity import Sindex, RowSindex, ColSindex
 
 
@@ -35,11 +35,11 @@ class SindexRepo(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def get_sheet_rows(self, sheet: Sheet, order_by: OrderBy = None) -> list[RowSindex]:
+    async def get_sheet_rows(self, sheet: SheetMeta, order_by: OrderBy = None) -> list[RowSindex]:
         raise NotImplemented
 
     @abstractmethod
-    async def get_sheet_cols(self, sheet: Sheet, order_by: OrderBy = None) -> list[ColSindex]:
+    async def get_sheet_cols(self, sheet: SheetMeta, order_by: OrderBy = None) -> list[ColSindex]:
         raise NotImplemented
 
 
@@ -49,7 +49,7 @@ class RowSindexModel(Base):
     sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
     cells = relationship('CellModel')
 
-    def to_entity(self, sheet: Sheet) -> RowSindex:
+    def to_entity(self, sheet: SheetMeta) -> RowSindex:
         return RowSindex(uuid=self.uuid, sheet=sheet, position=self.position)
 
 
@@ -59,7 +59,7 @@ class ColSindexModel(Base):
     sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
     cells = relationship('CellModel')
 
-    def to_entity(self, sheet: Sheet) -> ColSindex:
+    def to_entity(self, sheet: SheetMeta) -> ColSindex:
         return ColSindex(uuid=self.uuid, sheet=sheet, position=self.position)
 
 
@@ -88,10 +88,10 @@ class SindexRepoPostgres(SindexRepo):
             stmt = update(model).where(model.uuid == sindex.uuid).values(**sindex.model_dump(exclude={"sheet", "uuid"}))
             await self._session.execute(stmt)
 
-    async def get_sheet_rows(self, sheet: Sheet, order_by: OrderBy = None) -> list[RowSindex]:
+    async def get_sheet_rows(self, sheet: SheetMeta, order_by: OrderBy = None) -> list[RowSindex]:
         return await self.__get_sindexes(RowSindexModel, sheet, order_by)
 
-    async def get_sheet_cols(self, sheet: Sheet, order_by: OrderBy = None) -> list[ColSindex]:
+    async def get_sheet_cols(self, sheet: SheetMeta, order_by: OrderBy = None) -> list[ColSindex]:
         return await self.__get_sindexes(ColSindexModel, sheet, order_by)
 
     async def remove_one(self, sindex: Sindex):

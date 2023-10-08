@@ -7,9 +7,9 @@ import db
 from src.bus.eventbus import EventBus
 from src.core import OrderBy
 from src.spreadsheet.cell.repository import CellRepoPostgres
-from src.spreadsheet.sheet.repository import SheetRepoPostgres
+from src.spreadsheet.sheet_meta.repository import SheetRepoPostgres
 from src.spreadsheet.sindex.repository import SindexRepoPostgres
-from src.spreadsheet.sheet import commands as sheet_commands, entity as sheet_entity, usecases as sheet_usecases
+from src.spreadsheet.sheet_meta import commands as sheet_commands, entity as sheet_entity, usecases as sheet_usecases
 from src.spreadsheet.sindex import entity as sindex_entity, usecases as sindex_usecases
 from src.spreadsheet.cell import entity as cell_entity, usecases as cell_usecases
 
@@ -22,7 +22,7 @@ async def sheet():
         sindex_repo = SindexRepoPostgres(session)
         cell_repo = CellRepoPostgres(session)
 
-        sheet = sheet_entity.Sheet(size=(11, 5))
+        sheet = sheet_entity.SheetMeta(size=(11, 5))
         await sheet_repo.add(sheet)
 
         row_sindexes = []
@@ -59,7 +59,7 @@ async def test_create_sheet():
 
 
 @pytest.mark.asyncio
-async def test_delete_rows(sheet: sheet_entity.Sheet):
+async def test_delete_rows(sheet: sheet_entity.SheetMeta):
     sheet = await sheet
     async with db.get_async_session() as session:
         sheet_repo = SheetRepoPostgres(session)

@@ -4,7 +4,7 @@ from src.bus.eventbus import EventBus, Queue
 from src.bus.broker import Broker
 from .entity import CellValue, Cell
 
-from ..sheet.entity import Sheet
+from ..sheet_meta.entity import SheetMeta
 from .repository import CellRepo, CellRepoFake
 from .subscriber import CellSubscriber
 from . import events

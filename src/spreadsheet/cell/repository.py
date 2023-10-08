@@ -9,8 +9,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 from src import helpers
 from src.core import OrderBy
 from src.spreadsheet.cell.entity import Cell, CellValue, CellDtype
-from src.spreadsheet.sheet.entity import Sheet
-from src.spreadsheet.sheet.repository import Base
+from src.spreadsheet.sheet_meta.entity import SheetMeta
+from src.spreadsheet.sheet_meta.repository import Base
 from src.spreadsheet.sindex.entity import RowSindex, ColSindex
 from src.spreadsheet.sindex.repository import RowSindexModel, ColSindexModel
 
@@ -25,7 +25,7 @@ class CellRepo(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def get_many_by_sheet_filters(self, sheet: Sheet, rows: list[RowSindex] = None, cols: list[ColSindex] = None,
+    async def get_many_by_sheet_filters(self, sheet: SheetMeta, rows: list[RowSindex] = None, cols: list[ColSindex] = None,
                                         order_by: OrderBy = None) -> list[Cell]:
         raise NotImplemented
 
@@ -42,7 +42,7 @@ class CellModel(Base):
     row_sindex_uuid: Mapped[UUID] = mapped_column(ForeignKey("row_sindex.uuid"))
     col_sindex_uuid: Mapped[UUID] = mapped_column(ForeignKey("col_sindex.uuid"))
 
-    def to_entity(self, sheet: Sheet, row: RowSindex, col: ColSindex):
+    def to_entity(self, sheet: SheetMeta, row: RowSindex, col: ColSindex):
         return Cell(sheet=sheet, row_sindex=row, col_sindex=col, value=get_value(self.value, self.dtype),
                     uuid=self.uuid)
 
@@ -94,7 +94,7 @@ class CellRepoPostgres(CellRepo):
         stmt = insert(CellModel)
         await self._session.execute(stmt, data)
 
-    async def get_many_by_sheet_filters(self, sheet: Sheet, rows: list[RowSindex] = None, cols: list[ColSindex] = None,
+    async def get_many_by_sheet_filters(self, sheet: SheetMeta, rows: list[RowSindex] = None, cols: list[ColSindex] = None,
                                         order_by: OrderBy = None) -> list[Cell]:
         stmt = (
             select(CellModel, RowSindexModel, ColSindexModel)

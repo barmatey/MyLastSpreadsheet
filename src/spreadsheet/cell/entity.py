@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 from datetime import datetime
 from pydantic import BaseModel, Field
 
-from src.spreadsheet.sheet.entity import Sheet
+from src.spreadsheet.sheet_meta.entity import SheetMeta
 from src.spreadsheet.sindex.entity import Sindex
 
 CellValue = Union[int, float, str, bool, datetime, None]
@@ -11,7 +11,7 @@ CellDtype = Literal["int", "float", "string", "bool", "datetime"]
 
 
 class Cell(BaseModel):
-    sheet: Sheet
+    sheet: SheetMeta
     row_sindex: Sindex
     col_sindex: Sindex
     value: CellValue = None

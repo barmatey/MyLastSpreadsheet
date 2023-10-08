@@ -6,7 +6,7 @@ from sqlalchemy import pool
 from alembic import context
 
 from src.spreadsheet.cell.repository import CellModel
-from src.spreadsheet.sheet.repository import SheetModel, Base
+from src.spreadsheet.sheet_meta.repository import SheetModel, Base
 from src.spreadsheet.sindex.repository import RowSindexModel, ColSindexModel
 
 config = context.config

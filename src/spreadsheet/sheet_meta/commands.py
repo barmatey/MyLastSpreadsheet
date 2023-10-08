@@ -5,8 +5,8 @@ from pydantic import BaseModel, Field
 
 from src.bus.eventbus import Queue
 from src.core import PydanticModel
-from src.spreadsheet.sheet import (entity as sheet_entity, events as sheet_events, usecases as sheet_usecases,
-                                   repository as sheet_repo)
+from src.spreadsheet.sheet_meta import (entity as sheet_entity, events as sheet_events, usecases as sheet_usecases,
+                                        repository as sheet_repo)
 from src.spreadsheet.sindex import (entity as sindex_entity, usecases as sindex_usecases, repository as sindex_repo)
 from src.spreadsheet.cell import (entity as cell_entity, usecases as cell_usecases, repository as cell_repo)
 
@@ -18,7 +18,7 @@ class CreateSheet(PydanticModel):
     sindex_repo: sindex_repo.SindexRepo
     uuid: UUID = Field(default_factory=uuid4)
 
-    async def execute(self) -> sheet_entity.Sheet:
+    async def execute(self) -> sheet_entity.SheetMeta:
         sheet = await sheet_usecases.create_sheet(self.sheet_repo)
         return sheet
 
@@ -27,7 +27,7 @@ class GetSheet(PydanticModel):
     sheet_repo: sheet_repo.SheetRepo
     uuid: UUID
 
-    async def execute(self) -> sheet_entity.Sheet:
+    async def execute(self) -> sheet_entity.SheetMeta:
         return await sheet_usecases.get_sheet_by_uuid(self.uuid, self.sheet_repo)
 
 
@@ -35,7 +35,7 @@ class AppendRows(PydanticModel):
     sheet_repo: sheet_repo.SheetRepo
     sindex_repo: sindex_repo.SindexRepo
     cell_repo: cell_repo.CellRepo
-    sheet: sheet_entity.Sheet
+    sheet: sheet_entity.SheetMeta
     table: list[list[cell_entity.CellValue]]
     uuid: UUID = Field(default_factory=uuid4)
 
@@ -61,7 +61,7 @@ class AppendRows(PydanticModel):
 
 
 class DeleteSindexes(PydanticModel):
-    sheet: sheet_entity.Sheet
+    sheet: sheet_entity.SheetMeta
     sindexes: list[sindex_entity.Sindex]
     cells: list[cell_entity.Cell]
     uuid: UUID = Field(default_factory=uuid4)

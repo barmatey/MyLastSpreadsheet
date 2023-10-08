@@ -3,13 +3,13 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
-from ..sheet.entity import Sheet
+from ..sheet_meta.entity import SheetMeta
 
 SindexDirection = Literal["ROW", "COL"]
 
 
 class Sindex(BaseModel):
-    sheet: Sheet
+    sheet: SheetMeta
     position: int
     uuid: UUID = Field(default_factory=uuid4)
 

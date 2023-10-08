@@ -3,18 +3,18 @@ from pydantic import Field
 
 from src.bus.events import Created, Updated, Deleted, Subscribed, Unsubscribed, Event
 from ..cell.entity import CellValue
-from .entity import Sheet
+from .entity import SheetMeta
 
 
-class SheetCreated(Created[Sheet]):
+class SheetCreated(Created[SheetMeta]):
     pass
 
 
-class SheetSizeUpdated(Updated[Sheet]):
+class SheetSizeUpdated(Updated[SheetMeta]):
     pass
 
 
-class SheetDeleted(Deleted[Sheet]):
+class SheetDeleted(Deleted[SheetMeta]):
     pass
 
 

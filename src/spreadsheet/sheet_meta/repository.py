@@ -5,47 +5,47 @@ from sqlalchemy import Integer, select, TIMESTAMP, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
 
-from .entity import Sheet
+from .entity import SheetMeta
 from ...helpers.decorators import singleton
 
 
 class SheetRepo(ABC):
     @abstractmethod
-    async def add(self, sheet: Sheet):
+    async def add(self, sheet: SheetMeta):
         raise NotImplemented
 
     @abstractmethod
-    async def update(self, sheet: Sheet):
+    async def update(self, sheet: SheetMeta):
         raise NotImplemented
 
     @abstractmethod
-    def get_one_by_uuid(self, uuid: UUID) -> Sheet:
+    def get_one_by_uuid(self, uuid: UUID) -> SheetMeta:
         raise NotImplemented
 
     @abstractmethod
-    def remove_one(self, sheet: Sheet):
+    def remove_one(self, sheet: SheetMeta):
         raise NotImplemented
 
 
 @singleton
 class SheetRepoFake(SheetRepo):
     def __init__(self):
-        self._data: dict[UUID, Sheet] = {}
+        self._data: dict[UUID, SheetMeta] = {}
 
-    def add(self, sheet: Sheet):
+    def add(self, sheet: SheetMeta):
         if self._data.get(sheet.uuid) is not None:
             raise Exception("already exist")
         self._data[sheet.uuid] = sheet.model_copy(deep=True)
 
-    def get_one_by_uuid(self, uuid: UUID) -> Sheet:
+    def get_one_by_uuid(self, uuid: UUID) -> SheetMeta:
         return self._data[uuid].model_copy(deep=True)
 
-    def update(self, sheet: Sheet):
+    def update(self, sheet: SheetMeta):
         if self._data.get(sheet.uuid) is None:
             raise LookupError
         self._data[sheet.uuid] = sheet.model_copy(deep=True)
 
-    def remove_one(self, sheet: Sheet):
+    def remove_one(self, sheet: SheetMeta):
         del self._data[sheet.uuid]
 
     def clear(self):
@@ -68,28 +68,28 @@ class SheetModel(Base):
     col_sindexes = relationship('ColSindexModel')
     cells = relationship('CellModel')
 
-    def to_entity(self) -> Sheet:
-        return Sheet(uuid=self.uuid, size=(self.row_size, self.col_size))
+    def to_entity(self) -> SheetMeta:
+        return SheetMeta(uuid=self.uuid, size=(self.row_size, self.col_size))
 
 
 class SheetRepoPostgres(SheetRepo):
     def __init__(self, session: AsyncSession):
         self._session = session
 
-    async def add(self, sheet: Sheet):
+    async def add(self, sheet: SheetMeta):
         model = SheetModel(uuid=sheet.uuid, row_size=sheet.size[0], col_size=sheet.size[1])
         self._session.add(model)
 
-    async def update(self, sheet: Sheet):
+    async def update(self, sheet: SheetMeta):
         stmt = select(SheetModel).where(SheetModel.uuid == sheet.uuid)
         model = await self._session.scalar(stmt)
         model.row_size = sheet.size[0]
         model.col_size = sheet.size[1]
 
-    async def get_one_by_uuid(self, uuid: UUID) -> Sheet:
+    async def get_one_by_uuid(self, uuid: UUID) -> SheetMeta:
         stmt = select(SheetModel).where(SheetModel.uuid == uuid)
         model = await self._session.scalar(stmt)
         return model.to_entity()
 
-    def remove_one(self, sheet: Sheet):
+    def remove_one(self, sheet: SheetMeta):
         raise NotImplemented
