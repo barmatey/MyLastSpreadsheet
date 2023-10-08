@@ -67,5 +67,5 @@ async def test_sheet_changes_state_when_subscribe_to_another_sheet():
 
     async with db.get_async_session() as session:
         repo = sheet_repo.SheetRepoPostgres(session)
-        sheet2 = await repo.get_by_uuid(sheet1.sheet_info.uuid)
-        # assert sheet2.sheet_info.size == (1, 2)
+        sheet2 = await repo.get_by_uuid(sheet2.sheet_info.uuid)
+        assert sheet2.sheet_info.size == (1, 2)

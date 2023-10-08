@@ -45,10 +45,15 @@ class SheetRepoPostgres(SheetRepo):
         )
         result = list(await self._session.execute(stmt))
         if len(result) == 0:
-            raise LookupError
+            stmt = select(SheetInfoModel).where(SheetInfoModel.uuid == uuid)
+            result = list(await self._session.execute(stmt))
+            if len(result) != 1:
+                raise LookupError
+            return sheet_entity.Sheet(sheet_info=sheet_info_entity.SheetInfo(), rows=[], cols=[], cells=[])
+
         sheet_info: sheet_info_entity.SheetInfo = result[0][0].to_entity()
         rows = [result[x][1].to_entity(sheet_info)
-                for x in range(0, sheet_info.size[0]*sheet_info.size[1], sheet_info.size[1])]
+                for x in range(0, sheet_info.size[0] * sheet_info.size[1], sheet_info.size[1])]
         cols = [result[x][2].to_entity(sheet_info) for x in range(0, sheet_info.size[1])]
         cells = []
         for i, row in enumerate(rows):
