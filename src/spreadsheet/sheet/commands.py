@@ -11,12 +11,13 @@ from . import (entity as sheet_entity, usecases as sheet_usecases, repository as
 
 
 class CreateSheet(PydanticModel):
-    table: list[list[cell_entity.CellValue]]
     sheet_repo: sheet_repo.SheetRepo
+    table: list[list[cell_entity.CellValue]] | None = None
     uuid: UUID = Field(default_factory=uuid4)
 
     async def execute(self) -> sheet_entity.Sheet:
-        sheet = await sheet_usecases.create_sheet(self.table, self.sheet_repo)
+        table = self.table if self.table is not None else []
+        sheet = await sheet_usecases.create_sheet(table, self.sheet_repo)
         return sheet
 
 

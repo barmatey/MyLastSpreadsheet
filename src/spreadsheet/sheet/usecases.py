@@ -8,7 +8,7 @@ from .repository import SheetRepo
 
 
 async def create_sheet(table: list[list[CellValue]], sheet_repo: SheetRepo) -> Sheet:
-    size = (len(table), len(table[0]))
+    size = (len(table), len(table[0])) if len(table) else (0, 0)
     sheet_meta = SheetInfo(size=size)
     row_sindexes = [RowSindex(sheet=sheet_meta, position=i) for i in range(0, size[0])]
     col_sindexes = [ColSindex(sheet=sheet_meta, position=j) for j in range(0, size[1])]

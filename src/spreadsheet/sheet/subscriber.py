@@ -1,15 +1,16 @@
 from abc import ABC, abstractmethod
-from ..cell.entity import CellValue
-from ..sheet_info.entity import SheetInfo
+from src.spreadsheet.cell.entity import CellValue
+from .entity import Sheet
+from ...bus.eventbus import Queue
 
 
 class SheetSubscriber(ABC):
     @abstractmethod
-    def follow_sheet(self, pub: SheetInfo):
+    def follow_sheet(self, pub: Sheet):
         raise NotImplemented
 
     @abstractmethod
-    def unfollow_sheet(self, pub: SheetInfo):
+    def unfollow_sheet(self, pub: Sheet):
         raise NotImplemented
 
     @abstractmethod
@@ -22,14 +23,18 @@ class SheetSubscriber(ABC):
 
 
 class SheetSelfSubscriber(SheetSubscriber):
-    def follow_sheet(self, pub: SheetInfo):
-        pass
+    def __init__(self, entity: Sheet):
+        self._entity = entity
+        self._queue = Queue()
 
-    def unfollow_sheet(self, pub: SheetInfo):
-        pass
+    def follow_sheet(self, pub: Sheet):
+        raise NotImplemented
+
+    def unfollow_sheet(self, pub: Sheet):
+        raise NotImplemented
 
     def on_rows_appended(self, table: list[list[CellValue]]):
-        pass
+        raise NotImplemented
 
     def on_sheet_deleted(self):
-        pass
+        raise NotImplemented

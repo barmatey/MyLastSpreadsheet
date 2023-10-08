@@ -29,9 +29,10 @@ class SheetRepoPostgres(SheetRepo):
 
     async def add(self, sheet: sheet_entity.Sheet):
         await self._sheet_info_repo.add(sheet.sheet_info)
-        await self._sindex_repo.add_many(sheet.rows)
-        await self._sindex_repo.add_many(sheet.cols)
-        await self._cell_repo.add_many(sheet.cells)
+        if len(sheet.rows) and len(sheet.cols) and len(sheet.cells):
+            await self._sindex_repo.add_many(sheet.rows)
+            await self._sindex_repo.add_many(sheet.cols)
+            await self._cell_repo.add_many(sheet.cells)
 
     async def get_by_uuid(self, uuid: UUID) -> sheet_entity.Sheet:
         stmt = (

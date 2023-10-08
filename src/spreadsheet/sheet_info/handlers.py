@@ -1,11 +1,8 @@
-from uuid import UUID
-
 from src.bus.broker import Broker
 from src.bus.eventbus import EventBus
-from .entity import SheetInfo
 
 from .repository import SheetMetaRepo, SheetMetaRepoFake
-from .subscriber import SheetSubscriber
+from src.spreadsheet.sheet.subscriber import SheetSubscriber
 from . import events
 
 bus = EventBus()
