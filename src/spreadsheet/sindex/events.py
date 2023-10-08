@@ -1,11 +1,16 @@
-from src.bus.events import Deleted, Updated, Subscribed
+from src.bus.events import Deleted, Updated, Subscribed, Created
+from src.spreadsheet.sindex.entity import Sindex
 
 
-class SindexUpdated(Updated):
+class SindexCreated(Created[Sindex]):
     pass
 
 
-class SindexDeleted(Deleted):
+class SindexUpdated(Updated[Sindex]):
+    pass
+
+
+class SindexDeleted(Deleted[Sindex]):
     pass
 
 

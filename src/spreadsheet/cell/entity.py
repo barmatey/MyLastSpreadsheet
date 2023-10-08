@@ -11,7 +11,7 @@ CellDtype = Literal["int", "float", "string", "bool", "datetime"]
 
 
 class Cell(BaseModel):
-    sheet: SheetInfo
+    sheet_info: SheetInfo
     row_sindex: Sindex
     col_sindex: Sindex
     value: CellValue = None

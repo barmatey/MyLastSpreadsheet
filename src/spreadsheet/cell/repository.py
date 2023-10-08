@@ -43,8 +43,8 @@ class CellModel(Base):
     row_sindex_uuid: Mapped[UUID] = mapped_column(ForeignKey("row_sindex.uuid"))
     col_sindex_uuid: Mapped[UUID] = mapped_column(ForeignKey("col_sindex.uuid"))
 
-    def to_entity(self, sheet: SheetInfo, row: RowSindex, col: ColSindex):
-        return Cell(sheet_info=sheet, row_sindex=row, col_sindex=col, value=get_value(self.value, self.dtype),
+    def to_entity(self, sheet_info: SheetInfo, row: RowSindex, col: ColSindex):
+        return Cell(sheet_info=sheet_info, row_sindex=row, col_sindex=col, value=get_value(self.value, self.dtype),
                     uuid=self.uuid)
 
 
@@ -87,7 +87,7 @@ class CellRepoPostgres(CellRepo):
     async def add(self, cell: Cell):
         model = CellModel(uuid=cell.uuid, value=str(cell.value), dtype=get_dtype(cell.value),
                           row_sindex_uuid=cell.row_sindex.uuid, col_sindex_uuid=cell.col_sindex.uuid,
-                          sheet_uuid=cell.sheet.uuid)
+                          sheet_uuid=cell.sheet_info.uuid)
         self._session.add(model)
 
     async def add_many(self, cells: list[Cell]):
@@ -97,7 +97,7 @@ class CellRepoPostgres(CellRepo):
             "dtype": get_dtype(x.value),
             "row_sindex_uuid": x.row_sindex.uuid,
             "col_sindex_uuid": x.col_sindex.uuid,
-            "sheet_uuid": x.sheet.uuid,
+            "sheet_uuid": x.sheet_info.uuid,
         } for x in cells]
         stmt = insert(CellModel)
         await self._session.execute(stmt, data)

@@ -41,9 +41,11 @@ class SheetRepoPostgres(SheetRepo):
             .join(RowSindexModel, CellModel.row_sindex_uuid == RowSindexModel.uuid)
             .join(ColSindexModel, CellModel.col_sindex_uuid == ColSindexModel.uuid)
             .order_by(RowSindexModel.position, ColSindexModel.position)
-            .where(CellModel.sheet_uuid == uuid)
+            .where(SheetInfoModel.uuid == uuid)
         )
         result = list(await self._session.execute(stmt))
+        if len(result) == 0:
+            raise LookupError
         sheet_info: sheet_info_entity.SheetInfo = result[0][0].to_entity()
         rows = [result[x][1].to_entity(sheet_info)
                 for x in range(0, sheet_info.size[0]*sheet_info.size[1], sheet_info.size[1])]
