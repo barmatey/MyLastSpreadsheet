@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
 from src.spreadsheet.cell.entity import CellValue
+from src.spreadsheet.cell import events as cell_events
+from src.spreadsheet.sindex import events as sindex_events
+from src.spreadsheet.sheet import events as sheet_events
 from .entity import Sheet
 from ...bus.eventbus import Queue
 
@@ -28,7 +31,10 @@ class SheetSelfSubscriber(SheetSubscriber):
         self._queue = Queue()
 
     def follow_sheet(self, pub: Sheet):
-        raise NotImplemented
+        if pub.sheet_info.size != self._entity.sheet_info.size or self._entity.sheet_info.size != (0, 0):
+            raise ValueError
+
+
 
     def unfollow_sheet(self, pub: Sheet):
         raise NotImplemented

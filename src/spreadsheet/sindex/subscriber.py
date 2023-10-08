@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from src.bus.eventbus import Queue
-from src.spreadsheet.sheet_info import events as sheet_events
+from ..sheet import events as sheet_events
 from .entity import Sindex
 from . import events as sindex_events
 

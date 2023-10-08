@@ -3,7 +3,7 @@ from src.bus.eventbus import EventBus
 
 from .repository import SheetMetaRepo, SheetMetaRepoFake
 from src.spreadsheet.sheet.subscriber import SheetSubscriber
-from . import events
+from ..sheet import events
 
 bus = EventBus()
 
