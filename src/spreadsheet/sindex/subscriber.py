@@ -40,6 +40,6 @@ class SindexSelfSubscriber(SindexSubscriber):
 
     async def on_sindex_deleted(self, pub: Sindex):
         self._events.append(sindex_events.SindexDeleted(entity=self._entity))
-        new_sheet = self._entity.sheet.model_copy(deep=True)
+        new_sheet = self._entity.sheet_info.model_copy(deep=True)
         new_sheet.size = (new_sheet.size[0] - 1, new_sheet.size[1])
-        self._events.append(sheet_events.SheetSizeUpdated(old_entity=self._entity.sheet, new_entity=new_sheet))
+        self._events.append(sheet_events.SheetSizeUpdated(old_entity=self._entity.sheet_info, new_entity=new_sheet))

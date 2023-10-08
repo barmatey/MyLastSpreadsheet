@@ -10,8 +10,8 @@ from .repository import SheetRepo
 async def create_sheet(table: list[list[CellValue]], sheet_repo: SheetRepo) -> Sheet:
     size = (len(table), len(table[0])) if len(table) else (0, 0)
     sheet_meta = SheetInfo(size=size)
-    row_sindexes = [RowSindex(sheet=sheet_meta, position=i) for i in range(0, size[0])]
-    col_sindexes = [ColSindex(sheet=sheet_meta, position=j) for j in range(0, size[1])]
+    row_sindexes = [RowSindex(sheet_info=sheet_meta, position=i) for i in range(0, size[0])]
+    col_sindexes = [ColSindex(sheet_info=sheet_meta, position=j) for j in range(0, size[1])]
     cells = []
     for i, row in enumerate(table):
         for j, cell_value in enumerate(row):

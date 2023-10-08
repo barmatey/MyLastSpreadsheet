@@ -9,7 +9,7 @@ SindexDirection = Literal["ROW", "COL"]
 
 
 class Sindex(BaseModel):
-    sheet: SheetInfo
+    sheet_info: SheetInfo
     position: int
     uuid: UUID = Field(default_factory=uuid4)
 
@@ -21,7 +21,7 @@ class Sindex(BaseModel):
 
     def __eq__(self, other: 'Sindex'):
         return all([
-            self.sheet == other.sheet,
+            self.sheet_info == other.sheet_info,
             self.position == other.position,
             self.uuid == other.uuid,
         ])

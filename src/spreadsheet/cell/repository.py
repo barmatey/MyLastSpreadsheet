@@ -44,7 +44,7 @@ class CellModel(Base):
     col_sindex_uuid: Mapped[UUID] = mapped_column(ForeignKey("col_sindex.uuid"))
 
     def to_entity(self, sheet: SheetInfo, row: RowSindex, col: ColSindex):
-        return Cell(sheet=sheet, row_sindex=row, col_sindex=col, value=get_value(self.value, self.dtype),
+        return Cell(sheet_info=sheet, row_sindex=row, col_sindex=col, value=get_value(self.value, self.dtype),
                     uuid=self.uuid)
 
 
@@ -120,7 +120,7 @@ class CellRepoPostgres(CellRepo):
             stmt = stmt.order_by(*orders)
 
         result = await self._session.execute(stmt)
-        result = [x[0].to_entity(sheet, row=x[1].to_entity(sheet), col=x[2].to_entity(sheet)) for x in result]
+        result = [x[0].to_entity(sheet_info, row=x[1].to_entity(sheet), col=x[2].to_entity(sheet)) for x in result]
         return result
 
     async def remove_many(self, cells: list[Cell]):

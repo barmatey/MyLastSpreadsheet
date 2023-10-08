@@ -3,12 +3,12 @@ from uuid import UUID
 from src.bus.eventbus import Queue
 from src.spreadsheet.sheet_info.entity import SheetInfo
 from .repository import SindexRepo
-from .entity import Sindex, SindexDirection
+from .entity import Sindex, SindexDirection, RowSindex
 from . import events
 
 
-async def create_sindex(sheet: SheetInfo, position: int, repo: SindexRepo) -> Sindex:
-    sindex = Sindex(sheet=sheet, position=position)
+async def create_row_sindex(sheet_info: SheetInfo, position: int, repo: SindexRepo) -> Sindex:
+    sindex = RowSindex(sheet_info=sheet_info, position=position)
     await repo.add(sindex)
     return sindex
 

@@ -50,7 +50,7 @@ class RowSindexModel(Base):
     cells = relationship('CellModel')
 
     def to_entity(self, sheet: SheetInfo) -> RowSindex:
-        return RowSindex(uuid=self.uuid, sheet=sheet, position=self.position)
+        return RowSindex(uuid=self.uuid, sheet_info=sheet, position=self.position)
 
 
 class ColSindexModel(Base):
@@ -60,7 +60,7 @@ class ColSindexModel(Base):
     cells = relationship('CellModel')
 
     def to_entity(self, sheet: SheetInfo) -> ColSindex:
-        return ColSindex(uuid=self.uuid, sheet=sheet, position=self.position)
+        return ColSindex(uuid=self.uuid, sheet_info=sheet, position=self.position)
 
 
 class SindexRepoPostgres(SindexRepo):
@@ -73,20 +73,20 @@ class SindexRepoPostgres(SindexRepo):
         elif isinstance(sindex, ColSindex):
             model = ColSindexModel
         else:
-            raise ValueError
-        model = model(uuid=sindex.uuid, position=sindex.position, sheet_uuid=sindex.sheet.uuid)
+            raise ValueError(f"{type(sindex)}")
+        model = model(uuid=sindex.uuid, position=sindex.position, sheet_uuid=sindex.sheet_info.uuid)
         self._session.add(model)
 
     async def add_many(self, sindexes: list[Sindex]):
         model = RowSindexModel if isinstance(sindexes[0], RowSindex) else ColSindexModel
-        data = [{"uuid": x.uuid, "position": x.position, "sheet_uuid": x.sheet.uuid} for x in sindexes]
+        data = [{"uuid": x.uuid, "position": x.position, "sheet_uuid": x.sheet_info.uuid} for x in sindexes]
         stmt = insert(model)
         await self._session.execute(stmt, data)
 
     async def update_one(self, sindex: Sindex):
-            model = RowSindexModel if isinstance(sindex, RowSindex) else ColSindexModel
-            stmt = update(model).where(model.uuid == sindex.uuid).values(**sindex.model_dump(exclude={"sheet", "uuid"}))
-            await self._session.execute(stmt)
+        model = RowSindexModel if isinstance(sindex, RowSindex) else ColSindexModel
+        stmt = update(model).where(model.uuid == sindex.uuid).values(**sindex.model_dump(exclude={"sheet", "uuid"}))
+        await self._session.execute(stmt)
 
     async def get_sheet_rows(self, sheet: SheetInfo, order_by: OrderBy = None) -> list[RowSindex]:
         return await self.__get_sindexes(RowSindexModel, sheet, order_by)

@@ -11,7 +11,7 @@ from . import events as cell_events
 async def create_cell(sheet: SheetInfo, row: Sindex, col: Sindex, value: CellValue, repo: CellRepo, uuid: UUID = None) -> Cell:
     if uuid is None:
         uuid = uuid4()
-    cell = Cell(sheet=sheet, row_sindex=row, col_sindex=col, value=value, uuid=uuid)
+    cell = Cell(sheet_info=sheet, row_sindex=row, col_sindex=col, value=value, uuid=uuid)
     await repo.add(cell)
     return cell
 
