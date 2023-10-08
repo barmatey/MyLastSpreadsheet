@@ -18,7 +18,7 @@ class CreateSheet(PydanticModel):
     sindex_repo: sindex_repo.SindexRepo
     uuid: UUID = Field(default_factory=uuid4)
 
-    async def execute(self) -> sheet_entity.SheetMeta:
+    async def execute(self) -> sheet_entity.SheetInfo:
         sheet = await sheet_usecases.create_sheet(self.sheet_repo)
         return sheet
 
@@ -27,7 +27,7 @@ class GetSheet(PydanticModel):
     sheet_repo: sheet_repo.SheetMetaRepo
     uuid: UUID
 
-    async def execute(self) -> sheet_entity.SheetMeta:
+    async def execute(self) -> sheet_entity.SheetInfo:
         return await sheet_usecases.get_sheet_by_uuid(self.uuid, self.sheet_repo)
 
 
@@ -35,7 +35,7 @@ class AppendRows(PydanticModel):
     sheet_repo: sheet_repo.SheetMetaRepo
     sindex_repo: sindex_repo.SindexRepo
     cell_repo: cell_repo.CellRepo
-    sheet: sheet_entity.SheetMeta
+    sheet: sheet_entity.SheetInfo
     table: list[list[cell_entity.CellValue]]
     uuid: UUID = Field(default_factory=uuid4)
 
@@ -61,7 +61,7 @@ class AppendRows(PydanticModel):
 
 
 class DeleteSindexes(PydanticModel):
-    sheet: sheet_entity.SheetMeta
+    sheet: sheet_entity.SheetInfo
     sindexes: list[sindex_entity.Sindex]
     cells: list[cell_entity.Cell]
     uuid: UUID = Field(default_factory=uuid4)

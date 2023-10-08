@@ -2,7 +2,7 @@ from uuid import UUID
 
 from src.bus.broker import Broker
 from src.bus.eventbus import EventBus
-from .entity import SheetMeta
+from .entity import SheetInfo
 
 from .repository import SheetMetaRepo, SheetMetaRepoFake
 from .subscriber import SheetSubscriber

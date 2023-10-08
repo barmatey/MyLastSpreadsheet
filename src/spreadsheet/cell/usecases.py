@@ -3,12 +3,12 @@ from uuid import UUID, uuid4
 from src.bus.eventbus import Queue
 from src.spreadsheet.cell.entity import CellValue, Cell
 from src.spreadsheet.cell.repository import CellRepo
-from src.spreadsheet.sheet_info.entity import SheetMeta
+from src.spreadsheet.sheet_info.entity import SheetInfo
 from src.spreadsheet.sindex.entity import Sindex
 from . import events as cell_events
 
 
-async def create_cell(sheet: SheetMeta, row: Sindex, col: Sindex, value: CellValue, repo: CellRepo, uuid: UUID = None) -> Cell:
+async def create_cell(sheet: SheetInfo, row: Sindex, col: Sindex, value: CellValue, repo: CellRepo, uuid: UUID = None) -> Cell:
     if uuid is None:
         uuid = uuid4()
     cell = Cell(sheet=sheet, row_sindex=row, col_sindex=col, value=value, uuid=uuid)

@@ -2,7 +2,7 @@ from uuid import UUID
 
 from ..cell.entity import CellValue, Cell
 from ..cell.repository import CellRepo
-from ..sheet_info.entity import SheetMeta
+from ..sheet_info.entity import SheetInfo
 from ..sheet_info.repository import SheetMetaRepo
 from ..sindex.entity import RowSindex, ColSindex
 from ..sindex.repository import SindexRepo
@@ -13,7 +13,7 @@ from ...core import OrderBy
 async def create_sheet(table: list[list[CellValue]],
                        sheet_meta_repo: SheetMetaRepo, sindex_repo: SindexRepo, cell_repo: CellRepo) -> Sheet:
     size = (len(table), len(table[0]))
-    sheet_meta = SheetMeta(size=size)
+    sheet_meta = SheetInfo(size=size)
     row_sindexes = [RowSindex(sheet=sheet_meta, position=i) for i in range(0, size[0])]
     col_sindexes = [ColSindex(sheet=sheet_meta, position=j) for j in range(0, size[1])]
     cells = []
@@ -25,6 +25,6 @@ async def create_sheet(table: list[list[CellValue]],
     await sindex_repo.add_many(row_sindexes)
     await sindex_repo.add_many(col_sindexes)
     await cell_repo.add_many(cells)
-    return Sheet(sheet_meta=sheet_meta, rows=row_sindexes, cols=col_sindexes, cells=cells)
+    return Sheet(sheet_info=sheet_meta, rows=row_sindexes, cols=col_sindexes, cells=cells)
 
 

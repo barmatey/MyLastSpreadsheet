@@ -25,6 +25,6 @@ async def test_create_sheet():
         )
         sheet = await cmd.execute()
 
-        assert sheet.sheet_meta.size == (3, 2)
+        assert sheet.sheet_info.size == (3, 2)
         for i in range(0, 6):
             assert sheet.cells[i].value == i

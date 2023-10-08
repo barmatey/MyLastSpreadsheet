@@ -1,15 +1,15 @@
 from abc import ABC, abstractmethod
 from ..cell.entity import CellValue
-from ..sheet_info.entity import SheetMeta
+from ..sheet_info.entity import SheetInfo
 
 
 class SheetSubscriber(ABC):
     @abstractmethod
-    def follow_sheet(self, pub: SheetMeta):
+    def follow_sheet(self, pub: SheetInfo):
         raise NotImplemented
 
     @abstractmethod
-    def unfollow_sheet(self, pub: SheetMeta):
+    def unfollow_sheet(self, pub: SheetInfo):
         raise NotImplemented
 
     @abstractmethod
@@ -22,10 +22,10 @@ class SheetSubscriber(ABC):
 
 
 class SheetSelfSubscriber(SheetSubscriber):
-    def follow_sheet(self, pub: SheetMeta):
+    def follow_sheet(self, pub: SheetInfo):
         pass
 
-    def unfollow_sheet(self, pub: SheetMeta):
+    def unfollow_sheet(self, pub: SheetInfo):
         pass
 
     def on_rows_appended(self, table: list[list[CellValue]]):

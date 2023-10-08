@@ -6,7 +6,7 @@ def size_factory():
     return 0, 0
 
 
-class SheetMeta(BaseModel):
+class SheetInfo(BaseModel):
     size: tuple[int, int] = Field(default_factory=size_factory)
     uuid: UUID = Field(default_factory=uuid4)
 
