@@ -6,7 +6,7 @@ import pytest_asyncio
 import db
 from src.core import OrderBy
 from src.spreadsheet.cell.repository import CellRepoPostgres
-from src.spreadsheet.sheet_meta.repository import SheetMetaRepoPostgres
+from src.spreadsheet.sheet_info.repository import SheetInfoRepoPostgres
 from src.spreadsheet.sindex.repository import SindexRepoPostgres
 from src.spreadsheet.sheet import (entity as sheet_entity, commands as sheet_commands)
 
@@ -14,7 +14,7 @@ from src.spreadsheet.sheet import (entity as sheet_entity, commands as sheet_com
 @pytest.mark.asyncio
 async def test_create_sheet():
     async with db.get_async_session() as session:
-        sm_repo = SheetMetaRepoPostgres(session)
+        sm_repo = SheetInfoRepoPostgres(session)
         sindex_repo = SindexRepoPostgres(session)
         cell_repo = CellRepoPostgres(session)
         cmd = sheet_commands.CreateSheet(

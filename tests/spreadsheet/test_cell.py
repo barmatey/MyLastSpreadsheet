@@ -5,7 +5,7 @@ from src.bus.eventbus import Queue, EventBus
 from src.spreadsheet.cell.domain import Cell, CellCreated
 from src.spreadsheet.cell.pubsub import CellService
 from src.spreadsheet.cell.repository import CellRepo, CellRepoFake
-from src.spreadsheet.sheet_meta.domain import Sheet
+from src.spreadsheet.sheet_info.domain import Sheet
 
 
 @pytest.fixture

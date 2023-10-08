@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from src.bus.eventbus import Queue
-from src.spreadsheet.sheet_meta.entity import SheetMeta
+from src.spreadsheet.sheet_info.entity import SheetMeta
 from .repository import SindexRepo
 from .entity import Sindex, SindexDirection
 from . import events

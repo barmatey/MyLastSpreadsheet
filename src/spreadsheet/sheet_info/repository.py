@@ -35,7 +35,7 @@ class Base(DeclarativeBase):
         return f"{self.__class__.__name__}"
 
 
-class SheetModel(Base):
+class SheetInfoModel(Base):
     __tablename__ = "sheet"
     row_size: Mapped[int] = mapped_column(Integer, nullable=False)
     col_size: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -47,22 +47,22 @@ class SheetModel(Base):
         return SheetMeta(uuid=self.uuid, size=(self.row_size, self.col_size))
 
 
-class SheetMetaRepoPostgres(SheetMetaRepo):
+class SheetInfoRepoPostgres(SheetMetaRepo):
     def __init__(self, session: AsyncSession):
         self._session = session
 
     async def add(self, sheet: SheetMeta):
-        model = SheetModel(uuid=sheet.uuid, row_size=sheet.size[0], col_size=sheet.size[1])
+        model = SheetInfoModel(uuid=sheet.uuid, row_size=sheet.size[0], col_size=sheet.size[1])
         self._session.add(model)
 
     async def update(self, sheet: SheetMeta):
-        stmt = select(SheetModel).where(SheetModel.uuid == sheet.uuid)
+        stmt = select(SheetInfoModel).where(SheetInfoModel.uuid == sheet.uuid)
         model = await self._session.scalar(stmt)
         model.row_size = sheet.size[0]
         model.col_size = sheet.size[1]
 
     async def get_one_by_uuid(self, uuid: UUID) -> SheetMeta:
-        stmt = select(SheetModel).where(SheetModel.uuid == uuid)
+        stmt = select(SheetInfoModel).where(SheetInfoModel.uuid == uuid)
         model = await self._session.scalar(stmt)
         return model.to_entity()
 

@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 from src.bus.eventbus import Queue
 from src.spreadsheet.cell.entity import CellValue, Cell
 from src.spreadsheet.cell.repository import CellRepo
-from src.spreadsheet.sheet_meta.entity import SheetMeta
+from src.spreadsheet.sheet_info.entity import SheetMeta
 from src.spreadsheet.sindex.entity import Sindex
 from . import events as cell_events
 

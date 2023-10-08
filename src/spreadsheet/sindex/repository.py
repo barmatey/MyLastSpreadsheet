@@ -8,8 +8,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src import helpers
 from src.core import OrderBy
-from src.spreadsheet.sheet_meta.entity import SheetMeta
-from src.spreadsheet.sheet_meta.repository import Base
+from src.spreadsheet.sheet_info.entity import SheetMeta
+from src.spreadsheet.sheet_info.repository import Base
 from src.spreadsheet.sindex.entity import Sindex, RowSindex, ColSindex
 
 

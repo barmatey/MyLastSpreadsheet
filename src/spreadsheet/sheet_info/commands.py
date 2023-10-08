@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from src.bus.eventbus import Queue
 from src.core import PydanticModel
-from src.spreadsheet.sheet_meta import (entity as sheet_entity, events as sheet_events, usecases as sheet_usecases,
+from src.spreadsheet.sheet_info import (entity as sheet_entity, events as sheet_events, usecases as sheet_usecases,
                                         repository as sheet_repo)
 from src.spreadsheet.sindex import (entity as sindex_entity, usecases as sindex_usecases, repository as sindex_repo)
 from src.spreadsheet.cell import (entity as cell_entity, usecases as cell_usecases, repository as cell_repo)

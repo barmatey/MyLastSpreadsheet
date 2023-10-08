@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from ..cell.entity import CellValue
-from ..sheet_meta.entity import SheetMeta
+from ..sheet_info.entity import SheetMeta
 
 
 class SheetSubscriber(ABC):

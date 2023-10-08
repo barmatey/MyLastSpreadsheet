@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 from src.spreadsheet.cell.entity import Cell
-from src.spreadsheet.sheet_meta.entity import SheetMeta
+from src.spreadsheet.sheet_info.entity import SheetMeta
 from src.spreadsheet.sindex.entity import RowSindex, ColSindex
 
 
