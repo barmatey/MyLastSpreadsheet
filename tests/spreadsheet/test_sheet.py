@@ -7,7 +7,7 @@ import db
 from src.bus.eventbus import EventBus
 from src.core import OrderBy
 from src.spreadsheet.cell.repository import CellRepoPostgres
-from src.spreadsheet.sheet_meta.repository import SheetRepoPostgres
+from src.spreadsheet.sheet_meta.repository import SheetMetaRepoPostgres
 from src.spreadsheet.sindex.repository import SindexRepoPostgres
 from src.spreadsheet.sheet_meta import commands as sheet_commands, entity as sheet_entity, usecases as sheet_usecases
 from src.spreadsheet.sindex import entity as sindex_entity, usecases as sindex_usecases
@@ -18,7 +18,7 @@ from src.spreadsheet.cell import entity as cell_entity, usecases as cell_usecase
 @pytest.mark.asyncio
 async def sheet():
     async with db.get_async_session() as session:
-        sheet_repo = SheetRepoPostgres(session)
+        sheet_repo = SheetMetaRepoPostgres(session)
         sindex_repo = SindexRepoPostgres(session)
         cell_repo = CellRepoPostgres(session)
 
@@ -49,7 +49,7 @@ async def sheet():
 @pytest.mark.asyncio
 async def test_create_sheet():
     async with db.get_async_session() as session:
-        sheet_repo = SheetRepoPostgres(session)
+        sheet_repo = SheetMetaRepoPostgres(session)
         cmd = sheet_commands.CreateSheet(sheet_repo=sheet_repo)
         sheet = await cmd.execute()
         sheet_from_repo = await sheet_repo.get_one_by_uuid(sheet.uuid)
@@ -62,7 +62,7 @@ async def test_create_sheet():
 async def test_delete_rows(sheet: sheet_entity.SheetMeta):
     sheet = await sheet
     async with db.get_async_session() as session:
-        sheet_repo = SheetRepoPostgres(session)
+        sheet_repo = SheetMetaRepoPostgres(session)
         sindex_repo = SindexRepoPostgres(session)
         cell_repo = CellRepoPostgres(session)
 
@@ -83,7 +83,7 @@ async def test_delete_rows(sheet: sheet_entity.SheetMeta):
         for i, row in enumerate(rows):
             assert row.position == i
 
-        sheet_repo = SheetRepoPostgres(session)
+        sheet_repo = SheetMetaRepoPostgres(session)
         sheet = await sheet_repo.get_one_by_uuid(sheet.uuid)
         assert sheet.size == (9, 5)
 

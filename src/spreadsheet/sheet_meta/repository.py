@@ -9,7 +9,7 @@ from .entity import SheetMeta
 from ...helpers.decorators import singleton
 
 
-class SheetRepo(ABC):
+class SheetMetaRepo(ABC):
     @abstractmethod
     async def add(self, sheet: SheetMeta):
         raise NotImplemented
@@ -28,7 +28,7 @@ class SheetRepo(ABC):
 
 
 @singleton
-class SheetRepoFake(SheetRepo):
+class SheetMetaRepoFake(SheetMetaRepo):
     def __init__(self):
         self._data: dict[UUID, SheetMeta] = {}
 
@@ -72,7 +72,7 @@ class SheetModel(Base):
         return SheetMeta(uuid=self.uuid, size=(self.row_size, self.col_size))
 
 
-class SheetRepoPostgres(SheetRepo):
+class SheetMetaRepoPostgres(SheetMetaRepo):
     def __init__(self, session: AsyncSession):
         self._session = session
 

@@ -4,7 +4,7 @@ from src.bus.broker import Broker
 from src.bus.eventbus import EventBus
 from .entity import SheetMeta
 
-from .repository import SheetRepo, SheetRepoFake
+from .repository import SheetMetaRepo, SheetMetaRepoFake
 from .subscriber import SheetSubscriber
 from . import events
 
@@ -12,7 +12,7 @@ bus = EventBus()
 
 
 @bus.register(events.SheetDeleted)
-def handle_sheet_deleted(event: events.SheetDeleted, repo: SheetRepo = SheetRepoFake()):
+def handle_sheet_deleted(event: events.SheetDeleted, repo: SheetMetaRepo = SheetMetaRepoFake()):
     subs: set[SheetSubscriber] = Broker().get_subscribers(event.entity)
     for sub in subs:
         sub.on_sheet_deleted()
