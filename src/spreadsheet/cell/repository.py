@@ -2,7 +2,7 @@ from abc import abstractmethod, ABC
 from uuid import UUID
 from datetime import datetime
 
-from sqlalchemy import String, ForeignKey, delete, select
+from sqlalchemy import String, ForeignKey, delete, select, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -18,6 +18,10 @@ from src.spreadsheet.sindex.repository import RowSindexModel, ColSindexModel
 class CellRepo(ABC):
     @abstractmethod
     async def add(self, cell: Cell):
+        raise NotImplemented
+
+    @abstractmethod
+    async def add_many(self, cells: list[Cell]):
         raise NotImplemented
 
     @abstractmethod
@@ -84,6 +88,11 @@ class CellRepoPostgres(CellRepo):
                           row_sindex_uuid=cell.row_sindex.uuid, col_sindex_uuid=cell.col_sindex.uuid,
                           sheet_uuid=cell.sheet.uuid)
         self._session.add(model)
+
+    async def add_many(self, cells: list[Cell]):
+        data = [x.model_dump() for x in cells]
+        stmt = insert(CellModel)
+        await self._session.execute(stmt, data)
 
     async def get_many_by_sheet_filters(self, sheet: Sheet, rows: list[RowSindex] = None, cols: list[ColSindex] = None,
                                         order_by: OrderBy = None) -> list[Cell]:

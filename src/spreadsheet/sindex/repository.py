@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Type
 from uuid import UUID
 
-from sqlalchemy import Integer, ForeignKey, select, delete, update
+from sqlalchemy import Integer, ForeignKey, select, delete, update, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -16,6 +16,10 @@ from src.spreadsheet.sindex.entity import Sindex, RowSindex, ColSindex
 class SindexRepo(ABC):
     @abstractmethod
     async def add(self, sindex: Sindex):
+        raise NotImplemented
+
+    @abstractmethod
+    async def add_many(self, sindexes: list[Sindex]):
         raise NotImplemented
 
     @abstractmethod
@@ -73,10 +77,16 @@ class SindexRepoPostgres(SindexRepo):
         model = model(uuid=sindex.uuid, position=sindex.position, sheet_uuid=sindex.sheet.uuid)
         self._session.add(model)
 
+    async def add_many(self, sindexes: list[Sindex]):
+        model = RowSindexModel if isinstance(sindexes[0], RowSindex) else ColSindexModel
+        data = [x.model_dump() for x in sindexes]
+        stmt = insert(model)
+        await self._session.execute(stmt, data)
+
     async def update_one(self, sindex: Sindex):
-        model = RowSindexModel if isinstance(sindex, RowSindex) else ColSindexModel
-        stmt = update(model).where(model.uuid == sindex.uuid).values(**sindex.model_dump(exclude={"sheet", "uuid"}))
-        await self._session.execute(stmt)
+            model = RowSindexModel if isinstance(sindex, RowSindex) else ColSindexModel
+            stmt = update(model).where(model.uuid == sindex.uuid).values(**sindex.model_dump(exclude={"sheet", "uuid"}))
+            await self._session.execute(stmt)
 
     async def get_sheet_rows(self, sheet: Sheet, order_by: OrderBy = None) -> list[RowSindex]:
         return await self.__get_sindexes(RowSindexModel, sheet, order_by)

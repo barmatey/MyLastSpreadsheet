@@ -21,3 +21,8 @@ async def handle_sindex_updated(event: sindex_events.SindexUpdated, repo: Sindex
     for sub in subs:
         await sub.on_sindex_updated(event.old_entity, event.new_entity)
     await repo.update_one(event.new_entity)
+
+
+@bus.register(sindex_events.SindexSubscribed)
+async def handle_sindex_subscribed(event: sindex_events.SindexSubscribed):
+    Broker().subscribe_to_many(event.pubs, event.sub)

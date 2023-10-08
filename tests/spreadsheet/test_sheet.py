@@ -5,6 +5,7 @@ import pytest_asyncio
 
 import db
 from src.bus.eventbus import EventBus
+from src.core import OrderBy
 from src.spreadsheet.cell.repository import CellRepoPostgres
 from src.spreadsheet.sheet.repository import SheetRepoPostgres
 from src.spreadsheet.sindex.repository import SindexRepoPostgres
@@ -13,7 +14,7 @@ from src.spreadsheet.sindex import entity as sindex_entity, usecases as sindex_u
 from src.spreadsheet.cell import entity as cell_entity, usecases as cell_usecases
 
 
-@pytest.fixture()
+@pytest.fixture(scope="function")
 @pytest.mark.asyncio
 async def sheet():
     async with db.get_async_session() as session:
@@ -85,3 +86,4 @@ async def test_delete_rows(sheet: sheet_entity.Sheet):
         sheet_repo = SheetRepoPostgres(session)
         sheet = await sheet_repo.get_one_by_uuid(sheet.uuid)
         assert sheet.size == (9, 5)
+

@@ -18,10 +18,10 @@ class Cell(BaseModel):
     uuid: UUID = Field(default_factory=uuid4)
 
     def __str__(self):
-        return f"Cell(uuid={self.uuid})"
+        return f"Cell"
 
     def __repr__(self):
-        return f"Cell(uuid={self.uuid})"
+        return f"Cell"
 
     def __hash__(self):
         return self.uuid.__hash__()

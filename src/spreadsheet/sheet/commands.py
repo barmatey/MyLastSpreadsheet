@@ -12,7 +12,10 @@ from src.spreadsheet.cell import (entity as cell_entity, usecases as cell_usecas
 
 
 class CreateSheet(PydanticModel):
+    table: list[list[cell_entity.CellValue]]
     sheet_repo: sheet_repo.SheetRepo
+    cell_repo: cell_repo.CellRepo
+    sindex_repo: sindex_repo.SindexRepo
     uuid: UUID = Field(default_factory=uuid4)
 
     async def execute(self) -> sheet_entity.Sheet:

@@ -1,4 +1,4 @@
-from src.bus.events import Deleted, Updated
+from src.bus.events import Deleted, Updated, Subscribed
 
 
 class SindexUpdated(Updated):
@@ -6,4 +6,8 @@ class SindexUpdated(Updated):
 
 
 class SindexDeleted(Deleted):
+    pass
+
+
+class SindexSubscribed(Subscribed):
     pass
