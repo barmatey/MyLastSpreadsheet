@@ -79,7 +79,7 @@ class SindexRepoPostgres(SindexRepo):
 
     async def add_many(self, sindexes: list[Sindex]):
         model = RowSindexModel if isinstance(sindexes[0], RowSindex) else ColSindexModel
-        data = [x.model_dump() for x in sindexes]
+        data = [{"uuid": x.uuid, "position": x.position, "sheet_uuid": x.sheet.uuid} for x in sindexes]
         stmt = insert(model)
         await self._session.execute(stmt, data)
 

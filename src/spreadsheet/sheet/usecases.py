@@ -11,7 +11,7 @@ async def create_sheet(table: list[list[CellValue]],
                        sheet_meta_repo: SheetMetaRepo, sindex_repo: SindexRepo, cell_repo: CellRepo) -> Sheet:
     size = (len(table), len(table[0]))
     sheet_meta = SheetMeta(size=size)
-    row_sindexes = [RowSindex(sheet=sheet_meta, position=i) for i, in range(0, size[0])]
+    row_sindexes = [RowSindex(sheet=sheet_meta, position=i) for i in range(0, size[0])]
     col_sindexes = [ColSindex(sheet=sheet_meta, position=j) for j in range(0, size[1])]
     cells = []
     for i, row in enumerate(table):

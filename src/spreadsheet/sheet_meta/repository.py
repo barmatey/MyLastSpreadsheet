@@ -27,31 +27,6 @@ class SheetMetaRepo(ABC):
         raise NotImplemented
 
 
-@singleton
-class SheetMetaRepoFake(SheetMetaRepo):
-    def __init__(self):
-        self._data: dict[UUID, SheetMeta] = {}
-
-    def add(self, sheet: SheetMeta):
-        if self._data.get(sheet.uuid) is not None:
-            raise Exception("already exist")
-        self._data[sheet.uuid] = sheet.model_copy(deep=True)
-
-    def get_one_by_uuid(self, uuid: UUID) -> SheetMeta:
-        return self._data[uuid].model_copy(deep=True)
-
-    def update(self, sheet: SheetMeta):
-        if self._data.get(sheet.uuid) is None:
-            raise LookupError
-        self._data[sheet.uuid] = sheet.model_copy(deep=True)
-
-    def remove_one(self, sheet: SheetMeta):
-        del self._data[sheet.uuid]
-
-    def clear(self):
-        self._data = {}
-
-
 class Base(DeclarativeBase):
     uuid: Mapped[UUID] = mapped_column(primary_key=True)
     updated_at: Mapped[TIMESTAMP] = mapped_column(TIMESTAMP(timezone=True), default=func.now(), onupdate=func.now())

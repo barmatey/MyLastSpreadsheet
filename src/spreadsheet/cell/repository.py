@@ -25,7 +25,8 @@ class CellRepo(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def get_many_by_sheet_filters(self, sheet: SheetMeta, rows: list[RowSindex] = None, cols: list[ColSindex] = None,
+    async def get_many_by_sheet_filters(self, sheet: SheetMeta, rows: list[RowSindex] = None,
+                                        cols: list[ColSindex] = None,
                                         order_by: OrderBy = None) -> list[Cell]:
         raise NotImplemented
 
@@ -90,11 +91,19 @@ class CellRepoPostgres(CellRepo):
         self._session.add(model)
 
     async def add_many(self, cells: list[Cell]):
-        data = [x.model_dump() for x in cells]
+        data = [{
+            "uuid": x.uuid,
+            "value": str(x.value),
+            "dtype": get_dtype(x.value),
+            "row_sindex_uuid": x.row_sindex.uuid,
+            "col_sindex_uuid": x.col_sindex.uuid,
+            "sheet_uuid": x.sheet.uuid,
+        } for x in cells]
         stmt = insert(CellModel)
         await self._session.execute(stmt, data)
 
-    async def get_many_by_sheet_filters(self, sheet: SheetMeta, rows: list[RowSindex] = None, cols: list[ColSindex] = None,
+    async def get_many_by_sheet_filters(self, sheet: SheetMeta, rows: list[RowSindex] = None,
+                                        cols: list[ColSindex] = None,
                                         order_by: OrderBy = None) -> list[Cell]:
         stmt = (
             select(CellModel, RowSindexModel, ColSindexModel)
