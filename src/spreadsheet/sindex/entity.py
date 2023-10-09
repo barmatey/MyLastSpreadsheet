@@ -19,6 +19,9 @@ class Sindex(BaseModel):
     def __repr__(self):
         return f"{self.__class__.__name__}(position={self.position})"
 
+    def __hash__(self):
+        return self.uuid.__hash__()
+
     def __eq__(self, other: 'Sindex'):
         return all([
             self.sheet_info == other.sheet_info,

@@ -43,11 +43,12 @@ class EventBus:
         self._handler_kwargs: dict[typing.Type[Message], dict] = {}
         self.results: dict[UUID, typing.Any] = {}
 
-    def _handle(self, msg: Message) -> typing.Any:
+    async def _handle(self, msg: Message) -> typing.Any:
         key = type(msg)
         handler = self._handlers[key]
         kwargs = self._handler_kwargs[key]
-        return handler(msg, **kwargs)
+        print(handler)
+        return await handler(msg, **kwargs)
 
     def register(self, msg: typing.Type[Message]):
         def decorator(fn):
@@ -58,9 +59,9 @@ class EventBus:
         self._handlers[event] = fn
         if kwargs is None:
             kwargs = {}
-        self._handler_kwargs = kwargs
+        self._handler_kwargs[event] = kwargs
 
-    def run(self):
+    async def run(self):
         while not self._events.empty:
             event = self._events.popleft()
-            self.results[event.uuid] = self._handle(event)
+            self.results[event.uuid] = await self._handle(event)
