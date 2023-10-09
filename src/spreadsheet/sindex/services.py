@@ -8,7 +8,6 @@ from src.spreadsheet.sindex import (
 )
 from src.spreadsheet.sheet_info import (
     entity as sf_entity,
-    events as sf_events,
 )
 
 
