@@ -8,17 +8,32 @@ from src.spreadsheet.sindex import (
 )
 from src.spreadsheet.sheet_info import (
     entity as sf_entity,
+    events as sf_events,
 )
 
 
 class SindexHandler:
-    def __init__(self, broker: Broker):
+    def __init__(self, repo: sindex_repo.SindexRepo, broker: Broker):
         self._broker = broker
+        self._repo = repo
+
+    async def handle_sindex_created(self, event: sindex_events.SindexCreated):
+        await self._repo.add(event.entity)
 
     async def handle_sindex_updated(self, event: sindex_events.SindexUpdated):
+        await self._repo.update_one(event.new_entity)
         subs: set[sindex_subscriber.SindexSubscriber] = self._broker.get_subscribers(event.new_entity)
         for sub in subs:
             await sub.on_sindex_updated(old_value=event.old_entity, new_value=event.new_entity)
+
+    async def handle_sindex_deleted(self, event: sindex_events.SindexDeleted):
+        subs: set[sindex_subscriber.SindexSubscriber] = self._broker.get_subscribers(event.entity)
+        for sub in subs:
+            await sub.on_sindex_deleted(event.entity)
+        await self._repo.remove_one(event.entity)
+
+    async def handle_sindex_subscribed(self, event: sindex_events.SindexSubscribed):
+        self._broker.subscribe_to_many(event.pubs, event.sub)
 
 
 class SindexService:
@@ -26,33 +41,22 @@ class SindexService:
         self._events = events
         self._repo = repo
 
-    async def create_row(self, sf: sf_entity.SheetInfo, position: int) -> sindex_entity.Sindex:
+    async def create_row(self, sf: sf_entity.SheetInfo, position: int) -> sindex_entity.RowSindex:
         sindex = sindex_entity.RowSindex(sheet_info=sf, position=position)
-        await self._repo.add(sindex)
+        self._events.append(sindex_events.SindexCreated(entity=sindex))
         return sindex
 
-    async def update_row(self, sindex: sindex_entity.Sindex):
+    async def update_sindex(self, sindex: sindex_entity.Sindex):
         old = await self._repo.get_one_by_uuid(sindex.uuid)
-        await self._repo.update_one(sindex)
         self._events.append(sindex_events.SindexUpdated(old_entity=old, new_entity=sindex))
 
+    async def delete_sindexes(self, sindexes: list[sindex_entity.Sindex]):
+        for sindex in sindexes:
+            self._events.append(sindex_events.SindexDeleted(entity=sindex))
 
-class SindexSelfSubscriber(sindex_subscriber.SindexSubscriber):
-    def __init__(self, entity: sindex_entity.Sindex, queue: Queue):
-        self._events = queue
-        self._entity = entity
-
-    async def follow_sindexes(self, pubs: list[sindex_entity.Sindex]):
-        self._events.append(sindex_events.SindexSubscribed(pubs=pubs, sub=self._entity))
-
-    async def unfollow_sindexes(self, pubs: list[sindex_entity.Sindex]):
-        pass
-
-    async def on_sindex_updated(self, old_value: sindex_entity.Sindex, new_value: sindex_entity.Sindex):
-        pass
-
-    async def on_sindex_deleted(self, pub: sindex_entity.Sindex):
-        self._events.append(sindex_events.SindexDeleted(entity=self._entity))
-        new_sheet = self._entity.sheet_info.model_copy(deep=True)
-        new_sheet.size = (new_sheet.size[0] - 1, new_sheet.size[1])
-        self._events.append(sheet_events.SheetSizeUpdated(old_entity=self._entity.sheet_info, new_entity=new_sheet))
+    async def reindex_rows(self, sf: sf_entity.SheetInfo):
+        rows = await self._repo.get_sheet_rows(sf)
+        for i, row in enumerate(rows):
+            if row.position != i:
+                row.position = i
+                await self._repo.update_one(row)
