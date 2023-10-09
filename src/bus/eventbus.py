@@ -47,7 +47,6 @@ class EventBus:
         key = type(msg)
         handler = self._handlers[key]
         kwargs = self._handler_kwargs[key]
-        print(handler)
         return await handler(msg, **kwargs)
 
     def register(self, msg: typing.Type[Message]):

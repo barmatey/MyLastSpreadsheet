@@ -47,8 +47,8 @@ async def test_create_sheet():
 async def test_get_sheet_by_uuid():
     sheet = await create_sheet(table=[[0, 1], [2, 3], [4, 5]])
     async with db.get_async_session() as session:
-
-        cmd = sheet_commands.GetSheetByUuid(uuid=sheet.sheet_info.uuid)
+        bus = sheet_bootstrap.Bootstrap(session).get_event_bus()
+        cmd = sheet_commands.GetSheetByUuid(uuid=sheet.sheet_info.uuid, bus=bus)
         sheet_from_repo = await cmd.execute()
         assert sheet_from_repo == sheet
 

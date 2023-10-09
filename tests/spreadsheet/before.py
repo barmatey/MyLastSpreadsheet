@@ -1,14 +1,16 @@
 import db
 from src.spreadsheet.cell.entity import CellValue
-from src.spreadsheet.sheet.commands import CreateSheet
-from src.spreadsheet.sheet.entity import Sheet
-from src.spreadsheet.sheet.repository import SheetRepoPostgres
+from src.spreadsheet.sheet import (
+    entity as sheet_entity,
+    commands as sheet_commands,
+    bootstrap as sheet_bootstrap,
+)
 
 
-async def create_sheet(table: list[list[CellValue]] = None) -> Sheet:
+async def create_sheet(table: list[list[CellValue]] = None) -> sheet_entity.Sheet:
     async with db.get_async_session() as session:
-        sheet_repo = SheetRepoPostgres(session)
-        cmd = CreateSheet(table=table, sheet_repo=sheet_repo, )
+        bus = sheet_bootstrap.Bootstrap(session).get_event_bus()
+        cmd = sheet_commands.CreateSheet(table=table, bus=bus)
         sheet = await cmd.execute()
         await session.commit()
         return sheet

@@ -9,12 +9,14 @@ from ...bus.eventbus import EventBus, Queue
 
 
 class CreateSheet(PydanticModel):
+    bus: EventBus
     table: list[list[cell_entity.CellValue]] | None = None
     uuid: UUID = Field(default_factory=uuid4)
 
     async def execute(self) -> sheet_entity.Sheet:
         table = self.table if self.table is not None else []
         sheet = await sheet_usecases.create_sheet(table)
+        await self.bus.run()
         return sheet
 
 
