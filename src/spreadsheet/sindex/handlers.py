@@ -3,7 +3,7 @@ from src.bus.broker import Broker
 from . import (
     events as sindex_events,
     repository as sindex_repo,
-    subscriber as sindex_subscriber
+    subscriber as sindex_subscriber,
 )
 
 bus = EventBus()

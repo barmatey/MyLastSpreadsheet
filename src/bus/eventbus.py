@@ -35,23 +35,30 @@ class Queue:
         return msg
 
 
-@singleton
 class EventBus:
     def __init__(self):
         self._events = Queue()
         self._commands = Queue()
         self._handlers: dict[typing.Type[Message], typing.Callable] = {}
+        self._handler_kwargs: dict[typing.Type[Message], dict] = {}
         self.results: dict[UUID, typing.Any] = {}
 
     def _handle(self, msg: Message) -> typing.Any:
-        handler = self._handlers[type(msg)]
-        return handler(msg)
+        key = type(msg)
+        handler = self._handlers[key]
+        kwargs = self._handler_kwargs[key]
+        return handler(msg, **kwargs)
 
     def register(self, msg: typing.Type[Message]):
         def decorator(fn):
             self._handlers[msg] = fn
-
         return decorator
+
+    def add_handler(self, event: typing.Type[Event], fn: typing.Callable, kwargs: dict = None):
+        self._handlers[event] = fn
+        if kwargs is None:
+            kwargs = {}
+        self._handler_kwargs = kwargs
 
     def run(self):
         while not self._events.empty:
