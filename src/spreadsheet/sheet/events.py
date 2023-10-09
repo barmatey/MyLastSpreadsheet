@@ -1,20 +1,24 @@
 from uuid import UUID, uuid4
 from pydantic import Field
 
-from src.bus.events import Created, Updated, Deleted, Subscribed, Unsubscribed, Event
+from src.bus.events import Created, Updated, Deleted, Subscribed, Unsubscribed, Event, Requested
 from src.spreadsheet.cell.entity import CellValue
-from src.spreadsheet.sheet_info.entity import SheetInfo
+from src.spreadsheet.sheet.entity import Sheet
 
 
-class SheetCreated(Created[SheetInfo]):
+class SheetCreated(Created[Sheet]):
     pass
 
 
-class SheetSizeUpdated(Updated[SheetInfo]):
+class SheetRequested(Requested):
     pass
 
 
-class SheetDeleted(Deleted[SheetInfo]):
+class SheetSizeUpdated(Updated[Sheet]):
+    pass
+
+
+class SheetDeleted(Deleted[Sheet]):
     pass
 
 

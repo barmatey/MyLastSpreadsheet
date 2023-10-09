@@ -22,6 +22,10 @@ class Created(Event, Generic[T]):
     uuid: UUID = Field(default_factory=uuid4)
 
 
+class Requested(Event):
+    uuid: UUID
+
+
 class Updated(Event, Generic[T]):
     old_entity: T
     new_entity: T
