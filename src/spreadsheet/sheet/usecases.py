@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from src.bus.eventbus import Queue
 from src.spreadsheet.cell import (
     entity as cell_entity,
@@ -30,7 +28,3 @@ async def create_sheet(table: list[list[cell_entity.CellValue]]) -> sheet_entity
     sheet = sheet_entity.Sheet(sheet_info=sheet_meta, rows=row_sindexes, cols=col_sindexes, cells=cells)
     Queue().append(sheet_events.SheetCreated(entity=sheet))
     return sheet
-
-
-async def get_by_uuid(uuid: UUID) -> sheet_entity.Sheet:
-    Queue().append(sheet_events.SheetRequested(uuid=uuid))

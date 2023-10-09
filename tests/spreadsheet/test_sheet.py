@@ -1,46 +1,43 @@
 import pytest
 
 import db
-from src.bus.eventbus import EventBus
 from src.spreadsheet.sheet import (
     entity as sheet_entity,
     commands as sheet_commands,
     subscriber as sheet_subscriber,
     bootstrap as sheet_bootstrap,
-    repository as sheet_repo
 )
 from src.spreadsheet.sheet_info import (
     entity as sf_entity,
     usecases as sf_usecases,
-    repository as sf_repo,
 )
 from src.spreadsheet.sindex import (
     entity as sindex_entity,
     usecases as sindex_usecases,
     subscriber as sindex_subscriber,
-    repository as sindex_repo,
 )
 from src.spreadsheet.cell import (
     entity as cell_entity,
     usecases as cell_usecases,
     subscriber as cell_subscriber,
-    repository as cell_repo,
 )
 from tests.spreadsheet.before import create_sheet
 
 
 @pytest.mark.asyncio
 async def test_create_sheet():
-    cmd = sheet_commands.CreateSheet(table=[[0, 1], [2, 3], [4, 5]], )
-    sheet: sheet_entity.Sheet = await cmd.execute()
+    async with db.get_async_session() as session:
+        bus = sheet_bootstrap.Bootstrap(session).get_event_bus()
+        cmd = sheet_commands.CreateSheet(table=[[0, 1], [2, 3], [4, 5]], bus=bus)
+        sheet: sheet_entity.Sheet = await cmd.execute()
 
-    assert sheet.sheet_info.size == (3, 2)
-    for i in range(0, 3):
-        assert sheet.rows[i].position == i
-    for i in range(0, 2):
-        assert sheet.cols[i].position == i
-    for i in range(0, 6):
-        assert sheet.cells[i].value == i
+        assert sheet.sheet_info.size == (3, 2)
+        for i in range(0, 3):
+            assert sheet.rows[i].position == i
+        for i in range(0, 2):
+            assert sheet.cols[i].position == i
+        for i in range(0, 6):
+            assert sheet.cells[i].value == i
 
 
 @pytest.mark.asyncio
