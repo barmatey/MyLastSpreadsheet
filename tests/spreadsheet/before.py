@@ -11,8 +11,7 @@ from src.spreadsheet.sheet import (
 
 async def create_sheet(table: list[list[CellValue]] = None) -> sheet_entity.Sheet:
     async with db.get_async_session() as session:
-        bus = sheet_bootstrap.Bootstrap(session).get_event_bus()
-        cmd = sheet_commands.CreateSheet(table=table, bus=bus)
+        cmd = sheet_commands.CreateSheet(table=table, bootstrap=sheet_bootstrap.Bootstrap(session))
         sheet = await cmd.execute()
         await session.commit()
         return sheet

@@ -16,7 +16,6 @@ class Command(BaseModel):
 Message = Command | Event
 
 
-@singleton
 class Queue:
     def __init__(self):
         self._queue = deque()
@@ -36,9 +35,8 @@ class Queue:
 
 
 class EventBus:
-    def __init__(self):
-        self._events = Queue()
-        self._commands = Queue()
+    def __init__(self, queue: Queue):
+        self._events = queue
         self._handlers: dict[typing.Type[Message], typing.Callable] = {}
         self._handler_kwargs: dict[typing.Type[Message], dict] = {}
         self.results: dict[UUID, typing.Any] = {}

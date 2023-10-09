@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.bus.broker import Broker
-from src.bus.eventbus import EventBus
+from src.bus.eventbus import EventBus, Queue
 from src.spreadsheet.sheet import (
     events as sheet_events,
     services as sheet_services,
@@ -25,9 +25,10 @@ class Bootstrap:
         self._sindex_repo = sindex_repo.SindexRepoPostgres(session)
         self._cell_repo = cell_repo.CellRepoPostgres(session)
         self._broker = Broker()
+        self._queue = Queue()
 
     def get_event_bus(self) -> EventBus:
-        bus = EventBus()
+        bus = EventBus(self._queue)
 
         handler = sheet_services.SheetHandler(self._sheet_repo, self._broker)
         bus.add_handler(sheet_events.SheetCreated, handler.handle_sheet_created)
@@ -46,3 +47,6 @@ class Bootstrap:
         bus.add_handler(cell_events.CellUnsubscribed, handler.handle_cell_unsubscribed)
 
         return bus
+
+    def get_sheet_service(self):
+        return sheet_services.SheetService(self._sheet_repo, self._queue)

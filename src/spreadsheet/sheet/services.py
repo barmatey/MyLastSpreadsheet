@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from src.bus.broker import Broker
 from src.bus.eventbus import Queue
 from src.spreadsheet.sheet import (
@@ -44,3 +46,6 @@ class SheetService:
         sheet = sheet_entity.Sheet(sheet_info=sheet_meta, rows=row_sindexes, cols=col_sindexes, cells=cells)
         self._events.append(sheet_events.SheetCreated(entity=sheet))
         return sheet
+
+    async def get_sheet_by_uuid(self, uuid: UUID) -> sheet_entity.Sheet:
+        return await self._repo.get_by_uuid(uuid)

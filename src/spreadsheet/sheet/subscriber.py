@@ -4,6 +4,7 @@ from src.bus.eventbus import Queue
 from src.spreadsheet.sheet import (
     entity as sheet_entity,
     events as sheet_events,
+    repository as sheet_repo,
 )
 from src.spreadsheet.cell import (
     entity as cell_entity,
@@ -36,9 +37,10 @@ class SheetSubscriber(ABC):
 
 
 class SheetSelfSubscriber(SheetSubscriber):
-    def __init__(self, entity: sheet_entity.Sheet):
+    def __init__(self, entity: sheet_entity.Sheet, repo: sheet_repo.SheetRepo, queue: Queue):
         self._entity = entity
-        self._events = Queue()
+        self._events = queue
+        self._repo = repo
 
     async def follow_sheet(self, pub: sheet_entity.Sheet):
         if self._entity.sheet_info.size != (0, 0):
