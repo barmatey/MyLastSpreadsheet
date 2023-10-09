@@ -1,19 +1,20 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.bus.broker import Broker
 from src.bus.eventbus import EventBus
 from src.spreadsheet.sheet import (
     events as sheet_events,
-    handlers as sheet_handlers,
+    services as sheet_services,
     repository as sheet_repo,
 )
 from src.spreadsheet.sindex import (
     events as sindex_events,
-    handlers as sindex_handlers,
+    services as sindex_services,
     repository as sindex_repo,
 )
 from src.spreadsheet.cell import (
     events as cell_events,
-    handlers as cell_handlers,
+    services as cell_services,
     repository as cell_repo,
 )
 
@@ -23,25 +24,25 @@ class Bootstrap:
         self._sheet_repo = sheet_repo.SheetRepoPostgres(session)
         self._sindex_repo = sindex_repo.SindexRepoPostgres(session)
         self._cell_repo = cell_repo.CellRepoPostgres(session)
+        self._broker = Broker()
 
     def get_event_bus(self) -> EventBus:
         bus = EventBus()
 
-        repo = {"repo": self._sheet_repo}
-        bus.add_handler(sheet_events.SheetCreated, sheet_handlers.handle_sheet_created, repo)
-        bus.add_handler(sheet_events.SheetRequested, sheet_handlers.handle_sheet_requested, repo)
+        handler = sheet_services.SheetHandler(self._sheet_repo, self._broker)
+        bus.add_handler(sheet_events.SheetCreated, handler.handle_sheet_created)
 
-        repo = {"repo": self._sindex_repo}
-        bus.add_handler(sindex_events.SindexCreated, sindex_handlers.handle_sindex_created, repo)
-        bus.add_handler(sindex_events.SindexUpdated, sindex_handlers.handle_sindex_updated, repo)
-        bus.add_handler(sindex_events.SindexDeleted, sindex_handlers.handle_sindex_deleted, repo)
-        bus.add_handler(sindex_events.SindexSubscribed, sindex_handlers.handle_sindex_subscribed)
+        handler = sindex_services.SindexHandler(self._sindex_repo, self._broker)
+        bus.add_handler(sindex_events.SindexCreated, handler.handle_sindex_created)
+        bus.add_handler(sindex_events.SindexUpdated, handler.handle_sindex_updated)
+        bus.add_handler(sindex_events.SindexDeleted, handler.handle_sindex_deleted)
+        bus.add_handler(sindex_events.SindexSubscribed, handler.handle_sindex_subscribed)
 
-        repo = {"repo": self._cell_repo}
-        bus.add_handler(cell_events.CellCreated, cell_handlers.handle_cell_created, repo)
-        bus.add_handler(cell_events.CellUpdated, cell_handlers.handle_cell_updated, repo)
-        bus.add_handler(cell_events.CellDeleted, cell_handlers.handle_cell_deleted, repo)
-        bus.add_handler(cell_events.CellSubscribed, cell_handlers.handle_cell_subscribed)
-        bus.add_handler(cell_events.CellUnsubscribed, cell_handlers.handle_cell_unsubscribed)
+        handler = cell_services.CellHandler(self._cell_repo, self._broker)
+        bus.add_handler(cell_events.CellCreated, handler.handle_cell_created)
+        bus.add_handler(cell_events.CellUpdated, handler.handle_cell_updated)
+        bus.add_handler(cell_events.CellDeleted, handler.handle_cell_deleted)
+        bus.add_handler(cell_events.CellSubscribed, handler.handle_cell_subscribed)
+        bus.add_handler(cell_events.CellUnsubscribed, handler.handle_cell_unsubscribed)
 
         return bus
