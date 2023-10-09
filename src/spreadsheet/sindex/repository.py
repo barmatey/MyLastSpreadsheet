@@ -23,6 +23,10 @@ class SindexRepo(ABC):
         raise NotImplemented
 
     @abstractmethod
+    async def get_one_by_uuid(self, uuid: UUID) -> Sindex:
+        raise NotImplemented
+
+    @abstractmethod
     async def update_one(self, sindex: Sindex):
         raise NotImplemented
 
@@ -82,6 +86,9 @@ class SindexRepoPostgres(SindexRepo):
         data = [{"uuid": x.uuid, "position": x.position, "sheet_uuid": x.sheet_info.uuid} for x in sindexes]
         stmt = insert(model)
         await self._session.execute(stmt, data)
+
+    async def get_one_by_uuid(self, uuid: UUID) -> Sindex:
+        raise NotImplemented
 
     async def update_one(self, sindex: Sindex):
         model = RowSindexModel if isinstance(sindex, RowSindex) else ColSindexModel
