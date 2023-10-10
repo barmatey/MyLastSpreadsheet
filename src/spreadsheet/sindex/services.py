@@ -33,8 +33,9 @@ class SindexHandler:
         await self._repo.remove_one(event.entity)
 
     async def handle_sindex_subscribed(self, event: sindex_events.SindexSubscribed):
-        await sindex_subscriber.SindexSelfSubscriber(event.sub, self._repo, self._events).follow_sindexes(event.pubs)
-        self._broker.subscribe_to_many(event.pubs, event.sub)
+        sub = sindex_subscriber.SindexSelfSubscriber(event.sub, self._repo, self._events)
+        await sub.follow_sindexes(event.pubs)
+        self._broker.subscribe_to_many(event.pubs, sub)
 
 
 class SindexService:

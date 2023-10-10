@@ -51,14 +51,14 @@ class SheetSelfSubscriber(SheetSubscriber):
             child_row = sindex_entity.RowSindex(position=parent_row.position, sheet_info=self._entity.sheet_info)
             rows.append(child_row)
             self._events.append(sindex_events.SindexCreated(entity=child_row))
-            self._events.append(sindex_events.SindexSubscribed(pubs=[parent_row], sub=self._entity))
+            self._events.append(sindex_events.SindexSubscribed(pubs=[parent_row], sub=child_row))
 
         cols = []
         for parent_col in pub.cols:
             child_col = sindex_entity.ColSindex(position=parent_col.position, sheet_info=self._entity.sheet_info)
             cols.append(child_col)
             self._events.append(sindex_events.SindexCreated(entity=child_col))
-            self._events.append(sindex_events.SindexSubscribed(pubs=[parent_col], sub=self._entity))
+            self._events.append(sindex_events.SindexSubscribed(pubs=[parent_col], sub=child_col))
 
         for i, row in enumerate(rows):
             for j, col in enumerate(cols):

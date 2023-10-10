@@ -62,5 +62,8 @@ class Bootstrap:
     def get_sheet_service(self):
         return sheet_services.SheetService(self._sheet_repo, self._queue)
 
+    def get_sindex_service(self):
+        return sindex_services.SindexService(self._sindex_repo, self._queue)
+
     def get_sheet_subscriber(self, entity: sheet_entity.Sheet) -> sheet_subscriber.SheetSelfSubscriber:
         return sheet_subscriber.SheetSelfSubscriber(entity, self._sheet_repo, self._queue)

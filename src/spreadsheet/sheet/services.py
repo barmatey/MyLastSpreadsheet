@@ -47,5 +47,8 @@ class SheetService:
         self._events.append(sheet_events.SheetCreated(entity=sheet))
         return sheet
 
+    async def delete_sindexes(self, sindexes: list[sindex_entity.Sindex]):
+        raise NotImplemented
+
     async def get_sheet_by_uuid(self, uuid: UUID) -> sheet_entity.Sheet:
         return await self._repo.get_by_uuid(uuid)

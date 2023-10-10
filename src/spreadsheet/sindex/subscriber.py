@@ -9,6 +9,10 @@ from src.spreadsheet.sindex import (
 from src.spreadsheet.sheet_info import (
     events as sf_events,
 )
+from src.spreadsheet.sheet import (
+    services as sheet_services,
+    repository as sheet_repo,
+)
 
 
 class SindexSubscriber(ABC):
