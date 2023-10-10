@@ -37,7 +37,6 @@ class CellSelfSubscriber(CellSubscriber):
         if len(pubs) != 1:
             raise Exception
         self._entity.value = pubs[0].value
-        self._cell_events.append(cell_events.CellSubscribed(pubs=pubs, sub=self))
         self._cell_events.append(cell_events.CellUpdated(old_entity=old, new_entity=self._entity))
 
     async def unfollow_cells(self, pubs: list[cell_entity.Cell]):
@@ -45,7 +44,6 @@ class CellSelfSubscriber(CellSubscriber):
         if len(pubs) != 1:
             raise Exception
         self._entity.value = None
-        self._cell_events.append(cell_events.CellUnsubscribed(pubs=pubs, sub=self))
         self._cell_events.append(cell_events.CellUpdated(old_entity=old, new_entity=self._entity))
 
     async def on_cell_updated(self, old: cell_entity.Cell, actual: cell_entity.Cell):

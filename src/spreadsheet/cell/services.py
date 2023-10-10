@@ -18,9 +18,10 @@ from src.spreadsheet.sindex import (
 
 
 class CellHandler:
-    def __init__(self, repo: cell_repo.CellRepo, broker: Broker):
+    def __init__(self, repo: cell_repo.CellRepo, broker: Broker, queue: Queue):
         self._repo = repo
         self._broker = broker
+        self._events = queue
 
     async def handle_cell_created(self, event: cell_events.CellCreated):
         await self._repo.add(event.entity)
@@ -38,6 +39,7 @@ class CellHandler:
         await self._repo.remove_many([event.entity])
 
     async def handle_cell_subscribed(self, event: cell_events.CellSubscribed):
+        await cell_subscriber.CellSelfSubscriber(event.sub, self._repo, self._events).follow_cells(event.pubs)
         self._broker.subscribe_to_many(event.pubs, event.sub)
 
     async def handle_cell_unsubscribed(self, event: cell_events.CellUnsubscribed):

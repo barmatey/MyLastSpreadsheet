@@ -33,4 +33,3 @@ class GetSheetByUuid(PydanticModel):
 
     async def execute(self) -> sheet_entity.Sheet:
         return await self.bootstrap.get_sheet_service().get_sheet_by_uuid(self.uuid)
-

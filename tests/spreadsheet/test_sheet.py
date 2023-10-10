@@ -40,21 +40,22 @@ async def test_create_sheet():
 
 @pytest.mark.asyncio
 async def test_get_sheet_by_uuid():
-    sheet = await create_sheet(table=[[0, 1], [2, 3], [4, 5]])
     async with db.get_async_session() as session:
+        sheet = await create_sheet(table=[[0, 1], [2, 3], [4, 5]])
         cmd = sheet_commands.GetSheetByUuid(uuid=sheet.sheet_info.uuid, bootstrap=sheet_bootstrap.Bootstrap(session))
         sheet_from_repo = await cmd.execute()
         assert sheet_from_repo == sheet
 
 
-# @pytest.mark.asyncio
-# async def test_sheet_changes_state_when_subscribe_to_another_sheet():
-#     sheet1 = await create_sheet([
-#         [11, 22],
-#     ])
-#     sheet2 = await create_sheet()
-#
-#     async with db.get_async_session() as session:
-#         await sheet_subscriber.SheetSelfSubscriber(entity=sheet2).follow_sheet(sheet1)
-#         bus = sheet_bootstrap.Bootstrap(session).get_event_bus()
-#         await bus.run()
+@pytest.mark.asyncio
+async def test_sheet_changes_state_when_subscribe_to_another_sheet():
+    sheet1 = await create_sheet([
+        [11, 22],
+    ])
+    sheet2 = await create_sheet()
+
+    async with db.get_async_session() as session:
+        bootstrap = sheet_bootstrap.Bootstrap(session)
+        await bootstrap.get_sheet_subscriber(sheet2).follow_sheet(sheet1)
+        await bootstrap.get_event_bus().run()
+

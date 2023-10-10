@@ -36,7 +36,7 @@ class SindexSelfSubscriber(SindexSubscriber):
         self._repo = repo
 
     async def follow_sindexes(self, pubs: list[sindex_entity.Sindex]):
-        self._events.append(sindex_events.SindexSubscribed(pubs=pubs, sub=self._entity))
+        pass
 
     async def unfollow_sindexes(self, pubs: list[sindex_entity.Sindex]):
         pass

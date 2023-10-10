@@ -9,12 +9,10 @@ from src.spreadsheet.sheet import (
 from src.spreadsheet.cell import (
     entity as cell_entity,
     events as cell_events,
-    subscriber as cell_subscriber,
 )
 from src.spreadsheet.sindex import (
     entity as sindex_entity,
     events as sindex_events,
-    subscriber as sindex_subscriber,
 )
 
 
@@ -50,14 +48,14 @@ class SheetSelfSubscriber(SheetSubscriber):
             child_row = sindex_entity.RowSindex(position=parent_row.position, sheet_info=self._entity.sheet_info)
             rows.append(child_row)
             self._events.append(sindex_events.SindexCreated(entity=child_row))
-            await sindex_subscriber.SindexSelfSubscriber(child_row).follow_sindexes([parent_row])
+            self._events.append(sindex_events.SindexSubscribed(pubs=[parent_row], sub=self._entity))
 
         cols = []
         for parent_col in pub.cols:
             child_col = sindex_entity.ColSindex(position=parent_col.position, sheet_info=self._entity.sheet_info)
             cols.append(child_col)
             self._events.append(sindex_events.SindexCreated(entity=child_col))
-            await sindex_subscriber.SindexSelfSubscriber(child_col).follow_sindexes([parent_col])
+            self._events.append(sindex_events.SindexSubscribed(pubs=[parent_col], sub=self._entity))
 
         for i, row in enumerate(rows):
             for j, col in enumerate(cols):
@@ -65,7 +63,7 @@ class SheetSelfSubscriber(SheetSubscriber):
                 child_cell = cell_entity.Cell(sheet_info=self._entity.sheet_info, row_sindex=row, col_sindex=col,
                                               value=pub.cells[index].value)
                 self._events.append(cell_events.CellCreated(entity=child_cell))
-                await cell_subscriber.CellSelfSubscriber(entity=child_cell).follow_cells([pub.cells[index]])
+                self._events.append(cell_events.CellSubscribed(pubs=[pub.cells[index]], sub=child_cell))
 
         self._entity.sheet_info.size = pub.sheet_info.size
 

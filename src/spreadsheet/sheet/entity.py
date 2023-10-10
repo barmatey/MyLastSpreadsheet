@@ -11,6 +11,9 @@ class Sheet(BaseModel):
     cols: list[ColSindex]
     cells: list[Cell]
 
+    def __hash__(self):
+        return self.sheet_info.uuid.__hash__()
+
     def __eq__(self, other: 'Sheet'):
         if self.sheet_info != other.sheet_info:
             return False

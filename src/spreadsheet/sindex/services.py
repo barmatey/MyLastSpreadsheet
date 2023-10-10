@@ -12,8 +12,9 @@ from src.spreadsheet.sheet_info import (
 
 
 class SindexHandler:
-    def __init__(self, repo: sindex_repo.SindexRepo, broker: Broker):
+    def __init__(self, repo: sindex_repo.SindexRepo, broker: Broker, queue: Queue):
         self._broker = broker
+        self._events = queue
         self._repo = repo
 
     async def handle_sindex_created(self, event: sindex_events.SindexCreated):
@@ -32,6 +33,7 @@ class SindexHandler:
         await self._repo.remove_one(event.entity)
 
     async def handle_sindex_subscribed(self, event: sindex_events.SindexSubscribed):
+        await sindex_subscriber.SindexSelfSubscriber(event.sub, self._repo, self._events).follow_sindexes(event.pubs)
         self._broker.subscribe_to_many(event.pubs, event.sub)
 
 
