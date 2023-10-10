@@ -19,6 +19,11 @@ from src.spreadsheet.cell import (
     services as cell_services,
     repository as cell_repo,
 )
+from src.spreadsheet.sheet_info import (
+    events as sf_events,
+    services as sf_services,
+    repository as sf_repo,
+)
 
 
 class Bootstrap:
@@ -26,6 +31,7 @@ class Bootstrap:
         self._sheet_repo = sheet_repo.SheetRepoPostgres(session)
         self._sindex_repo = sindex_repo.SindexRepoPostgres(session)
         self._cell_repo = cell_repo.CellRepoPostgres(session)
+        self._sf_repo = sf_repo.SheetInfoRepoPostgres(session)
         self._broker = Broker()
         self._queue = Queue()
 
@@ -47,6 +53,9 @@ class Bootstrap:
         bus.add_handler(cell_events.CellDeleted, handler.handle_cell_deleted)
         bus.add_handler(cell_events.CellSubscribed, handler.handle_cell_subscribed)
         bus.add_handler(cell_events.CellUnsubscribed, handler.handle_cell_unsubscribed)
+
+        handler = sf_services.SheetInfoHandler(self._sf_repo, self._broker, self._queue)
+        bus.add_handler(sf_events.SheetInfoUpdated, handler.handle_sheet_info_updated)
 
         return bus
 

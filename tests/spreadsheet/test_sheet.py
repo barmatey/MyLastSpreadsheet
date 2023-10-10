@@ -58,4 +58,9 @@ async def test_sheet_changes_state_when_subscribe_to_another_sheet():
         bootstrap = sheet_bootstrap.Bootstrap(session)
         await bootstrap.get_sheet_subscriber(sheet2).follow_sheet(sheet1)
         await bootstrap.get_event_bus().run()
+        await session.commit()
 
+    async with db.get_async_session() as session:
+        bootstrap = sheet_bootstrap.Bootstrap(session)
+        sheet2 = await sheet_commands.GetSheetByUuid(uuid=sheet2.sheet_info.uuid, bootstrap=bootstrap).execute()
+        assert sheet2.sheet_info.size == (1, 2)

@@ -6,6 +6,9 @@ from src.spreadsheet.sheet import (
     events as sheet_events,
     repository as sheet_repo,
 )
+from src.spreadsheet.sheet_info import (
+    events as sf_events,
+)
 from src.spreadsheet.cell import (
     entity as cell_entity,
     events as cell_events,
@@ -66,6 +69,8 @@ class SheetSelfSubscriber(SheetSubscriber):
                 self._events.append(cell_events.CellSubscribed(pubs=[pub.cells[index]], sub=child_cell))
 
         self._entity.sheet_info.size = pub.sheet_info.size
+        self._events.append(
+            sf_events.SheetInfoUpdated(old_entity=self._entity.sheet_info, new_entity=self._entity.sheet_info))
 
     async def unfollow_sheet(self, pub: sheet_entity.Sheet):
         raise NotImplemented

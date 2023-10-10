@@ -9,7 +9,7 @@ from .entity import SheetInfo
 from ...helpers.decorators import singleton
 
 
-class SheetMetaRepo(ABC):
+class SheetInfoRepo(ABC):
     @abstractmethod
     async def add(self, sheet: SheetInfo):
         raise NotImplemented
@@ -47,7 +47,7 @@ class SheetInfoModel(Base):
         return SheetInfo(uuid=self.uuid, size=(self.row_size, self.col_size))
 
 
-class SheetInfoRepoPostgres(SheetMetaRepo):
+class SheetInfoRepoPostgres(SheetInfoRepo):
     def __init__(self, session: AsyncSession):
         self._session = session
 

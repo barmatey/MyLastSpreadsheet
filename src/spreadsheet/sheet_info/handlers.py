@@ -1,11 +1,11 @@
 from src.bus.broker import Broker
 
 from src.spreadsheet.sheet.subscriber import SheetSubscriber
-from .repository import SheetMetaRepo
+from .repository import SheetInfoRepo
 from ..sheet import events
 
 
-def handle_sheet_deleted(event: events.SheetDeleted, repo: SheetMetaRepo):
+def handle_sheet_deleted(event: events.SheetDeleted, repo: SheetInfoRepo):
     subs: set[SheetSubscriber] = Broker().get_subscribers(event.entity)
     for sub in subs:
         sub.on_sheet_deleted()

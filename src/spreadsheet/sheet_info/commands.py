@@ -13,7 +13,7 @@ from src.spreadsheet.cell import (entity as cell_entity, usecases as cell_usecas
 
 class CreateSheet(PydanticModel):
     table: list[list[cell_entity.CellValue]]
-    sheet_repo: sheet_repo.SheetMetaRepo
+    sheet_repo: sheet_repo.SheetInfoRepo
     cell_repo: cell_repo.CellRepo
     sindex_repo: sindex_repo.SindexRepo
     uuid: UUID = Field(default_factory=uuid4)
@@ -24,7 +24,7 @@ class CreateSheet(PydanticModel):
 
 
 class GetSheet(PydanticModel):
-    sheet_repo: sheet_repo.SheetMetaRepo
+    sheet_repo: sheet_repo.SheetInfoRepo
     uuid: UUID
 
     async def execute(self) -> sheet_entity.SheetInfo:
@@ -32,7 +32,7 @@ class GetSheet(PydanticModel):
 
 
 class AppendRows(PydanticModel):
-    sheet_repo: sheet_repo.SheetMetaRepo
+    sheet_repo: sheet_repo.SheetInfoRepo
     sindex_repo: sindex_repo.SindexRepo
     cell_repo: cell_repo.CellRepo
     sheet: sheet_entity.SheetInfo
@@ -65,7 +65,7 @@ class DeleteSindexes(PydanticModel):
     sindexes: list[sindex_entity.Sindex]
     cells: list[cell_entity.Cell]
     uuid: UUID = Field(default_factory=uuid4)
-    sheet_repo: sheet_repo.SheetMetaRepo
+    sheet_repo: sheet_repo.SheetInfoRepo
     sindex_repo: sindex_repo.SindexRepo
     cell_repo: cell_repo.CellRepo
 
