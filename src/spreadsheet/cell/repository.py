@@ -25,7 +25,7 @@ class CellRepo(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def get_many_by_sheet_filters(self, sheet: SheetInfo, rows: list[RowSindex] = None,
+    async def get_many_by_sheet_filters(self, sheet_info: SheetInfo, rows: list[RowSindex] = None,
                                         cols: list[ColSindex] = None,
                                         order_by: OrderBy = None) -> list[Cell]:
         raise NotImplemented

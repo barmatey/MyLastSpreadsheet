@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.bus.broker import Broker
 from src.bus.eventbus import EventBus, Queue
+from src.helpers.decorators import singleton
 from src.spreadsheet.sheet import (
     events as sheet_events,
     entity as sheet_entity,

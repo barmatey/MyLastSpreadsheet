@@ -87,7 +87,7 @@ async def test_sheet_delete_sindex_when_parent_sindex_deleted():
     # Delete
     async with db.get_async_session() as session:
         bootstrap = sheet_bootstrap.Bootstrap(session)
-        await bootstrap.get_sindex_service().delete_sindexes(sheet1.rows[0:1])
+        await bootstrap.get_sheet_service().delete_sindexes([sheet1.rows[0]])
         await bootstrap.get_event_bus().run()
         await session.commit()
 
@@ -95,4 +95,5 @@ async def test_sheet_delete_sindex_when_parent_sindex_deleted():
     async with db.get_async_session() as session:
         bootstrap = sheet_bootstrap.Bootstrap(session)
         actual = await sheet_commands.GetSheetByUuid(uuid=sheet2.sheet_info.uuid, bootstrap=bootstrap).execute()
+        assert len(actual.rows) == 1
         assert actual.sheet_info.size == (1, 3)

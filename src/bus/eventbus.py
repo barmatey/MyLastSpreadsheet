@@ -19,18 +19,19 @@ Message = Command | Event
 class Queue:
     def __init__(self):
         self._queue = deque()
+        logger.debug(f"CONSTRUCTOR =========================================")
 
     @property
     def empty(self):
         return len(self._queue) == 0
 
     def append(self, msg: Message):
-        logger.debug(f"appended: {msg}")
+        logger.debug(f"appended: {msg} {id(self)}")
         self._queue.append(msg)
 
     def popleft(self) -> Message:
         msg = self._queue.popleft()
-        logger.debug(f"extracted: {msg}")
+        logger.debug(f"extracted: {msg} {id(self)}")
         return msg
 
 

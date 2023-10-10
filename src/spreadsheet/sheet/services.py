@@ -1,5 +1,7 @@
 from uuid import UUID
 
+from loguru import logger
+
 from src.bus.broker import Broker
 from src.bus.eventbus import Queue
 from src.spreadsheet.sheet import (
@@ -9,12 +11,15 @@ from src.spreadsheet.sheet import (
 )
 from src.spreadsheet.cell import (
     entity as cell_entity,
+    events as cell_events,
 )
 from src.spreadsheet.sindex import (
     entity as sindex_entity,
+    events as sindex_events,
 )
 from src.spreadsheet.sheet_info import (
     entity as sf_entity,
+    events as sf_events,
 )
 
 
@@ -48,7 +53,21 @@ class SheetService:
         return sheet
 
     async def delete_sindexes(self, sindexes: list[sindex_entity.Sindex]):
-        raise NotImplemented
+        logger.debug(f'DELETE_SINDEXES')
+        sheet_info = sindexes[0].sheet_info.model_copy()
+        sindex_key = "rows" if isinstance(sindexes[0], sindex_entity.RowSindex) else "cols"
+        filter_by = {"sheet_info": sheet_info, sindex_key: sindexes}
+        linked_cells = await self._repo.cell_repo.get_many_by_sheet_filters(**filter_by)
+        for cell in linked_cells:
+            self._events.append(cell_events.CellDeleted(entity=cell))
+        for sindex in sindexes:
+            self._events.append(sindex_events.SindexDeleted(entity=sindex))
+
+        if sindex_key == "rows":
+            sheet_info.size = (sheet_info.size[0] - len(sindexes), sheet_info.size[1])
+        else:
+            sheet_info.size = (sheet_info.size[0], sheet_info.size[1] - len(sindexes))
+        self._events.append(sf_events.SheetInfoUpdated(old_entity=sheet_info, new_entity=sheet_info))
 
     async def get_sheet_by_uuid(self, uuid: UUID) -> sheet_entity.Sheet:
         return await self._repo.get_by_uuid(uuid)
