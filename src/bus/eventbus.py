@@ -16,22 +16,22 @@ class Command(BaseModel):
 Message = Command | Event
 
 
+@singleton
 class Queue:
     def __init__(self):
         self._queue = deque()
-        logger.debug(f"CONSTRUCTOR =========================================")
 
     @property
     def empty(self):
         return len(self._queue) == 0
 
     def append(self, msg: Message):
-        logger.debug(f"appended: {msg} {id(self)}")
+        logger.debug(f"appended: {msg}")
         self._queue.append(msg)
 
     def popleft(self) -> Message:
         msg = self._queue.popleft()
-        logger.debug(f"extracted: {msg} {id(self)}")
+        logger.debug(f"extracted: {msg} ")
         return msg
 
 
