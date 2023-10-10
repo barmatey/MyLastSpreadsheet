@@ -4,7 +4,9 @@ from src.bus.eventbus import Queue
 from src.spreadsheet.cell import (
     entity as cell_entity,
     events as cell_events,
-    repository as cell_repo,
+)
+from src.spreadsheet.sheet import (
+    repository as sheet_repo,
 )
 
 
@@ -27,7 +29,7 @@ class CellSubscriber(ABC):
 
 
 class CellSelfSubscriber(CellSubscriber):
-    def __init__(self, entity: cell_entity.Cell, repo: cell_repo.CellRepo, queue: Queue):
+    def __init__(self, entity: cell_entity.Cell, repo: sheet_repo.SheetRepo, queue: Queue):
         self._entity = entity
         self._repo = repo
         self._cell_events = queue

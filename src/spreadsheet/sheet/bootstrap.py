@@ -47,7 +47,7 @@ class Bootstrap:
         bus.add_handler(sindex_events.SindexDeleted, handler.handle_sindex_deleted)
         bus.add_handler(sindex_events.SindexSubscribed, handler.handle_sindex_subscribed)
 
-        handler = cell_services.CellHandler(self._cell_repo, self._broker, self._queue)
+        handler = cell_services.CellHandler(self._sheet_repo, self._broker, self._queue)
         bus.add_handler(cell_events.CellCreated, handler.handle_cell_created)
         bus.add_handler(cell_events.CellUpdated, handler.handle_cell_updated)
         bus.add_handler(cell_events.CellDeleted, handler.handle_cell_deleted)

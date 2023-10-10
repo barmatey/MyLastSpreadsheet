@@ -34,7 +34,7 @@ class SindexSubscriber(ABC):
 
 
 class SindexSelfSubscriber(SindexSubscriber):
-    def __init__(self, entity: sindex_entity.Sindex, repo: sindex_repo.SindexRepo, queue: Queue):
+    def __init__(self, entity: sindex_entity.Sindex, repo: sheet_repo.SheetRepo, queue: Queue):
         self._events = queue
         self._entity = entity
         self._repo = repo

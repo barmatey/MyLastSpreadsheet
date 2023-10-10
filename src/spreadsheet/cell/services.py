@@ -15,39 +15,42 @@ from src.spreadsheet.sindex import (
     events as sindex_events,
     repository as sindex_repo,
 )
+from src.spreadsheet.sheet import (
+    repository as sheet_repo,
+)
 
 
 class CellHandler:
-    def __init__(self, repo: cell_repo.CellRepo, broker: Broker, queue: Queue):
+    def __init__(self, repo: sheet_repo.SheetRepo, broker: Broker, queue: Queue):
         self._repo = repo
         self._broker = broker
         self._events = queue
 
     async def handle_cell_created(self, event: cell_events.CellCreated):
-        await self._repo.add(event.entity)
+        await self._repo.cell_repo.add(event.entity)
 
     async def handle_cell_updated(self, event: cell_events.CellUpdated):
         subs: set[cell_subscriber.CellSubscriber] = self._broker.get_subscribers(event.old_entity)
         for sub in subs:
             await sub.on_cell_updated(old=event.old_entity, actual=event.new_entity)
-        await self._repo.update_one(event.new_entity)
+        await self._repo.cell_repo.update_one(event.new_entity)
 
     async def handle_cell_deleted(self, event: cell_events.CellDeleted):
         subs: set[cell_subscriber.CellSubscriber] = Broker().get_subscribers(event.entity)
         for sub in subs:
             await sub.on_cell_deleted(event.entity)
-        await self._repo.remove_many([event.entity])
+        await self._repo.cell_repo.remove_many([event.entity])
 
     async def handle_cell_subscribed(self, event: cell_events.CellSubscribed):
         await cell_subscriber.CellSelfSubscriber(event.sub, self._repo, self._events).follow_cells(event.pubs)
         self._broker.subscribe_to_many(event.pubs, event.sub)
 
     async def handle_cell_unsubscribed(self, event: cell_events.CellUnsubscribed):
-        self._broker.unsubscribe_from_many(event.pubs, event.sub)
+        raise NotImplemented
 
 
 class CellService:
-    def __init__(self, repo: cell_repo.CellRepo, queue: Queue):
+    def __init__(self, repo: sheet_repo.SheetRepo, queue: Queue):
         self._repo = repo
         self._events = queue
 
