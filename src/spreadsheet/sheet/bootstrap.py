@@ -41,7 +41,7 @@ class Bootstrap:
         handler = sheet_services.SheetHandler(self._sheet_repo, self._broker)
         bus.add_handler(sheet_events.SheetCreated, handler.handle_sheet_created)
 
-        handler = sindex_services.SindexHandler(self._sindex_repo, self._broker, self._queue)
+        handler = sindex_services.SindexHandler(self._sheet_repo, self._broker, self._queue)
         bus.add_handler(sindex_events.SindexCreated, handler.handle_sindex_created)
         bus.add_handler(sindex_events.SindexUpdated, handler.handle_sindex_updated)
         bus.add_handler(sindex_events.SindexDeleted, handler.handle_sindex_deleted)
@@ -54,7 +54,7 @@ class Bootstrap:
         bus.add_handler(cell_events.CellSubscribed, handler.handle_cell_subscribed)
         bus.add_handler(cell_events.CellUnsubscribed, handler.handle_cell_unsubscribed)
 
-        handler = sf_services.SheetInfoHandler(self._sf_repo, self._broker, self._queue)
+        handler = sf_services.SheetInfoHandler(self._sheet_repo, self._broker, self._queue)
         bus.add_handler(sf_events.SheetInfoUpdated, handler.handle_sheet_info_updated)
 
         return bus
@@ -63,7 +63,7 @@ class Bootstrap:
         return sheet_services.SheetService(self._sheet_repo, self._queue)
 
     def get_sindex_service(self):
-        return sindex_services.SindexService(self._sindex_repo, self._queue)
+        return sindex_services.SindexService(self._sheet_repo, self._queue)
 
     def get_sheet_subscriber(self, entity: sheet_entity.Sheet) -> sheet_subscriber.SheetSelfSubscriber:
         return sheet_subscriber.SheetSelfSubscriber(entity, self._sheet_repo, self._queue)

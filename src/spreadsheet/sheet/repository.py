@@ -40,12 +40,15 @@ class SheetRepoPostgres(SheetRepo):
         self._cell_repo = CellRepoPostgres(session)
         self._sindex_repo = SindexRepoPostgres(session)
 
+    @property
     def sheet_info_repo(self) -> SheetInfoRepo:
         return self._sheet_info_repo
 
+    @property
     def sindex_repo(self) -> SindexRepo:
         return self._sindex_repo
 
+    @property
     def cell_repo(self) -> CellRepo:
         return self._cell_repo
 
