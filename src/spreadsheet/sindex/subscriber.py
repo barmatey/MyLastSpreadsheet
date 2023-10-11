@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 from loguru import logger
 
+from src.bus.broker import Subscriber
 from src.bus.eventbus import Queue
 from src.spreadsheet.sindex import (
     entity as sindex_entity,
@@ -17,7 +18,7 @@ from src.spreadsheet.sheet import (
 )
 
 
-class SindexSubscriber(ABC):
+class SindexSubscriber(Subscriber):
     @abstractmethod
     async def follow_sindexes(self, pubs: list[sindex_entity.Sindex]):
         raise NotImplemented
@@ -34,21 +35,3 @@ class SindexSubscriber(ABC):
     async def on_sindex_updated(self, old_value: sindex_entity.Sindex, new_value: sindex_entity.Sindex):
         raise NotImplemented
 
-
-class SindexSelfSubscriber(SindexSubscriber):
-    def __init__(self, entity: sindex_entity.Sindex, repo: sheet_repo.SheetRepo, queue: Queue):
-        self._queue = queue
-        self._entity = entity
-        self._repo = repo
-
-    async def follow_sindexes(self, pubs: list[sindex_entity.Sindex]):
-        pass
-
-    async def unfollow_sindexes(self, pubs: list[sindex_entity.Sindex]):
-        pass
-
-    async def on_sindex_updated(self, old_value: sindex_entity.Sindex, new_value: sindex_entity.Sindex):
-        pass
-
-    async def on_sindex_deleted(self, pub: sindex_entity.Sindex):
-        await sheet_services.SheetService(self._repo, self._queue).delete_sindexes([self._entity])

@@ -2,11 +2,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.bus.broker import Broker
 from src.bus.eventbus import EventBus, Queue
-from src.helpers.decorators import singleton
 from src.spreadsheet.sheet import (
     events as sheet_events,
     entity as sheet_entity,
-    subscriber as sheet_subscriber,
     services as sheet_services,
     repository as sheet_repo,
 )
@@ -66,5 +64,5 @@ class Bootstrap:
     def get_sindex_service(self):
         return sindex_services.SindexService(self._sheet_repo, self._queue)
 
-    def get_sheet_subscriber(self, entity: sheet_entity.Sheet) -> sheet_subscriber.SheetSelfSubscriber:
-        return sheet_subscriber.SheetSelfSubscriber(entity, self._sheet_repo, self._queue)
+    def get_sheet_subscriber(self, entity: sheet_entity.Sheet) -> sheet_services.SheetSelfSubscriber:
+        return sheet_services.SheetSelfSubscriber(entity, self._sheet_repo, self._queue)

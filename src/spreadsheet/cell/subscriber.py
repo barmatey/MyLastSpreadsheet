@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from src.bus.broker import Subscriber
 from src.bus.eventbus import Queue
 from src.spreadsheet.cell import (
     entity as cell_entity,
@@ -10,7 +11,7 @@ from src.spreadsheet.sheet import (
 )
 
 
-class CellSubscriber(ABC):
+class CellSubscriber(Subscriber):
     @abstractmethod
     async def follow_cells(self, pubs: list[cell_entity.Cell]):
         raise NotImplemented
@@ -27,33 +28,3 @@ class CellSubscriber(ABC):
     async def on_cell_deleted(self, pub: cell_entity.Cell):
         raise NotImplemented
 
-
-class CellSelfSubscriber(CellSubscriber):
-    def __init__(self, entity: cell_entity.Cell, repo: sheet_repo.SheetRepo, queue: Queue):
-        self._entity = entity
-        self._repo = repo
-        self._cell_events = queue
-
-    async def follow_cells(self, pubs: list[cell_entity.Cell]):
-        old = self._entity.model_copy(deep=True)
-        if len(pubs) != 1:
-            raise Exception
-        self._entity.value = pubs[0].value
-        self._cell_events.append(cell_events.CellUpdated(old_entity=old, new_entity=self._entity))
-
-    async def unfollow_cells(self, pubs: list[cell_entity.Cell]):
-        old = self._entity.model_copy(deep=True)
-        if len(pubs) != 1:
-            raise Exception
-        self._entity.value = None
-        self._cell_events.append(cell_events.CellUpdated(old_entity=old, new_entity=self._entity))
-
-    async def on_cell_updated(self, old: cell_entity.Cell, actual: cell_entity.Cell):
-        old = self._entity.model_copy(deep=True)
-        self._entity.value = actual.value
-        self._cell_events.append(cell_events.CellUpdated(old_entity=old, new_entity=self._entity))
-
-    async def on_cell_deleted(self, pub: cell_entity.Cell):
-        old = self._entity.model_copy(deep=True)
-        self._entity.value = "REF_ERROR"
-        self._cell_events.append(cell_events.CellUpdated(old_entity=old, new_entity=self._entity))
