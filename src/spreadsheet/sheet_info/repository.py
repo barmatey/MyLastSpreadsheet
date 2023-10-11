@@ -62,7 +62,6 @@ class SheetInfoRepoPostgres(SheetInfoRepo):
             "row_size": sf.size[0],
             "col_size": sf.size[1],
         }
-        logger.debug(f"UPDATE: {sf}")
         result = list(await self._session.execute(stmt, data))
         if len(result) != 1:
             raise LookupError(f"{result}")

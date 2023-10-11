@@ -6,6 +6,7 @@ from src.spreadsheet.sheet import (
     events as sheet_events,
     entity as sheet_entity,
     services as sheet_services,
+    subscriber as sheet_subscriber,
     repository as sheet_repo,
 )
 from src.spreadsheet.sindex import (
@@ -58,11 +59,11 @@ class Bootstrap:
 
         return bus
 
-    def get_sheet_service(self):
+    def get_sheet_service(self) -> sheet_services.SheetService:
         return sheet_services.SheetService(self._sheet_repo, self._queue)
 
-    def get_sindex_service(self):
+    def get_sindex_service(self) -> sindex_services.SindexService:
         return sindex_services.SindexService(self._sheet_repo, self._queue)
 
-    def get_sheet_subscriber(self, entity: sheet_entity.Sheet) -> sheet_services.SheetSelfSubscriber:
+    def get_sheet_subscriber(self, entity: sheet_entity.Sheet) -> sheet_subscriber.SheetSubscriber:
         return sheet_services.SheetSelfSubscriber(entity, self._sheet_repo, self._queue)

@@ -57,7 +57,9 @@ class SheetService:
         return sheet
 
     async def delete_sindexes(self, sindexes: list[sindex_entity.Sindex]):
-        logger.debug(f'DELETE_SINDEXES')
+        """ Change sindexes sheet_info inplace"""
+
+        logger.debug(f'DELETE SINDEXES')
         sheet_info = sindexes[0].sheet_info
         sindex_key = "rows" if isinstance(sindexes[0], sindex_entity.RowSindex) else "cols"
 
