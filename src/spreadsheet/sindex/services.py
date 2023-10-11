@@ -20,10 +20,9 @@ class SindexHandler:
         self._repo = repo
 
     async def handle_sindex_created(self, event: sindex_events.SindexCreated):
-        await self._repo.sindex_repo.add(event.entity)
+        raise NotImplemented
 
     async def handle_sindex_updated(self, event: sindex_events.SindexUpdated):
-        await self._repo.sindex_repo.update_one(event.new_entity)
         subs: set[sindex_subscriber.SindexSubscriber] = self._broker.get_subscribers(event.new_entity)
         for sub in subs:
             await sub.on_sindex_updated(old_value=event.old_entity, new_value=event.new_entity)
@@ -32,7 +31,6 @@ class SindexHandler:
         subs: set[sindex_subscriber.SindexSubscriber] = self._broker.get_subscribers(event.entity)
         for sub in subs:
             await sub.on_sindex_deleted(event.entity)
-        await self._repo.sindex_repo.remove_one(event.entity)
 
     async def handle_sindex_subscribed(self, event: sindex_events.SindexSubscribed):
         sub = sindex_subscriber.SindexSelfSubscriber(event.sub, self._repo, self._events)
@@ -45,16 +43,24 @@ class SindexService:
         self._events = events
         self._repo = repo
 
+    async def create_sindex(self, sindex: sindex_entity.Sindex):
+        await self._repo.sindex_repo.add(sindex)
+
+    async def subscribe_sindex(self, pubs, sub: sindex_entity.Sindex):
+        self._events.append(sindex_events.SindexSubscribed(pubs=pubs, sub=sub))
+
     async def create_row(self, sf: sf_entity.SheetInfo, position: int) -> sindex_entity.RowSindex:
         sindex = sindex_entity.RowSindex(sheet_info=sf, position=position)
-        self._events.append(sindex_events.SindexCreated(entity=sindex))
+        await self._repo.sindex_repo.add(sindex)
         return sindex
 
     async def update_sindex(self, sindex: sindex_entity.Sindex):
         old = await self._repo.sindex_repo.get_one_by_uuid(sindex.uuid)
+        await self._repo.sindex_repo.add(sindex)
         self._events.append(sindex_events.SindexUpdated(old_entity=old, new_entity=sindex))
 
     async def delete_sindexes(self, sindexes: list[sindex_entity.Sindex]):
+        await self._repo.sindex_repo.remove_many(sindexes)
         for sindex in sindexes:
             self._events.append(sindex_events.SindexDeleted(entity=sindex))
 

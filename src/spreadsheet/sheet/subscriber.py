@@ -8,14 +8,17 @@ from src.spreadsheet.sheet import (
 )
 from src.spreadsheet.sheet_info import (
     events as sf_events,
+    services as sf_services,
 )
 from src.spreadsheet.cell import (
     entity as cell_entity,
     events as cell_events,
+    services as cell_services,
 )
 from src.spreadsheet.sindex import (
     entity as sindex_entity,
     events as sindex_events,
+    services as sindex_services,
 )
 
 
@@ -46,31 +49,33 @@ class SheetSelfSubscriber(SheetSubscriber):
     async def follow_sheet(self, pub: sheet_entity.Sheet):
         if self._entity.sheet_info.size != (0, 0):
             raise ValueError
+        sindex_service = sindex_services.SindexService(self._repo, self._events)
+        cell_service = cell_services.CellService(self._repo, self._events)
+
         rows = []
         for parent_row in pub.rows:
             child_row = sindex_entity.RowSindex(position=parent_row.position, sheet_info=self._entity.sheet_info)
+            await sindex_service.create_sindex(child_row)
+            await sindex_service.subscribe_sindex([parent_row], child_row)
             rows.append(child_row)
-            self._events.append(sindex_events.SindexCreated(entity=child_row))
-            self._events.append(sindex_events.SindexSubscribed(pubs=[parent_row], sub=child_row))
 
         cols = []
         for parent_col in pub.cols:
             child_col = sindex_entity.ColSindex(position=parent_col.position, sheet_info=self._entity.sheet_info)
+            await sindex_service.create_sindex(child_col)
+            await sindex_service.subscribe_sindex([parent_col], child_col)
             cols.append(child_col)
-            self._events.append(sindex_events.SindexCreated(entity=child_col))
-            self._events.append(sindex_events.SindexSubscribed(pubs=[parent_col], sub=child_col))
 
         for i, row in enumerate(rows):
             for j, col in enumerate(cols):
                 index = i * pub.sheet_info.size[1] + j
                 child_cell = cell_entity.Cell(sheet_info=self._entity.sheet_info, row_sindex=row, col_sindex=col,
                                               value=pub.cells[index].value)
-                self._events.append(cell_events.CellCreated(entity=child_cell))
-                self._events.append(cell_events.CellSubscribed(pubs=[pub.cells[index]], sub=child_cell))
+                await cell_service.create_cell(child_cell)
+                await cell_service.subscribe_cell([pub.cells[index]], child_cell)
 
-        old = self._entity.sheet_info.model_copy()
         self._entity.sheet_info.size = pub.sheet_info.size
-        self._events.append(sf_events.SheetInfoUpdated(old_entity=old, new_entity=self._entity.sheet_info))
+        await sf_services.SheetInfoService(self._repo, self._events).update_sheet_info(self._entity.sheet_info)
 
     async def unfollow_sheet(self, pub: sheet_entity.Sheet):
         raise NotImplemented

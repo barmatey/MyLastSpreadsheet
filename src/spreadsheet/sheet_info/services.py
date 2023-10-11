@@ -17,4 +17,16 @@ class SheetInfoHandler:
         self._events = queue
 
     async def handle_sheet_info_updated(self, event: sf_events.SheetInfoUpdated):
-        await self._repo.sheet_info_repo.update(event.new_entity)
+        raise NotImplemented
+
+
+class SheetInfoService:
+    def __init__(self, repo: sheet_repo.SheetRepo, queue: Queue):
+        self._repo = repo
+        self._queue = queue
+
+    async def create_sheet_info(self, entity: sf_entity.SheetInfo):
+        await self._repo.sheet_info_repo.add(entity)
+
+    async def update_sheet_info(self, entity: sf_entity.SheetInfo):
+        await self._repo.sheet_info_repo.update(entity)
