@@ -71,6 +71,7 @@ class SheetService:
             sheet_info.size = (sheet_info.size[0] - len(sindexes), sheet_info.size[1])
         else:
             sheet_info.size = (sheet_info.size[0], sheet_info.size[1] - len(sindexes))
+        print(f"SF_SIZE: {sheet_info.size} ===========================================")
         await self._repo.sheet_info_repo.update(sheet_info)
 
     async def get_sheet_by_uuid(self, uuid: UUID) -> sheet_entity.Sheet:

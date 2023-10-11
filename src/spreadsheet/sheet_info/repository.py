@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from sqlalchemy import Integer, select, TIMESTAMP, func
+from loguru import logger
+from sqlalchemy import Integer, select, TIMESTAMP, func, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
 
@@ -55,11 +56,16 @@ class SheetInfoRepoPostgres(SheetInfoRepo):
         model = SheetInfoModel(uuid=sheet.uuid, row_size=sheet.size[0], col_size=sheet.size[1])
         self._session.add(model)
 
-    async def update(self, sheet: SheetInfo):
-        stmt = select(SheetInfoModel).where(SheetInfoModel.uuid == sheet.uuid)
-        model = await self._session.scalar(stmt)
-        model.row_size = sheet.size[0]
-        model.col_size = sheet.size[1]
+    async def update(self, sf: SheetInfo):
+        stmt = update(SheetInfoModel).where(SheetInfoModel.uuid == sf.uuid).returning(SheetInfoModel.uuid)
+        data = {
+            "row_size": sf.size[0],
+            "col_size": sf.size[1],
+        }
+        logger.debug(f"UPDATE: session = {id(self._session)}")
+        result = list(await self._session.execute(stmt, data))
+        if len(result) != 1:
+            raise LookupError(f"{result}")
 
     async def get_one_by_uuid(self, uuid: UUID) -> SheetInfo:
         stmt = select(SheetInfoModel).where(SheetInfoModel.uuid == uuid)
