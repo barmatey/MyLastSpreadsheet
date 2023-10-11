@@ -67,7 +67,7 @@ class SheetService:
             sheet_info.size = (sheet_info.size[0] - len(sindexes), sheet_info.size[1])
         else:
             sheet_info.size = (sheet_info.size[0], sheet_info.size[1] - len(sindexes))
-        self._events.append(sf_events.SheetInfoUpdated(old_entity=sheet_info, new_entity=sheet_info))
+        self._events.append(sf_events.SheetInfoUpdated(old_entity=sindexes[0].sheet_info, new_entity=sheet_info))
 
     async def get_sheet_by_uuid(self, uuid: UUID) -> sheet_entity.Sheet:
         return await self._repo.get_by_uuid(uuid)

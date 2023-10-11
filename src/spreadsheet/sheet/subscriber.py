@@ -68,9 +68,9 @@ class SheetSelfSubscriber(SheetSubscriber):
                 self._events.append(cell_events.CellCreated(entity=child_cell))
                 self._events.append(cell_events.CellSubscribed(pubs=[pub.cells[index]], sub=child_cell))
 
+        old = self._entity.sheet_info.model_copy()
         self._entity.sheet_info.size = pub.sheet_info.size
-        self._events.append(
-            sf_events.SheetInfoUpdated(old_entity=self._entity.sheet_info, new_entity=self._entity.sheet_info))
+        self._events.append(sf_events.SheetInfoUpdated(old_entity=old, new_entity=self._entity.sheet_info))
 
     async def unfollow_sheet(self, pub: sheet_entity.Sheet):
         raise NotImplemented

@@ -26,7 +26,7 @@ class Queue:
         return len(self._queue) == 0
 
     def append(self, msg: Message):
-        logger.debug(f"appended: {msg}")
+        # logger.debug(f"appended: {msg}")
         self._queue.append(msg)
 
     def popleft(self) -> Message:
