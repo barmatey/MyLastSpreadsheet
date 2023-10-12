@@ -29,41 +29,36 @@ class Repository(ABC, Generic[T]):
         raise NotImplemented
 
 
-class Service(ABC, Generic[T]):
-    def __init__(self, repo: Repository[T], queue: eventbus.Queue):
-        self._queue = queue
-        self._repo = repo
+class SheetRepository(ABC):
+    @property
+    def sheet_info_repo(self) -> Repository[domain.SheetInfo]:
+        raise NotImplemented
 
-    async def create_many(self, data: list[T]):
-        await self._repo.add_many(data)
+    @property
+    def row_repo(self) -> Repository[domain.RowSindex]:
+        raise NotImplemented
 
-    async def get_many_by_ids(self, ids: list[UUID], order_by: OrderBy = None) -> list[T]:
-        return await self._repo.get_many_by_id(ids, order_by)
+    @property
+    def col_repo(self) -> Repository[domain.ColSindex]:
+        raise NotImplemented
 
-    async def update_one(self, entity: T, old_entity: T = None):
-        if old_entity is None:
-            old_entity = (await self.get_many_by_ids(entity.id)).pop()
-        await self._repo.update_one(entity)
-        self._notify_updated(old_entity, entity)
+    @property
+    def cell_repo(self) -> Repository[domain.Cell]:
+        raise NotImplemented
 
-    async def delete_one(self, entity: T):
-        await self._repo.remove_many([entity])
-        self._notify_deleted(entity)
+    @abstractmethod
+    def add_sheet(self, sheet: domain.Sheet):
+        raise NotImplemented
 
-    def _notify_updated(self, old_entity: T, new_entity: T):
-        key = f"{old_entity.__class__.__name__}Updated"
-        event = eventbus.Updated(key=key, old_entity=old_entity, actual_entity=new_entity)
-        self._queue.append(event)
-
-    def _notify_deleted(self, entity: T):
-        key = f"{entity.__class__.__name__}Deleted"
-        event = eventbus.Deleted(key=key, entity=entity)
-        self._queue.append(event)
+    @abstractmethod
+    def get_sheet_by_id(self, uuid: UUID) -> domain.Sheet:
+        raise NotImplemented
 
 
 class SheetService:
-    def __init__(self, repo: Repository[domain.Sheet]):
+    def __init__(self, repo: SheetRepository, queue: eventbus.Queue):
         self._repo = repo
+        self._queue = queue
 
     async def create_sheet(self, table: list[list[domain.CellValue]]) -> domain.Sheet:
         size = (len(table), len(table[0])) if len(table) else (0, 0)
@@ -78,17 +73,24 @@ class SheetService:
                 cells.append(domain.Cell(sheet_info=sf, row=row_sindexes[i], col=col_sindexes[j], value=cell_value))
 
         sheet = domain.Sheet(sf=sf, rows=row_sindexes, cols=col_sindexes, cells=cells, id=sf.id)
-        await self._repo.add_many([sheet])
+        await self._repo.add_sheet(sheet)
         return sheet
 
+    async def update_cells(self, cells: list[domain.Cell], old_values: list[domain.Cell] = None):
+        if old_values is None:
+            ids = [x.id for x in cells]
+            old_values = await self._repo.cell_repo.get_many_by_id(ids)
+        if len(old_values) != len(cells):
+            raise Exception
+        for old, actual in zip(old_values, cells):
+            await self._repo.cell_repo.update_one(actual)
+            self._queue.append(eventbus.Updated(key="CellUpdated", old_entity=old, actual_entity=actual))
+
+    async def delete_sindexes(self, sindexes: list[domain.Sindex]):
+        raise NotImplemented
+
     async def get_sheet_by_uuid(self, uuid: UUID) -> domain.Sheet:
-        return (await self._repo.get_many_by_id([uuid])).pop()
-
-    async def delete_rows(self, rows: list[domain.RowSindex]):
-        raise NotImplemented
-
-    async def delete_cols(self, cols: list[domain.ColSindex]):
-        raise NotImplemented
+        return await self._repo.get_sheet_by_id(uuid)
 
 
 class Handler:

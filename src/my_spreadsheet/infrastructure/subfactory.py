@@ -16,7 +16,7 @@ class CellSelfSubscriber(subscriber.CellSubscriber):
         old = self._entity.model_copy(deep=True)
         self._entity.value = pubs[0].value
         await self._broker_service.subscribe(pubs, self._entity)
-        await self._sheet_service.cell_service.update_one(self._entity, old)
+        await self._cell_service.update_one(self._entity, old)
 
     async def unfollow_cells(self, pubs: list[domain.Cell]):
         if len(pubs) != 1:
@@ -24,16 +24,16 @@ class CellSelfSubscriber(subscriber.CellSubscriber):
         old = self._entity.model_copy(deep=True)
         self._entity.value = None
         await self._broker_service.unsubscribe(pubs, self._entity)
-        await self._sheet_service.cell_service.update_one(self._entity, old)
+        await self._cell_service.update_one(self._entity, old)
 
     async def on_cell_updated(self, old: domain.Cell, actual: domain.Cell):
         self._entity.value = actual.value
-        await self._sheet_service.cell_service.update_one(old, actual)
+        await self._cell_service.update_one(old, actual)
 
     async def on_cell_deleted(self, pub: domain.Cell):
         old = self._entity.model_copy(deep=True)
         self._entity.value = "REF_ERROR"
-        await self._sheet_service.cell_service.update_one(self._entity, old)
+        await self._cell_service.update_one(self._entity, old)
 
 
 class SindexSelfSubscriber(subscriber.SindexSubscriber):
@@ -52,7 +52,7 @@ class SindexSelfSubscriber(subscriber.SindexSubscriber):
         pass
 
     async def on_sindex_deleted(self, pub: domain.Sindex):
-        await self._sheet_service.sindex_service.delete_one(self._entity)
+        raise NotImplemented
 
 
 class SheetSelfSubscriber(subscriber.SheetSubscriber):

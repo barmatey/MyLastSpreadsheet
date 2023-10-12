@@ -40,22 +40,6 @@ class SheetService:
         self._repo = repo
         self._events = queue
 
-    async def create_sheet(self, table: list[list[cell_entity.CellValue]]) -> sheet_entity.Sheet:
-        size = (len(table), len(table[0])) if len(table) else (0, 0)
-        sheet_meta = sf_entity.SheetInfo(size=size)
-        row_sindexes = [sindex_entity.RowSindex(sheet_info=sheet_meta, position=i) for i in range(0, size[0])]
-        col_sindexes = [sindex_entity.ColSindex(sheet_info=sheet_meta, position=j) for j in range(0, size[1])]
-        cells = []
-        for i, row in enumerate(table):
-            for j, cell_value in enumerate(row):
-                cells.append(
-                    cell_entity.Cell(sheet_info=sheet_meta, row_sindex=row_sindexes[i], col_sindex=col_sindexes[j],
-                                     value=cell_value))
-        sheet = sheet_entity.Sheet(sheet_info=sheet_meta, rows=row_sindexes, cols=col_sindexes, cells=cells)
-
-        await self._repo.add(sheet)
-        return sheet
-
     async def delete_sindexes(self, sindexes: list[sindex_entity.Sindex]):
         """ Change sindexes sheet_info inplace"""
 
