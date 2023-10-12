@@ -7,7 +7,6 @@ from src.spreadsheet.sheet_info.entity import SheetInfo
 from src.spreadsheet.sindex.entity import Sindex
 
 CellValue = Union[int, float, str, bool, datetime, None]
-CellDtype = Literal["int", "float", "string", "bool", "datetime"]
 
 
 class Cell(BaseModel):

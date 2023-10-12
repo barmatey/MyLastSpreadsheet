@@ -28,24 +28,9 @@ class SheetInfoRepo(ABC):
         raise NotImplemented
 
 
-class Base(DeclarativeBase):
-    uuid: Mapped[UUID] = mapped_column(primary_key=True)
-    updated_at: Mapped[TIMESTAMP] = mapped_column(TIMESTAMP(timezone=True), default=func.now(), onupdate=func.now())
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}"
 
 
-class SheetInfoModel(Base):
-    __tablename__ = "sheet"
-    row_size: Mapped[int] = mapped_column(Integer, nullable=False)
-    col_size: Mapped[int] = mapped_column(Integer, nullable=False)
-    row_sindexes = relationship('RowSindexModel')
-    col_sindexes = relationship('ColSindexModel')
-    cells = relationship('CellModel')
 
-    def to_entity(self) -> SheetInfo:
-        return SheetInfo(uuid=self.uuid, size=(self.row_size, self.col_size))
 
 
 class SheetInfoRepoPostgres(SheetInfoRepo):

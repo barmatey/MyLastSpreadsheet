@@ -47,24 +47,6 @@ class SindexRepo(ABC):
         raise NotImplemented
 
 
-class RowSindexModel(Base):
-    __tablename__ = "row_sindex"
-    position: Mapped[int] = mapped_column(Integer, nullable=False)
-    sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
-    cells = relationship('CellModel')
-
-    def to_entity(self, sheet: SheetInfo) -> RowSindex:
-        return RowSindex(uuid=self.uuid, sheet_info=sheet, position=self.position)
-
-
-class ColSindexModel(Base):
-    __tablename__ = "col_sindex"
-    position: Mapped[int] = mapped_column(Integer, nullable=False)
-    sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
-    cells = relationship('CellModel')
-
-    def to_entity(self, sheet: SheetInfo) -> ColSindex:
-        return ColSindex(uuid=self.uuid, sheet_info=sheet, position=self.position)
 
 
 class SindexRepoPostgres(SindexRepo):

@@ -39,72 +39,18 @@ class CellRepo(ABC):
         raise NotImplemented
 
 
-class CellModel(Base):
-    __tablename__ = "cell"
-    value: Mapped[str] = mapped_column(String(1024), nullable=True)
-    dtype: Mapped[str] = mapped_column(String(8), nullable=False)
-    sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
-    row_sindex_uuid: Mapped[UUID] = mapped_column(ForeignKey("row_sindex.uuid"))
-    col_sindex_uuid: Mapped[UUID] = mapped_column(ForeignKey("col_sindex.uuid"))
-
-    def to_entity(self, sheet_info: SheetInfo, row: RowSindex, col: ColSindex):
-        return Cell(sheet_info=sheet_info, row_sindex=row, col_sindex=col, value=get_value(self.value, self.dtype),
-                    uuid=self.uuid)
 
 
-def get_value(value: str, dtype: CellDtype) -> CellValue:
-    if dtype == "string":
-        return value
-    if dtype == "int":
-        return int(value)
-    if dtype == "float":
-        return float(value)
-    if dtype == "bool" and value == "True":
-        return True
-    if dtype == "bool" and value == "False":
-        return False
-    if dtype == "datetime":
-        return datetime.fromisoformat(value)
-    raise TypeError(f"{value}, {dtype}")
 
 
-def get_dtype(value: CellValue) -> CellDtype:
-    if value is None:
-        return "string"
-    if isinstance(value, int):
-        return "int"
-    if isinstance(value, str):
-        return "string"
-    if isinstance(value, float):
-        return "float"
-    if isinstance(value, datetime):
-        return "datetime"
-    if isinstance(value, bool):
-        return "bool"
-    raise TypeError
+
 
 
 class CellRepoPostgres(CellRepo):
     def __init__(self, session: AsyncSession):
         self._session = session
 
-    async def add(self, cell: Cell):
-        model = CellModel(uuid=cell.uuid, value=str(cell.value), dtype=get_dtype(cell.value),
-                          row_sindex_uuid=cell.row_sindex.uuid, col_sindex_uuid=cell.col_sindex.uuid,
-                          sheet_uuid=cell.sheet_info.uuid)
-        self._session.add(model)
 
-    async def add_many(self, cells: list[Cell]):
-        data = [{
-            "uuid": x.uuid,
-            "value": str(x.value),
-            "dtype": get_dtype(x.value),
-            "row_sindex_uuid": x.row_sindex.uuid,
-            "col_sindex_uuid": x.col_sindex.uuid,
-            "sheet_uuid": x.sheet_info.uuid,
-        } for x in cells]
-        stmt = insert(CellModel)
-        await self._session.execute(stmt, data)
 
     async def get_many_by_sheet_filters(self, sheet_info: SheetInfo, rows: list[RowSindex] = None,
                                         cols: list[ColSindex] = None,
@@ -128,19 +74,3 @@ class CellRepoPostgres(CellRepo):
                   for x in result]
         return result
 
-    async def update_one(self, cell: Cell):
-        data = {
-            "uuid": cell.uuid,
-            "value": str(cell.value),
-            "dtype": get_dtype(cell.value),
-            "row_sindex_uuid": cell.row_sindex.uuid,
-            "col_sindex_uuid": cell.col_sindex.uuid,
-            "sheet_uuid": cell.sheet_info.uuid,
-        }
-        stmt = update(CellModel).where(CellModel.uuid == cell.uuid).values(**data)
-        await self._session.execute(stmt)
-
-    async def remove_many(self, cells: list[Cell]):
-        uuids = [x.uuid for x in cells]
-        stmt = delete(CellModel).where(CellModel.uuid.in_(uuids))
-        await self._session.execute(stmt)
