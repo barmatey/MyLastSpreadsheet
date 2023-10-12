@@ -80,9 +80,6 @@ class Sheet(Entity):
     cells: list[Cell]
     id: UUID = Field(default_factory=uuid4)
 
-    def __hash__(self):
-        return self.sheet_info.uuid.__hash__()
-
     def __eq__(self, other: 'Sheet'):
         if self.sf != other.sf:
             return False

@@ -37,28 +37,28 @@ async def test_get_sheet_by_uuid():
         sheet_from_repo = await cmd.execute()
         assert sheet_from_repo == sheet
 
-#
-# @pytest.mark.asyncio
-# async def test_sheet_changes_state_when_subscribe_to_another_sheet():
-#     sheet1 = await create_sheet([
-#         [11, 22],
-#     ])
-#     sheet2 = await create_sheet()
-#
-#     async with db.get_async_session() as session:
-#         bootstrap = sheet_bootstrap.Bootstrap(session)
-#         await bootstrap.get_sheet_subscriber(sheet2).follow_sheet(sheet1)
-#         await bootstrap.get_event_bus().run()
-#         await session.commit()
-#
-#     async with db.get_async_session() as session:
-#         bootstrap = sheet_bootstrap.Bootstrap(session)
-#         sheet2 = await sheet_commands.GetSheetByUuid(uuid=sheet2.sheet_info.uuid, bootstrap=bootstrap).execute()
-#         assert sheet2.sheet_info.size == (1, 2)
-#         assert len(sheet2.cells) == 2
-#         assert sheet2.cells[0].value == 11
-#         assert sheet2.cells[1].value == 22
-#
+
+@pytest.mark.asyncio
+async def test_sheet_changes_state_when_subscribe_to_another_sheet():
+    sheet1 = await create_sheet([
+        [11, 22],
+    ])
+    sheet2 = await create_sheet()
+
+    async with db.get_async_session() as session:
+        boot = bootstrap.Bootstrap(session)
+        await boot.get_subfac().create_sheet_subscriber(sheet2).follow_sheet(sheet1)
+        await boot.get_event_bus().run()
+        await session.commit()
+
+    async with db.get_async_session() as session:
+        boot = bootstrap.Bootstrap(session)
+        sheet2 = await commands.GetSheetByUuid(uuid=sheet2.sheet_info.uuid, receiver=boot.get_sheet_service()).execute()
+        assert sheet2.sheet_info.size == (1, 2)
+        assert len(sheet2.cells) == 2
+        assert sheet2.cells[0].value == 11
+        assert sheet2.cells[1].value == 22
+
 #
 # @pytest.mark.asyncio
 # async def test_child_sindex_reacts_on_parent_sindex_deleted():

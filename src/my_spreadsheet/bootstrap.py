@@ -20,18 +20,22 @@ class Bootstrap:
         self._col_service: services.Service[domain.ColSindex] = services.Service(self._col_repo, self._queue)
         self._sheet_service = services.SheetService(self._sheet_repo)
 
-    def get_event_bus(self) -> eventbus.EventBus:
-        broker = BrokerService()
-        bus = eventbus.EventBus(self._queue)
-        subfac = subfactory.SubFactory(self._sheet_service, broker)
+        self._broker = BrokerService()
+        self._subfac = subfactory.SubFactory(self._sheet_service, self._broker)
 
-        handler = services.CellHandler(subfac, broker)
+    def get_event_bus(self) -> eventbus.EventBus:
+        bus = eventbus.EventBus(self._queue)
+
+        handler = services.CellHandler(self._subfac, self._broker)
         bus.register("CellUpdated", handler.handle_cell_updated)
 
-        handler = services.SindexHandler(subfac, broker)
+        handler = services.SindexHandler(self._subfac, self._broker)
         bus.register("SindexUpdated", handler.handle_sindex_updated)
 
         return bus
 
     def get_sheet_service(self) -> services.SheetService:
         return self._sheet_service
+
+    def get_subfac(self) -> subfactory.SubFactory:
+        return self._subfac

@@ -62,7 +62,7 @@ class SheetSelfSubscriber(subscriber.SheetSubscriber):
         self._broker_service = broker_service
 
     async def follow_sheet(self, pub: domain.Sheet):
-        if self._entity.sheet_info.size != (0, 0):
+        if self._entity.sf.size != (0, 0):
             raise ValueError
 
         # Change sheet size
