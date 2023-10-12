@@ -66,13 +66,13 @@ class SheetSubscriber(Subscriber):
 
 class SubscriberFactory:
     @abstractmethod
-    def create_cell_subscriber(self, entity: domain.Cell, **kwargs) -> CellSubscriber:
+    def create_cell_subscriber(self, entity: domain.Cell) -> CellSubscriber:
         raise NotImplemented
 
     @abstractmethod
-    def create_sindex_subscriber(self, entity: domain.Sindex, **kwargs) -> SindexSubscriber:
+    def create_sindex_subscriber(self, entity: domain.Sindex) -> SindexSubscriber:
         raise NotImplemented
 
     @abstractmethod
-    def create_sheet_subscriber(self, entity: domain.Sheet, **kwargs) -> SheetSubscriber:
+    def create_sheet_subscriber(self, entity: domain.Sheet) -> SheetSubscriber:
         raise NotImplemented

@@ -192,15 +192,51 @@ class SheetPostgresRepo(Repository):
         self._row_repo = RowPostgresRepo(session)
         self._col_repo = ColPostgresRepo(session)
         self._cell_repo = CellPostgresRepo(session)
+        self._session = session
 
     async def add_many(self, data: list[Sheet]):
-        pass
+        for sheet in data:
+            await self._sf_repo.add_many([sheet.sheet_info])
+            if len(sheet.rows) and len(sheet.cols) and len(sheet.cells):
+                await self._row_repo.add_many(sheet.rows)
+                await self._col_repo.add_many(sheet.cols)
+                await self._cell_repo.add_many(sheet.cells)
 
     async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[Sheet]:
-        pass
+        result: list[Sheet] = []
+        for uuid in ids:
+            stmt = (
+                select(SheetInfoModel, RowSindexModel, ColSindexModel, CellModel)
+                .join(SheetInfoModel, CellModel.sheet_uuid == SheetInfoModel.uuid)
+                .join(RowSindexModel, CellModel.row_sindex_uuid == RowSindexModel.uuid)
+                .join(ColSindexModel, CellModel.col_sindex_uuid == ColSindexModel.uuid)
+                .order_by(RowSindexModel.position, ColSindexModel.position)
+                .where(SheetInfoModel.uuid == uuid)
+            )
+            result = list(await self._session.execute(stmt))
+            if len(result) == 0:
+                stmt = select(SheetInfoModel).where(SheetInfoModel.uuid == uuid)
+                result = list(await self._session.execute(stmt))
+                if len(result) != 1:
+                    raise LookupError
+                return [Sheet(sf=SheetInfo(size=(0, 0), id=uuid), rows=[], cols=[], cells=[], id=uuid)]
+
+            sheet_info: SheetInfo = result[0][0].to_entity()
+            rows = [result[x][1].to_entity(sheet_info)
+                    for x in range(0, sheet_info.size[0] * sheet_info.size[1], sheet_info.size[1])]
+            cols = [result[x][2].to_entity(sheet_info) for x in range(0, sheet_info.size[1])]
+            cells = []
+            for i, row in enumerate(rows):
+                for j, col in enumerate(cols):
+                    index = i * sheet_info.size[1] + j
+                    cells.append(result[index][3].to_entity(sheet_info, row, col))
+
+            sheet = Sheet(sf=sheet_info, rows=rows, cols=cols, cells=cells, id=sheet_info.id)
+            result.append(sheet)
+        return result
 
     async def update_one(self, data: Sheet):
-        pass
+        raise NotImplemented
 
     async def remove_many(self, data: list[Sheet]):
-        pass
+        raise NotImplemented
