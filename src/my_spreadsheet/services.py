@@ -62,12 +62,8 @@ class Service(ABC, Generic[T]):
 
 
 class SheetService:
-    def __init__(self, sf_service: Service[domain.SheetInfo], row_service: Service[domain.RowSindex],
-                 col_service: Service[domain.ColSindex], cell_service: Service[domain.Cell]):
-        self.sf_service = sf_service
-        self.row_service = row_service
-        self.col_service = col_service
-        self.cell_service = cell_service
+    def __init__(self, repo: Repository[domain.Sheet]):
+        self._repo = repo
 
     async def create_sheet(self, table: list[list[domain.CellValue]]) -> domain.Sheet:
         size = (len(table), len(table[0])) if len(table) else (0, 0)
@@ -81,13 +77,12 @@ class SheetService:
             for j, cell_value in enumerate(row):
                 cells.append(domain.Cell(sheet_info=sf, row=row_sindexes[i], col=col_sindexes[j], value=cell_value))
 
-        await self.sf_service.create_many([sf])
-        await self.row_service.create_many(row_sindexes)
-        await self.col_service.create_many(col_sindexes)
-        await self.cell_service.create_many(cells)
-
         sheet = domain.Sheet(sf=sf, rows=row_sindexes, cols=col_sindexes, cells=cells, id=sf.id)
+        await self._repo.add_many([sheet])
         return sheet
+
+    async def get_sheet_by_uuid(self, uuid: UUID) -> domain.Sheet:
+        return (await self._repo.get_many_by_id([uuid])).pop()
 
     async def delete_rows(self, rows: list[domain.RowSindex]):
         raise NotImplemented

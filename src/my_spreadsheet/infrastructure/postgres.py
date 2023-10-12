@@ -195,7 +195,7 @@ class SheetPostgresRepo(Repository):
 
     async def add_many(self, data: list[Sheet]):
         for sheet in data:
-            await self._sf_repo.add_many([sheet.sheet_info])
+            await self._sf_repo.add_many([sheet.sf])
             if len(sheet.rows) and len(sheet.cols) and len(sheet.cells):
                 await self._row_repo.add_many(sheet.rows)
                 await self._col_repo.add_many(sheet.cols)

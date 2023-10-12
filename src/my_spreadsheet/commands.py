@@ -15,3 +15,12 @@ class CreateSheet(BaseModel):
         table = self.table if self.table is not None else []
         sheet = await self.receiver.create_sheet(table)
         return sheet
+
+
+class GetSheetByUuid(BaseModel):
+    uuid: UUID
+    receiver: services.SheetService
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> domain.Sheet:
+        return await self.receiver.get_sheet_by_uuid(self.uuid)

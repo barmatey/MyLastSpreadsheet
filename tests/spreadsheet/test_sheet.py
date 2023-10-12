@@ -4,6 +4,7 @@ from loguru import logger
 import db
 
 from src.my_spreadsheet import domain, commands, bootstrap
+from tests.spreadsheet.before import create_sheet
 
 
 @pytest.mark.asyncio
@@ -25,15 +26,17 @@ async def test_create_sheet():
         for i in range(0, 6):
             assert sheet.cells[i].value == i
 
-#
-# @pytest.mark.asyncio
-# async def test_get_sheet_by_uuid():
-#     async with db.get_async_session() as session:
-#         sheet = await create_sheet(table=[[0, 1], [2, 3], [4, 5]])
-#         cmd = sheet_commands.GetSheetByUuid(uuid=sheet.sheet_info.uuid, bootstrap=sheet_bootstrap.Bootstrap(session))
-#         sheet_from_repo = await cmd.execute()
-#         assert sheet_from_repo == sheet
-#
+
+@pytest.mark.asyncio
+async def test_get_sheet_by_uuid():
+    async with db.get_async_session() as session:
+        sheet = await create_sheet(table=[[0, 1], [2, 3], [4, 5]])
+        boot = bootstrap.Bootstrap(session)
+        sheet_service = boot.get_sheet_service()
+        cmd = commands.GetSheetByUuid(uuid=sheet.sf.id, receiver=sheet_service)
+        sheet_from_repo = await cmd.execute()
+        assert sheet_from_repo == sheet
+
 #
 # @pytest.mark.asyncio
 # async def test_sheet_changes_state_when_subscribe_to_another_sheet():

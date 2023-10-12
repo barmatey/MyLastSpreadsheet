@@ -18,8 +18,7 @@ class Bootstrap:
         self._cell_service: services.Service[domain.Cell] = services.Service(self._cell_repo, self._queue)
         self._row_service: services.Service[domain.RowSindex] = services.Service(self._row_repo, self._queue)
         self._col_service: services.Service[domain.ColSindex] = services.Service(self._col_repo, self._queue)
-        self._sheet_service = services.SheetService(self._sf_service, self._row_service, self._col_service,
-                                                    self._cell_service)
+        self._sheet_service = services.SheetService(self._sheet_repo)
 
     def get_event_bus(self) -> eventbus.EventBus:
         broker = BrokerService()
