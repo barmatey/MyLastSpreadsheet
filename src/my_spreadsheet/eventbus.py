@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Callable
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
@@ -29,3 +29,25 @@ class Queue:
 
     def append(self, event: Event):
         self._queue.append(event)
+
+    def popleft(self) -> Event:
+        return self._queue.popleft()
+
+    @property
+    def empty(self):
+        return len(self._queue) == 0
+
+
+class EventBus:
+    def __init__(self, queue: Queue):
+        self._queue = queue
+        self._handlers: dict[str, Callable] = {}
+
+    def register(self, key: str, handler: Callable):
+        self._handlers[key] = handler
+
+    async def run(self):
+        while not self._queue.empty:
+            event = self._queue.popleft()
+            handler = self._handlers[event.key]
+            await handler(event)

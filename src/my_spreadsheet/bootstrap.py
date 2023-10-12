@@ -1,7 +1,8 @@
+from src.my_spreadsheet import eventbus
 from . import domain
 from . import services
-from .infrastructure import postgres
-from src.my_spreadsheet import eventbus
+from .broker import BrokerService
+from .infrastructure import postgres, subfactory
 
 
 class Bootstrap:
@@ -19,6 +20,19 @@ class Bootstrap:
         self._col_service: services.Service[domain.ColSindex] = services.Service(self._col_repo, self._queue)
         self._sheet_service = services.SheetService(self._sf_service, self._row_service, self._col_service,
                                                     self._cell_service)
+
+    def get_event_bus(self) -> eventbus.EventBus:
+        broker = BrokerService()
+        bus = eventbus.EventBus(self._queue)
+        subfac = subfactory.SubFactory(self._sheet_service, broker)
+
+        handler = services.CellHandler(subfac, broker)
+        bus.register("CellUpdated", handler.handle_cell_updated)
+
+        handler = services.SindexHandler(subfac, broker)
+        bus.register("SindexUpdated", handler.handle_sindex_updated)
+
+        return bus
 
     def get_sheet_service(self) -> services.SheetService:
         return self._sheet_service
