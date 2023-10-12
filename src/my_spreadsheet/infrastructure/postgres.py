@@ -146,8 +146,7 @@ class PostgresRepo(Repository):
 
     async def add_many(self, data: list[T]):
         models = [self._model.from_entity(x) for x in data]
-        stmt = insert(self._model)
-        await self._session.execute(stmt, models)
+        self._session.add_all(models)
 
     async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[T]:
         stmt = select(self._model).where(self._model.uuid.in_(ids))

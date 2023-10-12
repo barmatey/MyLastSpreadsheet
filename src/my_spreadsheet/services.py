@@ -69,8 +69,25 @@ class SheetService:
         self.col_service = col_service
         self.cell_service = cell_service
 
-    async def create_sheet(self, table: list[list[domain.CellValue]]):
-        raise NotImplemented
+    async def create_sheet(self, table: list[list[domain.CellValue]]) -> domain.Sheet:
+        size = (len(table), len(table[0])) if len(table) else (0, 0)
+        sf = domain.SheetInfo(size=size)
+
+        row_sindexes = [domain.RowSindex(sheet_info=sf, position=i) for i in range(0, size[0])]
+        col_sindexes = [domain.ColSindex(sheet_info=sf, position=j) for j in range(0, size[1])]
+
+        cells = []
+        for i, row in enumerate(table):
+            for j, cell_value in enumerate(row):
+                cells.append(domain.Cell(sheet_info=sf, row=row_sindexes[i], col=col_sindexes[j], value=cell_value))
+
+        await self.sf_service.create_many([sf])
+        await self.row_service.create_many(row_sindexes)
+        await self.col_service.create_many(col_sindexes)
+        await self.cell_service.create_many(cells)
+
+        sheet = domain.Sheet(sf=sf, rows=row_sindexes, cols=col_sindexes, cells=cells, id=sf.id)
+        return sheet
 
     async def delete_rows(self, rows: list[domain.RowSindex]):
         raise NotImplemented
