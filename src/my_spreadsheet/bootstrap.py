@@ -20,9 +20,11 @@ class Bootstrap:
 
         handler = services.CellHandler(self._subfac, self._broker)
         bus.register("CellUpdated", handler.handle_cell_updated)
+        bus.register("CellDeleted", handler.handle_cell_deleted)
 
         handler = services.SindexHandler(self._subfac, self._broker)
         bus.register("SindexUpdated", handler.handle_sindex_updated)
+        bus.register("SindexDeleted", handler.handle_sindex_deleted)
 
         return bus
 

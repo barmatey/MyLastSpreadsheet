@@ -33,7 +33,7 @@ class CellSelfSubscriber(subscriber.CellSubscriber):
     async def on_cell_deleted(self, pub: domain.Cell):
         old = self._entity.model_copy(deep=True)
         self._entity.value = "REF_ERROR"
-        await self._cell_service.update_one(self._entity, old)
+        await self._sheet_service.update_cells([self._entity], [old])
 
 
 class SindexSelfSubscriber(subscriber.SindexSubscriber):
@@ -52,7 +52,7 @@ class SindexSelfSubscriber(subscriber.SindexSubscriber):
         pass
 
     async def on_sindex_deleted(self, pub: domain.Sindex):
-        raise NotImplemented
+        await self._sheet_service.delete_sindexes([self._entity])
 
 
 class SheetSelfSubscriber(subscriber.SheetSubscriber):

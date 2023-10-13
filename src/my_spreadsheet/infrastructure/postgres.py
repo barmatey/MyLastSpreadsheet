@@ -237,8 +237,6 @@ class CellPostgresRepo(PostgresRepo):
             entities.append(cell)
         return entities
 
-        return entities
-
 
 class SheetPostgresRepo(SheetRepository):
     def __init__(self, session: AsyncSession):

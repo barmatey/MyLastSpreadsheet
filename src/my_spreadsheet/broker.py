@@ -2,8 +2,10 @@ from typing import Iterable
 from uuid import UUID
 
 from . import domain
+from ..helpers.decorators import singleton
 
 
+@singleton
 class BrokerService:
     def __init__(self):
         self._data: dict[UUID, set[domain.Entity]] = {}

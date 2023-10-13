@@ -92,11 +92,11 @@ class SheetService:
         await self._repo.sheet_info_repo.update_one(sf)
 
         # Create  rows
-        new_rows = [domain.RowSindex(sf=target.sf, position=x.position) for x in parent.rows]
+        new_rows = [domain.RowSindex(sf=sf, position=x.position) for x in parent.rows]
         await self._repo.row_repo.add_many(new_rows)
 
         # Create cols
-        new_cols = [domain.ColSindex(sf=target.sf, position=x.position) for x in parent.cols]
+        new_cols = [domain.ColSindex(sf=sf, position=x.position) for x in parent.cols]
         await self._repo.col_repo.add_many(new_cols)
 
         # Create cells
@@ -119,28 +119,40 @@ class SheetService:
             await self._repo.cell_repo.update_one(actual)
             self._queue.append(eventbus.Updated(key="CellUpdated", old_entity=old, actual_entity=actual))
 
-    async def delete_rows(self, sindexes: list[domain.RowSindex], cells: list[domain.Cell] = None):
+    async def delete_sindexes(self, sindexes: list[domain.Sindex], cells: list[domain.Cell] = None):
+        axis = 0 if isinstance(sindexes[0], domain.RowSindex) else 1
+        new_sf = sindexes[0].sf
+        if axis == 0:
+            key = "row_sindex_uuid.__in"
+            repo = self._repo.row_repo
+            new_sf.size = (new_sf.size[0] - len(sindexes), new_sf.size[1])
+        else:
+            key = "col_sindex_uuid.__in"
+            repo = self._repo.col_repo
+            new_sf.size = (new_sf.size[0], new_sf.size[1] - len(sindexes))
+
         if cells is None:
             ids = [x.id for x in sindexes]
-            cells = await self._repo.cell_repo.get_many(filter_by={"row_sindex_uuid.__in": ids})
-        new_sf = sindexes[0].sf.model_copy(deep=True)
-        new_sf.size = (new_sf.size[0] - len(sindexes), new_sf.size[1])
+            cells = await self._repo.cell_repo.get_many(filter_by={key: ids})
 
         await self._repo.cell_repo.remove_many(cells)
-        await self._repo.row_repo.remove_many(sindexes)
+        await repo.remove_many(sindexes)
         await self._repo.sheet_info_repo.update_one(new_sf)
+        await self.reindex(sindexes[0].sf.id, axis)
 
-        await self.reindex_rows(sindexes[0].sf.id)
+        for row in sindexes:
+            self._queue.append(eventbus.Deleted(key="SindexDeleted", entity=row))
 
-    async def reindex_rows(self, sheet_id: UUID):
+    async def reindex(self, sheet_id: UUID, axis=0):
         filter_by = {"sheet_uuid": sheet_id}
-        sheet_rows = await self._repo.row_repo.get_many(filter_by=filter_by, order_by=OrderBy("position", True))
+        repo = self._repo.row_repo if axis == 0 else self._repo.col_repo
+        sindexes = await repo.get_many(filter_by=filter_by, order_by=OrderBy("position", True))
         to_update = []
-        for i, row in enumerate(sheet_rows):
+        for i, row in enumerate(sindexes):
             if row.position != i:
                 row.position = i
                 to_update.append(row)
-        await self._repo.row_repo.update_many(to_update)
+        await repo.update_many(to_update)
 
     async def get_sheet_by_uuid(self, uuid: UUID) -> domain.Sheet:
         return await self._repo.get_sheet_by_id(uuid)
@@ -158,9 +170,19 @@ class CellHandler(Handler):
         for sub in subs:
             await sub.on_cell_updated(old=event.old_entity, actual=event.actual_entity)
 
+    async def handle_cell_deleted(self, event: eventbus.Deleted[domain.Cell]):
+        subs = [self._sub_factory.create_cell_subscriber(x) for x in await self._broker.get_subs(event.entity)]
+        for sub in subs:
+            await sub.on_cell_deleted(pub=event.entity)
+
 
 class SindexHandler(Handler):
     async def handle_sindex_updated(self, event: eventbus.Updated[domain.Sindex]):
         subs = [self._sub_factory.create_sindex_subscriber(x) for x in await self._broker.get_subs(event.actual_entity)]
         for sub in subs:
             await sub.on_sindex_updated(event.old_entity, event.actual_entity)
+
+    async def handle_sindex_deleted(self, event: eventbus.Deleted[domain.Sindex]):
+        subs = [self._sub_factory.create_sindex_subscriber(x) for x in await self._broker.get_subs(event.entity)]
+        for sub in subs:
+            await sub.on_sindex_deleted(pub=event.entity)

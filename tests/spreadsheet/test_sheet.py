@@ -78,8 +78,8 @@ async def test_child_sindex_reacts_on_parent_sindex_deleted():
     # Delete
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
-        await boot.get_sheet_service().delete_rows([sheet1.rows[0]])
-        await boot.get_sheet_service().delete_rows([sheet1.cols[2]])
+        await boot.get_sheet_service().delete_sindexes([sheet1.rows[0]])
+        await boot.get_sheet_service().delete_sindexes([sheet1.cols[2]])
         await boot.get_event_bus().run()
         await session.commit()
 
