@@ -62,32 +62,12 @@ class SheetSelfSubscriber(subscriber.SheetSubscriber):
         self._broker_service = broker_service
 
     async def follow_sheet(self, pub: domain.Sheet):
-        if self._entity.sf.size != (0, 0):
-            raise ValueError
-
-        # Change sheet size
-        old = self._entity.sf.model_copy(deep=True)
-        self._entity.sf.size = pub.sf.size
-        await self._sheet_service.sf_service.update_one(entity=self._entity.sf, old_entity=old)
-
-        # Create table
-        rows = [domain.RowSindex(position=x.position, sheet_info=self._entity.sf) for x in pub.rows]
-        cols = [domain.ColSindex(position=x.position, sheet_info=self._entity.sf) for x in pub.cols]
-        cells = []
-        for i, row in enumerate(rows):
-            for j, col in enumerate(cols):
-                value = pub.cells[i * pub.sheet_info.size[1] + j].value
-                cells.append(domain.Cell(sheet_info=self._entity.sheet_info, row=row, col=col, value=value))
-        await self._sheet_service.sindex_service.create_many(rows)
-        await self._sheet_service.sindex_service.create_many(cols)
-        await self._sheet_service.cell_service.create_many(cells)
-
-        # Subscribe
-        for parent, child in zip(pub.rows, rows):
+        self._entity = await self._sheet_service.merge(pub, self._entity)
+        for parent, child in zip(pub.rows, self._entity.rows):
             await self._broker_service.subscribe([parent], child)
-        for parent, child in zip(pub.cols, cols):
+        for parent, child in zip(pub.cols, self._entity.cols):
             await self._broker_service.subscribe([parent], child)
-        for parent, child in zip(pub.cells, cells):
+        for parent, child in zip(pub.cells, self._entity.cells):
             await self._broker_service.subscribe([parent], child)
 
     async def unfollow_sheet(self, pub: domain.Sheet):

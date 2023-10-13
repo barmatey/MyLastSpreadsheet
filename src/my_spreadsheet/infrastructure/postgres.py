@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Type
 from uuid import UUID
 
-from sqlalchemy import TIMESTAMP, func, insert, select, update, delete, Integer, ForeignKey, String
+from sqlalchemy import TIMESTAMP, func, select, update, delete, Integer, ForeignKey, String
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -53,14 +53,14 @@ class RowSindexModel(Base):
     cells = relationship('CellModel')
 
     def to_entity(self, sheet: SheetInfo) -> RowSindex:
-        return RowSindex(id=self.uuid, sheet_info=sheet, position=self.position)
+        return RowSindex(id=self.uuid, sf=sheet, position=self.position)
 
     @classmethod
     def from_entity(cls, entity: RowSindex):
         return cls(
             position=entity.position,
             uuid=entity.id,
-            sheet_uuid=entity.sheet_info.id,
+            sheet_uuid=entity.sf.id,
         )
 
 
@@ -71,14 +71,14 @@ class ColSindexModel(Base):
     cells = relationship('CellModel')
 
     def to_entity(self, sheet: SheetInfo) -> ColSindex:
-        return ColSindex(id=self.uuid, sheet_info=sheet, position=self.position)
+        return ColSindex(id=self.uuid, sf=sheet, position=self.position)
 
     @classmethod
     def from_entity(cls, entity: RowSindex):
         return cls(
             position=entity.position,
             uuid=entity.id,
-            sheet_uuid=entity.sheet_info.id,
+            sheet_uuid=entity.sf.id,
         )
 
 
@@ -123,7 +123,7 @@ class CellModel(Base):
         raise TypeError
 
     def to_entity(self, sheet_info: SheetInfo, row: RowSindex, col: ColSindex):
-        return Cell(sheet_info=sheet_info, row=row, col=col, value=self.__get_value(self.value, self.dtype),
+        return Cell(sf=sheet_info, row=row, col=col, value=self.__get_value(self.value, self.dtype),
                     id=self.uuid)
 
     @classmethod
@@ -132,7 +132,7 @@ class CellModel(Base):
             uuid=entity.id,
             value=str(entity.value),
             dtype=cls.__get_dtype(entity.value),
-            sheet_uuid=entity.sheet_info.id,
+            sheet_uuid=entity.sf.id,
             row_sindex_uuid=entity.row.id,
             col_sindex_uuid=entity.col.id,
         )
@@ -156,8 +156,8 @@ class PostgresRepo(Repository):
 
     async def update_one(self, data: T):
         model = self._model.from_entity(data)
-        stmt = update(self._model).where(self._model.uuid == data.id).values(model)
-        await self._session.execute(stmt)
+        stmt = update(self._model).where(self._model.uuid == data.id)
+        await self._session.execute(stmt, model.__dict__)
 
     async def remove_many(self, data: list[T]):
         ids = [x.id for x in data]
@@ -187,11 +187,27 @@ class CellPostgresRepo(PostgresRepo):
 
 class SheetPostgresRepo(SheetRepository):
     def __init__(self, session: AsyncSession):
-        self._sf_repo = SheetInfoPostgresRepo(session)
-        self._row_repo = RowPostgresRepo(session)
-        self._col_repo = ColPostgresRepo(session)
-        self._cell_repo = CellPostgresRepo(session)
+        self._sf_repo: Repository[SheetInfo] = SheetInfoPostgresRepo(session)
+        self._row_repo: Repository[RowSindex] = RowPostgresRepo(session)
+        self._col_repo: Repository[ColSindex] = ColPostgresRepo(session)
+        self._cell_repo: Repository[Cell] = CellPostgresRepo(session)
         self._session = session
+
+    @property
+    def row_repo(self) -> Repository[RowSindex]:
+        return self._row_repo
+
+    @property
+    def col_repo(self) -> Repository[ColSindex]:
+        return self._col_repo
+
+    @property
+    def cell_repo(self) -> Repository[Cell]:
+        return self._cell_repo
+
+    @property
+    def sheet_info_repo(self) -> Repository[SheetInfo]:
+        return self._sf_repo
 
     async def add_sheet(self, sheet: Sheet):
         await self._sf_repo.add_many([sheet.sf])
@@ -229,9 +245,3 @@ class SheetPostgresRepo(SheetRepository):
 
         sheet = Sheet(sf=sheet_info, rows=rows, cols=cols, cells=cells, id=sheet_info.id)
         return sheet
-
-    async def update_one(self, data: Sheet):
-        raise NotImplemented
-
-    async def remove_many(self, data: list[Sheet]):
-        raise NotImplemented

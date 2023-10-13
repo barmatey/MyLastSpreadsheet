@@ -10,7 +10,7 @@ CellValue = Union[int, float, str, bool, datetime, None]
 
 
 class Cell(BaseModel):
-    sheet_info: SheetInfo
+    sf: SheetInfo
     row_sindex: Sindex
     col_sindex: Sindex
     value: CellValue = None

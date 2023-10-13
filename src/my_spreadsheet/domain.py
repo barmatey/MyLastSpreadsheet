@@ -7,6 +7,9 @@ from pydantic import BaseModel, Field
 class Entity(BaseModel):
     id: UUID
 
+    def __hash__(self):
+        return self.id.__hash__()
+
 
 class SheetInfo(Entity):
     id: UUID = Field(default_factory=uuid4)
@@ -26,7 +29,7 @@ class SheetInfo(Entity):
 
 
 class Sindex(Entity):
-    sheet_info: SheetInfo
+    sf: SheetInfo
     position: int
     id: UUID = Field(default_factory=uuid4)
 
@@ -38,18 +41,20 @@ class Sindex(Entity):
 
     def __eq__(self, other: 'Sindex'):
         return all([
-            self.sheet_info == other.sheet_info,
+            self.sf == other.sf,
             self.position == other.position,
             self.id == other.id,
         ])
 
 
 class RowSindex(Sindex):
-    pass
+    def __hash__(self):
+        return self.id.__hash__()
 
 
 class ColSindex(Sindex):
-    pass
+    def __hash__(self):
+        return self.id.__hash__()
 
 
 CellValue = Union[int, float, str, bool, None, datetime]
@@ -60,8 +65,11 @@ class Cell(Entity):
     value: CellValue
     row: RowSindex
     col: ColSindex
-    sheet_info: SheetInfo
+    sf: SheetInfo
     id: UUID = Field(default_factory=uuid4)
+
+    def __hash__(self):
+        return self.id.__hash__()
 
     def __eq__(self, other):
         return all([
@@ -69,7 +77,7 @@ class Cell(Entity):
             self.value == other.value,
             self.row == other.row,
             self.col == other.col,
-            self.sheet_info == other.sheet_info,
+            self.sf == other.sf,
         ])
 
 

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 from . import domain
 
@@ -66,13 +66,13 @@ class SheetSubscriber(Subscriber):
 
 class SubscriberFactory:
     @abstractmethod
-    def create_cell_subscriber(self, entity: domain.Cell) -> CellSubscriber:
+    def create_cell_subscriber(self, entity: domain.Entity) -> CellSubscriber:
         raise NotImplemented
 
     @abstractmethod
-    def create_sindex_subscriber(self, entity: domain.Sindex) -> SindexSubscriber:
+    def create_sindex_subscriber(self, entity: domain.Entity) -> SindexSubscriber:
         raise NotImplemented
 
     @abstractmethod
-    def create_sheet_subscriber(self, entity: domain.Sheet) -> SheetSubscriber:
+    def create_sheet_subscriber(self, entity: domain.Entity) -> SheetSubscriber:
         raise NotImplemented

@@ -70,7 +70,7 @@ class CellRepoPostgres(CellRepo):
             stmt = stmt.order_by(*orders)
 
         result = await self._session.execute(stmt)
-        result = [x[0].to_entity(sheet_info, row=x[1].to_entity(sheet_info), col=x[2].to_entity(sheet_info))
+        result = [x[0].to_entity(sf, row=x[1].to_entity(sheet_info), col=x[2].to_entity(sheet_info))
                   for x in result]
         return result
 

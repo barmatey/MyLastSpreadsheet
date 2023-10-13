@@ -100,7 +100,7 @@ class SheetSelfSubscriber(sheet_subscriber.SheetSubscriber):
         for i, row in enumerate(rows):
             for j, col in enumerate(cols):
                 index = i * pub.sheet_info.size[1] + j
-                child_cell = cell_entity.Cell(sheet_info=self._entity.sheet_info, row_sindex=row, col_sindex=col,
+                child_cell = cell_entity.Cell(sf=self._entity.sheet_info, row_sindex=row, col_sindex=col,
                                               value=pub.cells[index].value)
                 await cell_service.create_cell(child_cell)
                 await cell_service.subscribe_cell([pub.cells[index]], child_cell)

@@ -53,8 +53,8 @@ async def test_sheet_changes_state_when_subscribe_to_another_sheet():
 
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
-        sheet2 = await commands.GetSheetByUuid(uuid=sheet2.sheet_info.uuid, receiver=boot.get_sheet_service()).execute()
-        assert sheet2.sheet_info.size == (1, 2)
+        sheet2 = await commands.GetSheetByUuid(uuid=sheet2.sf.id, receiver=boot.get_sheet_service()).execute()
+        assert sheet2.sf.size == (1, 2)
         assert len(sheet2.cells) == 2
         assert sheet2.cells[0].value == 11
         assert sheet2.cells[1].value == 22
