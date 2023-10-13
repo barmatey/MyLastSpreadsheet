@@ -149,9 +149,12 @@ class PostgresRepo(Repository):
         models = [self._model.from_entity(x) for x in data]
         self._session.add_all(models)
 
-    async def get_many(self, filter_by: dict, order_by: OrderBy = None) -> list[T]:
-        filters = [self._model.__table__.c[key] == value for key, value in filter_by.items()]
-        stmt = select(self._model).where(*filters).order_by(*order_by)
+    async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
+        stmt = select(self._model)
+        if filter_by is not None:
+            stmt = stmt.where(*helpers.postgres.parse_filter_by(self._model, filter_by))
+        if order_by is not None:
+            stmt = stmt.order_by(*helpers.postgres.parse_order_by(self._model, order_by))
         models = await self._session.execute(stmt)
         entities = [x.to_entity() for x in models]
         return entities
@@ -184,16 +187,16 @@ class SheetInfoPostgresRepo(PostgresRepo):
 
 
 class SindexPostgresRepo(PostgresRepo):
-    async def get_many(self, filter_by: dict, order_by: OrderBy = None) -> list[T]:
-        filters = [self._model.__table__.c[key] == value for key, value in filter_by.items()]
-        order_by = helpers.postgres.parse_order_by(self._model, order_by)
+    async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
         stmt = (
             select(self._model, SheetInfoModel)
             .join(SheetInfoModel, self._model.sheet_uuid == SheetInfoModel.uuid)
-            .where(*filters)
-            .order_by(*order_by)
-
         )
+        if filter_by is not None:
+            stmt = stmt.where(*helpers.postgres.parse_filter_by(self._model, filter_by))
+        if order_by is not None:
+            stmt = stmt.order_by(*helpers.postgres.parse_order_by(self._model, order_by))
+
         models = await self._session.execute(stmt)
         sindexes = [x[0].to_entity(x[1].to_entity()) for x in models]
         return sindexes
@@ -212,6 +215,29 @@ class ColPostgresRepo(SindexPostgresRepo):
 class CellPostgresRepo(PostgresRepo):
     def __init__(self, session: AsyncSession, model: Type[Base] = CellModel):
         super().__init__(model, session)
+
+    async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
+        stmt = (
+            select(SheetInfoModel, RowSindexModel, ColSindexModel, CellModel)
+            .join(SheetInfoModel, CellModel.sheet_uuid == SheetInfoModel.uuid)
+            .join(RowSindexModel, CellModel.row_sindex_uuid == RowSindexModel.uuid)
+            .join(ColSindexModel, CellModel.col_sindex_uuid == ColSindexModel.uuid)
+        )
+        if filter_by is not None:
+            stmt = stmt.where(*helpers.postgres.parse_filter_by(self._model, filter_by))
+        if order_by is not None:
+            stmt = stmt.order_by(*helpers.postgres.parse_order_by(self._model, order_by))
+        data = await self._session.execute(stmt)
+        entities: list[Cell] = []
+        for x in data:
+            sheet_info = x[0].to_entity()
+            row = x[1].to_entity(sheet=sheet_info)
+            col = x[2].to_entity(sheet=sheet_info)
+            cell = x[3].to_entity(sheet_info=sheet_info, row=row, col=col)
+            entities.append(cell)
+        return entities
+
+        return entities
 
 
 class SheetPostgresRepo(SheetRepository):

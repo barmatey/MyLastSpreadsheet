@@ -17,7 +17,7 @@ class Repository(ABC, Generic[T]):
         raise NotImplemented
 
     @abstractmethod
-    async def get_many(self, filter_by: dict, order_by: OrderBy = None) -> list[T]:
+    async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
         raise NotImplemented
 
     @abstractmethod
@@ -119,7 +119,17 @@ class SheetService:
             await self._repo.cell_repo.update_one(actual)
             self._queue.append(eventbus.Updated(key="CellUpdated", old_entity=old, actual_entity=actual))
 
-    async def delete_sindexes(self, sindexes: list[domain.Sindex]):
+    async def delete_rows(self, sindexes: list[domain.RowSindex], cells: list[domain.Cell] = None):
+        if cells is None:
+            ids = [x.id for x in sindexes]
+            cells = await self._repo.cell_repo.get_many(filter_by={"row_sindex_uuid.__in": ids})
+        new_sf = sindexes[0].sf.model_copy(deep=True)
+        new_sf.size = (new_sf.size[0] - len(sindexes), new_sf.size[1])
+
+        await self._repo.cell_repo.remove_many(cells)
+        await self._repo.row_repo.remove_many(sindexes)
+        await self._repo.sheet_info_repo.update_one(new_sf)
+
         await self.reindex_rows(sindexes[0].sf.id)
 
     async def reindex_rows(self, sheet_id: UUID):
