@@ -7,8 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from src.core import OrderBy
-from ..domain import Entity, SheetInfo, RowSindex, ColSindex, Cell, CellValue, CellDtype, Sheet
+from ..domain import Entity, SheetInfo, RowSindex, ColSindex, Cell, CellValue, CellDtype, Sheet, Sindex
 from ..services import Repository, T, SheetRepository
+from ... import helpers
 
 
 class Base(DeclarativeBase):
@@ -148,6 +149,13 @@ class PostgresRepo(Repository):
         models = [self._model.from_entity(x) for x in data]
         self._session.add_all(models)
 
+    async def get_many(self, filter_by: dict, order_by: OrderBy = None) -> list[T]:
+        filters = [self._model.__table__.c[key] == value for key, value in filter_by.items()]
+        stmt = select(self._model).where(*filters).order_by(*order_by)
+        models = await self._session.execute(stmt)
+        entities = [x.to_entity() for x in models]
+        return entities
+
     async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[T]:
         stmt = select(self._model).where(self._model.uuid.in_(ids))
         result = await self._session.execute(stmt)
@@ -158,6 +166,11 @@ class PostgresRepo(Repository):
         model = self._model.from_entity(data)
         stmt = update(self._model).where(self._model.uuid == data.id)
         await self._session.execute(stmt, model.__dict__)
+
+    async def update_many(self, data: list[T]):
+        stmt = update(self._model)
+        data = [self._model.from_entity(x).__dict__ for x in data]
+        await self._session.execute(stmt, data)
 
     async def remove_many(self, data: list[T]):
         ids = [x.id for x in data]
@@ -170,12 +183,28 @@ class SheetInfoPostgresRepo(PostgresRepo):
         super().__init__(model, session)
 
 
-class RowPostgresRepo(PostgresRepo):
+class SindexPostgresRepo(PostgresRepo):
+    async def get_many(self, filter_by: dict, order_by: OrderBy = None) -> list[T]:
+        filters = [self._model.__table__.c[key] == value for key, value in filter_by.items()]
+        order_by = helpers.postgres.parse_order_by(self._model, order_by)
+        stmt = (
+            select(self._model, SheetInfoModel)
+            .join(SheetInfoModel, self._model.sheet_uuid == SheetInfoModel.uuid)
+            .where(*filters)
+            .order_by(*order_by)
+
+        )
+        models = await self._session.execute(stmt)
+        sindexes = [x[0].to_entity(x[1].to_entity()) for x in models]
+        return sindexes
+
+
+class RowPostgresRepo(SindexPostgresRepo):
     def __init__(self, session: AsyncSession, model: Type[Base] = RowSindexModel):
         super().__init__(model, session)
 
 
-class ColPostgresRepo(PostgresRepo):
+class ColPostgresRepo(SindexPostgresRepo):
     def __init__(self, session: AsyncSession, model: Type[Base] = ColSindexModel):
         super().__init__(model, session)
 

@@ -17,7 +17,15 @@ class Repository(ABC, Generic[T]):
         raise NotImplemented
 
     @abstractmethod
+    async def get_many(self, filter_by: dict, order_by: OrderBy = None) -> list[T]:
+        raise NotImplemented
+
+    @abstractmethod
     async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[T]:
+        raise NotImplemented
+
+    @abstractmethod
+    async def update_many(self, data: list[T]):
         raise NotImplemented
 
     @abstractmethod
@@ -47,11 +55,11 @@ class SheetRepository(ABC):
         raise NotImplemented
 
     @abstractmethod
-    def add_sheet(self, sheet: domain.Sheet):
+    async def add_sheet(self, sheet: domain.Sheet):
         raise NotImplemented
 
     @abstractmethod
-    def get_sheet_by_id(self, uuid: UUID) -> domain.Sheet:
+    async def get_sheet_by_id(self, uuid: UUID) -> domain.Sheet:
         raise NotImplemented
 
 
@@ -88,11 +96,8 @@ class SheetService:
         await self._repo.row_repo.add_many(new_rows)
 
         # Create cols
-        if target.sf.size[1] == 0:
-            new_cols = [domain.ColSindex(sf=target.sf, position=x.position) for x in parent.cols]
-            await self._repo.col_repo.add_many(new_cols)
-        else:
-            new_cols = target.cols
+        new_cols = [domain.ColSindex(sf=target.sf, position=x.position) for x in parent.cols]
+        await self._repo.col_repo.add_many(new_cols)
 
         # Create cells
         new_cells = []
@@ -115,7 +120,17 @@ class SheetService:
             self._queue.append(eventbus.Updated(key="CellUpdated", old_entity=old, actual_entity=actual))
 
     async def delete_sindexes(self, sindexes: list[domain.Sindex]):
-        raise NotImplemented
+        await self.reindex_rows(sindexes[0].sf.id)
+
+    async def reindex_rows(self, sheet_id: UUID):
+        filter_by = {"sheet_uuid": sheet_id}
+        sheet_rows = await self._repo.row_repo.get_many(filter_by=filter_by, order_by=OrderBy("position", True))
+        to_update = []
+        for i, row in enumerate(sheet_rows):
+            if row.position != i:
+                row.position = i
+                to_update.append(row)
+        await self._repo.row_repo.update_many(to_update)
 
     async def get_sheet_by_uuid(self, uuid: UUID) -> domain.Sheet:
         return await self._repo.get_sheet_by_id(uuid)
