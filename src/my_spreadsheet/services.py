@@ -5,8 +5,8 @@ from uuid import UUID
 from src.core import OrderBy
 from . import domain
 from . import subscriber
-from . import eventbus
-from .broker import BrokerService
+from ..base import eventbus
+from src.base.broker import BrokerService
 
 T = TypeVar("T", bound=domain.BaseModel)
 

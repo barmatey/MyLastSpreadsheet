@@ -1,8 +1,8 @@
 from typing import Iterable
 from uuid import UUID
 
-from . import domain
-from ..helpers.decorators import singleton
+from src.my_spreadsheet import domain
+from src.helpers.decorators import singleton
 
 
 @singleton

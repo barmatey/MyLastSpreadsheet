@@ -1,7 +1,7 @@
 from .. import domain
 from .. import subscriber
 from .. import services
-from ..broker import BrokerService
+from src.base.broker import BrokerService
 
 
 class CellSelfSubscriber(subscriber.CellSubscriber):
