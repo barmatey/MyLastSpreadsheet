@@ -104,7 +104,8 @@ async def test_insert_rows():
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
         sheet_service = boot.get_sheet_service()
-        cmd = commands.InsertRows(id=sheet1.sf.id, receiver=sheet_service, table=[[123, 123, 123]], from_position=0)
+        cmd = commands.InsertRows(id=sheet1.sf.id, receiver=sheet_service, table=[[123, 1234, 123]],
+                                  before_sindex=sheet1.rows[0])
         await cmd.execute()
         await session.commit()
 
@@ -115,7 +116,7 @@ async def test_insert_rows():
         for i, row in enumerate(sheet.rows):
             assert row.position == i
         assert sheet.cells[0].value == 123
-        assert sheet.cells[1].value == 123
+        assert sheet.cells[1].value == 1234
         assert sheet.cells[2].value == 123
         assert sheet.cells[3].value == 11
         assert sheet.cells[4].value == 22

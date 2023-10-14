@@ -29,9 +29,9 @@ class GetSheetByUuid(BaseModel):
 class InsertRows(BaseModel):
     id: UUID
     table: list[list[domain.CellValue]]
-    from_position: int
+    before_sindex: domain.RowSindex
     receiver: services.SheetService
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def execute(self) -> None:
-        await self.receiver.insert_rows(self.id, self.table, self.from_position)
+        await self.receiver.insert_rows(self.id, self.table, self.before_sindex)
