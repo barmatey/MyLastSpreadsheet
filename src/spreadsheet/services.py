@@ -109,45 +109,36 @@ class SheetService:
 
         return domain.Sheet(sf=sf, rows=new_rows, cols=new_cols, cells=new_cells)
 
-    async def insert_cols(self, sheet_id: UUID, table: list[list[domain.CellValue]], before_sindex: domain.ColSindex):
+    async def insert_sindexes(self, sheet_id: UUID, table: list[list[domain.CellValue]], before: domain.Sindex):
         sf = (await self._repo.sheet_info_repo.get_many({"id": sheet_id})).pop()
-        sf.size = (sf.size[0], sf.size[1] + len(table))
+        axis = 0 if isinstance(before, domain.RowSindex) else 1
+        if axis == 0:
+            sf.size = (sf.size[0] + len(table), sf.size[1])
+            primary_repo = self._repo.row_repo
+            secondary_repo = self._repo.col_repo
+            sindex_class = domain.RowSindex
+        else:
+            sf.size = (sf.size[0], sf.size[1] + len(table))
+            primary_repo = self._repo.col_repo
+            secondary_repo = self._repo.row_repo
+            sindex_class = domain.ColSindex
         await self._repo.sheet_info_repo.update_one(sf)
 
-        filter_by = {"sheet_id": sheet_id, "position.__gte": before_sindex.position}
-        sindexes_after = await self._repo.col_repo.get_many(filter_by=filter_by, order_by=OrderBy("position", asc=True))
+        filter_by = {"sheet_id": sheet_id, "position.__gte": before.position}
+        sindexes_after = await primary_repo.get_many(filter_by=filter_by, order_by=OrderBy("position", asc=True))
         if sindexes_after:
             for sindex in sindexes_after:
                 sindex.position = sindex.position + len(table)
-            await self._repo.col_repo.update_many(sindexes_after)
+            await primary_repo.update_many(sindexes_after)
 
-        col_sindexes = [domain.ColSindex(position=before_sindex.position + i, sf=sf) for i in range(0, len(table))]
-        await self._repo.col_repo.add_many(col_sindexes)
-        row_sindexes = await self._repo.row_repo.get_many({"sheet_id": sheet_id}, order_by=OrderBy("position", True))
+        primary_sindexes = [sindex_class(position=before.position + i, sf=sf) for i in range(0, len(table))]
+        await primary_repo.add_many(primary_sindexes)
+        secondary_sindexes = await secondary_repo.get_many({"sheet_id": sheet_id}, order_by=OrderBy("position", True))
+
         cells = []
-        for i, row in enumerate(row_sindexes):
-            for j, col in enumerate(col_sindexes):
-                cells.append(domain.Cell(sf=sf, row=row, col=col, value=table[j][i]))
-        await self._repo.cell_repo.add_many(cells)
-
-    async def insert_rows(self, sheet_id: UUID, table: list[list[domain.CellValue]], before_sindex: domain.RowSindex):
-        sf = (await self._repo.sheet_info_repo.get_many({"id": sheet_id})).pop()
-        sf.size = (sf.size[0] + len(table), sf.size[1])
-        await self._repo.sheet_info_repo.update_one(sf)
-
-        filter_by = {"sheet_id": sheet_id, "position.__gte": before_sindex.position}
-        sindexes_after = await self._repo.row_repo.get_many(filter_by=filter_by, order_by=OrderBy("position", asc=True))
-        if sindexes_after:
-            for sindex in sindexes_after:
-                sindex.position = sindex.position + len(table)
-            await self._repo.row_repo.update_many(sindexes_after)
-
-        row_sindexes = [domain.RowSindex(position=before_sindex.position + i, sf=sf) for i in range(0, len(table))]
-        await self._repo.row_repo.add_many(row_sindexes)
-        col_sindexes = await self._repo.col_repo.get_many({"sheet_id": sf.id}, order_by=OrderBy("position", asc=True))
-        cells = []
-        for i, row in enumerate(row_sindexes):
-            for j, col in enumerate(col_sindexes):
+        for i, primary in enumerate(primary_sindexes):
+            for j, secondary in enumerate(secondary_sindexes):
+                row, col = (primary, secondary) if axis == 0 else (secondary, primary)
                 cells.append(domain.Cell(sf=sf, row=row, col=col, value=table[i][j]))
         await self._repo.cell_repo.add_many(cells)
 

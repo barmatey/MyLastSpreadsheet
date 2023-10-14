@@ -34,7 +34,7 @@ class InsertRows(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def execute(self) -> None:
-        await self.receiver.insert_rows(self.id, self.table, self.before_sindex)
+        await self.receiver.insert_sindexes(self.id, self.table, self.before_sindex)
 
 
 class InsertCols(BaseModel):
@@ -45,4 +45,4 @@ class InsertCols(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def execute(self) -> None:
-        await self.receiver.insert_cols(self.id, self.table, self.before_sindex)
+        await self.receiver.insert_sindexes(self.id, self.table, self.before_sindex)
