@@ -13,7 +13,7 @@ from ... import helpers
 
 
 class Base(DeclarativeBase):
-    uuid: Mapped[UUID] = mapped_column(primary_key=True)
+    id: Mapped[UUID] = mapped_column(primary_key=True)
     updated_at: Mapped[TIMESTAMP] = mapped_column(TIMESTAMP(timezone=True), default=func.now(), onupdate=func.now())
 
     def __repr__(self):
@@ -36,50 +36,50 @@ class SheetInfoModel(Base):
     cells = relationship('CellModel')
 
     def to_entity(self) -> SheetInfo:
-        return SheetInfo(id=self.uuid, size=(self.row_size, self.col_size))
+        return SheetInfo(id=self.id, size=(self.row_size, self.col_size))
 
     @classmethod
     def from_entity(cls, entity: SheetInfo):
         return cls(
             row_size=entity.size[0],
             col_size=entity.size[1],
-            uuid=entity.id,
+            id=entity.id,
         )
 
 
 class RowSindexModel(Base):
     __tablename__ = "row_sindex"
     position: Mapped[int] = mapped_column(Integer, nullable=False)
-    sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
+    sheet_id: Mapped[UUID] = mapped_column(ForeignKey("sheet.id"))
     cells = relationship('CellModel')
 
     def to_entity(self, sheet: SheetInfo) -> RowSindex:
-        return RowSindex(id=self.uuid, sf=sheet, position=self.position)
+        return RowSindex(id=self.id, sf=sheet, position=self.position)
 
     @classmethod
     def from_entity(cls, entity: RowSindex):
         return cls(
             position=entity.position,
-            uuid=entity.id,
-            sheet_uuid=entity.sf.id,
+            id=entity.id,
+            sheet_id=entity.sf.id,
         )
 
 
 class ColSindexModel(Base):
     __tablename__ = "col_sindex"
     position: Mapped[int] = mapped_column(Integer, nullable=False)
-    sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
+    sheet_id: Mapped[UUID] = mapped_column(ForeignKey("sheet.id"))
     cells = relationship('CellModel')
 
     def to_entity(self, sheet: SheetInfo) -> ColSindex:
-        return ColSindex(id=self.uuid, sf=sheet, position=self.position)
+        return ColSindex(id=self.id, sf=sheet, position=self.position)
 
     @classmethod
     def from_entity(cls, entity: RowSindex):
         return cls(
             position=entity.position,
-            uuid=entity.id,
-            sheet_uuid=entity.sf.id,
+            id=entity.id,
+            sheet_id=entity.sf.id,
         )
 
 
@@ -87,9 +87,9 @@ class CellModel(Base):
     __tablename__ = "cell"
     value: Mapped[str] = mapped_column(String(1024), nullable=True)
     dtype: Mapped[str] = mapped_column(String(8), nullable=False)
-    sheet_uuid: Mapped[UUID] = mapped_column(ForeignKey("sheet.uuid"))
-    row_sindex_uuid: Mapped[UUID] = mapped_column(ForeignKey("row_sindex.uuid"))
-    col_sindex_uuid: Mapped[UUID] = mapped_column(ForeignKey("col_sindex.uuid"))
+    sheet_id: Mapped[UUID] = mapped_column(ForeignKey("sheet.id"))
+    row_sindex_id: Mapped[UUID] = mapped_column(ForeignKey("row_sindex.id"))
+    col_sindex_id: Mapped[UUID] = mapped_column(ForeignKey("col_sindex.id"))
 
     @staticmethod
     def __get_value(value: str, dtype: CellDtype) -> CellValue:
@@ -125,17 +125,17 @@ class CellModel(Base):
 
     def to_entity(self, sheet_info: SheetInfo, row: RowSindex, col: ColSindex):
         return Cell(sf=sheet_info, row=row, col=col, value=self.__get_value(self.value, self.dtype),
-                    id=self.uuid)
+                    id=self.id)
 
     @classmethod
     def from_entity(cls, entity: Cell):
         return cls(
-            uuid=entity.id,
+            id=entity.id,
             value=str(entity.value),
             dtype=cls.__get_dtype(entity.value),
-            sheet_uuid=entity.sf.id,
-            row_sindex_uuid=entity.row.id,
-            col_sindex_uuid=entity.col.id,
+            sheet_id=entity.sf.id,
+            row_sindex_id=entity.row.id,
+            col_sindex_id=entity.col.id,
         )
 
 
@@ -160,14 +160,14 @@ class PostgresRepo(Repository):
         return entities
 
     async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[T]:
-        stmt = select(self._model).where(self._model.uuid.in_(ids))
+        stmt = select(self._model).where(self._model.id.in_(ids))
         result = await self._session.execute(stmt)
         entities = [x.to_entity() for x in result]
         return entities
 
     async def update_one(self, data: T):
         model = self._model.from_entity(data)
-        stmt = update(self._model).where(self._model.uuid == data.id)
+        stmt = update(self._model).where(self._model.id == data.id)
         await self._session.execute(stmt, model.__dict__)
 
     async def update_many(self, data: list[T]):
@@ -177,7 +177,7 @@ class PostgresRepo(Repository):
 
     async def remove_many(self, data: list[T]):
         ids = [x.id for x in data]
-        stmt = delete(self._model).where(self._model.uuid.in_(ids))
+        stmt = delete(self._model).where(self._model.id.in_(ids))
         await self._session.execute(stmt)
 
 
@@ -190,7 +190,7 @@ class SindexPostgresRepo(PostgresRepo):
     async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
         stmt = (
             select(self._model, SheetInfoModel)
-            .join(SheetInfoModel, self._model.sheet_uuid == SheetInfoModel.uuid)
+            .join(SheetInfoModel, self._model.sheet_uuid == SheetInfoModel.id)
         )
         if filter_by is not None:
             stmt = stmt.where(*helpers.postgres.parse_filter_by(self._model, filter_by))
@@ -219,9 +219,9 @@ class CellPostgresRepo(PostgresRepo):
     async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
         stmt = (
             select(SheetInfoModel, RowSindexModel, ColSindexModel, CellModel)
-            .join(SheetInfoModel, CellModel.sheet_uuid == SheetInfoModel.uuid)
-            .join(RowSindexModel, CellModel.row_sindex_uuid == RowSindexModel.uuid)
-            .join(ColSindexModel, CellModel.col_sindex_uuid == ColSindexModel.uuid)
+            .join(SheetInfoModel, CellModel.sheet_id == SheetInfoModel.id)
+            .join(RowSindexModel, CellModel.row_sindex_id == RowSindexModel.id)
+            .join(ColSindexModel, CellModel.col_sindex_id == ColSindexModel.id)
         )
         if filter_by is not None:
             stmt = stmt.where(*helpers.postgres.parse_filter_by(self._model, filter_by))
@@ -272,15 +272,15 @@ class SheetPostgresRepo(SheetRepository):
     async def get_sheet_by_id(self, uuid: UUID) -> Sheet:
         stmt = (
             select(SheetInfoModel, RowSindexModel, ColSindexModel, CellModel)
-            .join(SheetInfoModel, CellModel.sheet_uuid == SheetInfoModel.uuid)
-            .join(RowSindexModel, CellModel.row_sindex_uuid == RowSindexModel.uuid)
-            .join(ColSindexModel, CellModel.col_sindex_uuid == ColSindexModel.uuid)
+            .join(SheetInfoModel, CellModel.sheet_id == SheetInfoModel.id)
+            .join(RowSindexModel, CellModel.row_sindex_id == RowSindexModel.id)
+            .join(ColSindexModel, CellModel.col_sindex_id == ColSindexModel.id)
             .order_by(RowSindexModel.position, ColSindexModel.position)
-            .where(SheetInfoModel.uuid == uuid)
+            .where(SheetInfoModel.id == uuid)
         )
         result = list(await self._session.execute(stmt))
         if len(result) == 0:
-            stmt = select(SheetInfoModel).where(SheetInfoModel.uuid == uuid)
+            stmt = select(SheetInfoModel).where(SheetInfoModel.id == uuid)
             result = list(await self._session.execute(stmt))
             if len(result) != 1:
                 raise LookupError

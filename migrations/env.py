@@ -5,9 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from src.spreadsheet.cell.repository import CellModel
-from src.spreadsheet.sheet_info.repository import SheetInfoModel, Base
-from src.spreadsheet.sindex.repository import RowSindexModel, ColSindexModel
+from src.my_spreadsheet.infrastructure.postgres import Base
 
 config = context.config
 

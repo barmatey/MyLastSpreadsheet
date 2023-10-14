@@ -125,11 +125,11 @@ class SheetService:
         axis = 0 if isinstance(sindexes[0], domain.RowSindex) else 1
         new_sf = sindexes[0].sf
         if axis == 0:
-            key = "row_sindex_uuid.__in"
+            key = "row_sindex_id.__in"
             repo = self._repo.row_repo
             new_sf.size = (new_sf.size[0] - len(sindexes), new_sf.size[1])
         else:
-            key = "col_sindex_uuid.__in"
+            key = "col_sindex_id.__in"
             repo = self._repo.col_repo
             new_sf.size = (new_sf.size[0], new_sf.size[1] - len(sindexes))
 
@@ -146,7 +146,7 @@ class SheetService:
             self._queue.append(eventbus.Deleted(key="SindexDeleted", entity=row))
 
     async def reindex(self, sheet_id: UUID, axis=0):
-        filter_by = {"sheet_uuid": sheet_id}
+        filter_by = {"sheet_id": sheet_id}
         repo = self._repo.row_repo if axis == 0 else self._repo.col_repo
         sindexes = await repo.get_many(filter_by=filter_by, order_by=OrderBy("position", True))
         to_update = []

@@ -14,7 +14,7 @@ async def test_create_sindex():
     async with db.get_async_session() as session:
         sindex_repo = SindexRepoPostgres(session)
         actual = await sindex_usecase.create_row_sindex(sheet.sheet_info, 11, sindex_repo)
-        expected = sindex_entity.RowSindex(sheet_info=sheet.sheet_info, position=11, uuid=actual.uuid)
+        expected = sindex_entity.RowSindex(sheet_info=sheet.sheet_info, position=11, uuid=actual.id)
         assert actual == expected
 
 
