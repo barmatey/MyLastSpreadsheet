@@ -190,7 +190,7 @@ class SindexPostgresRepo(PostgresRepo):
     async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
         stmt = (
             select(self._model, SheetInfoModel)
-            .join(SheetInfoModel, self._model.sheet_uuid == SheetInfoModel.id)
+            .join(SheetInfoModel, self._model.sheet_id == SheetInfoModel.id)
         )
         if filter_by is not None:
             stmt = stmt.where(*helpers.postgres.parse_filter_by(self._model, filter_by))
