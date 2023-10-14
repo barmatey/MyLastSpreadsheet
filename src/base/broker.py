@@ -1,7 +1,7 @@
 from typing import Iterable
 from uuid import UUID
 
-from src.my_spreadsheet import domain
+from src.spreadsheet import domain
 from src.helpers.decorators import singleton
 
 

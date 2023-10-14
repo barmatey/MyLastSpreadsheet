@@ -1,6 +1,6 @@
+from src.base.broker import BrokerService
 from ..base import eventbus
 from . import services
-from src.base.broker import BrokerService
 from .infrastructure import postgres, subfactory
 
 

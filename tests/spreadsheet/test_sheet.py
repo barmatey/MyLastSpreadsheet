@@ -3,7 +3,7 @@ from loguru import logger
 
 import db
 
-from src.my_spreadsheet import domain, commands, bootstrap
+from src.spreadsheet import domain, commands, bootstrap
 from tests.spreadsheet.before import create_sheet
 
 

@@ -1,5 +1,5 @@
 import db
-from src.my_spreadsheet import domain, commands, bootstrap
+from src.spreadsheet import domain, commands, bootstrap
 
 
 async def create_sheet(table: list[list[domain.CellValue]] = None) -> domain.Sheet:
