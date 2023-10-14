@@ -156,7 +156,7 @@ class PostgresRepo(Repository):
         if order_by is not None:
             stmt = stmt.order_by(*helpers.postgres.parse_order_by(self._model, order_by))
         models = await self._session.execute(stmt)
-        entities = [x.to_entity() for x in models]
+        entities = [x.to_entity() for x in models.scalars()]
         return entities
 
     async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[T]:

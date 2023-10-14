@@ -17,8 +17,10 @@ def parse_filter_by(model, filter_by: dict) -> list:
     for key, value in filter_by.items():
         if '.__in' in key:
             filters.append(model.__table__.c[key.split('.')[0]].in_(value))
-            continue
-        if '.__gt' in key:
-            filters.append(model.__table__.c[key.split('.')[0]] >= key)
-        filters.append(model.__table__.c[key] == value)
+        elif '.__gte' in key:
+            filters.append(model.__table__.c[key.split('.')[0]] >= value)
+        elif '.__gt' in key:
+            filters.append(model.__table__.c[key.split('.')[0]] > value)
+        else:
+            filters.append(model.__table__.c[key] == value)
     return filters
