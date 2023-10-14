@@ -177,8 +177,10 @@ class PostgresRepo(Repository):
 
     async def remove_many(self, data: list[T]):
         ids = [x.id for x in data]
-        stmt = delete(self._model).where(self._model.id.in_(ids))
-        await self._session.execute(stmt)
+        stmt = delete(self._model).where(self._model.id.in_(ids)).returning(self._model.id)
+        result = await self._session.execute(stmt)
+        if len(list(result)) != len(data):
+            raise LookupError
 
 
 class SheetInfoPostgresRepo(PostgresRepo):

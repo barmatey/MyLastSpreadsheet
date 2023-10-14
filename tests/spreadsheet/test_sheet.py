@@ -88,7 +88,6 @@ async def test_child_sindex_reacts_on_parent_sindex_deleted():
         boot = bootstrap.Bootstrap(session)
         sheet_service = boot.get_sheet_service()
         actual = await commands.GetSheetByUuid(uuid=sheet2.sf.id, receiver=sheet_service).execute()
-        logger.debug(f"ASSERT: {actual.sf.id}")
         assert actual.sf.size == (1, 2)
         assert actual.cells[0].value == 44
         assert actual.cells[1].value == 55
