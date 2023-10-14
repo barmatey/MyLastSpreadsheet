@@ -35,3 +35,14 @@ class InsertRows(BaseModel):
 
     async def execute(self) -> None:
         await self.receiver.insert_rows(self.id, self.table, self.before_sindex)
+
+
+class InsertCols(BaseModel):
+    id: UUID
+    table: list[list[domain.CellValue]]
+    before_sindex: domain.ColSindex
+    receiver: services.SheetService
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> None:
+        await self.receiver.insert_cols(self.id, self.table, self.before_sindex)

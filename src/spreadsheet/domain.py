@@ -3,6 +3,8 @@ from uuid import UUID, uuid4
 from datetime import datetime
 from pydantic import BaseModel, Field
 
+from src.base import eventbus
+
 
 class Entity(BaseModel):
     id: UUID
@@ -107,3 +109,4 @@ class Sheet(Entity):
             if left != right:
                 return False
         return True
+

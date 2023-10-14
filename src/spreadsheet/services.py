@@ -109,6 +109,27 @@ class SheetService:
 
         return domain.Sheet(sf=sf, rows=new_rows, cols=new_cols, cells=new_cells)
 
+    async def insert_cols(self, sheet_id: UUID, table: list[list[domain.CellValue]], before_sindex: domain.ColSindex):
+        sf = (await self._repo.sheet_info_repo.get_many({"id": sheet_id})).pop()
+        sf.size = (sf.size[0], sf.size[1] + len(table))
+        await self._repo.sheet_info_repo.update_one(sf)
+
+        filter_by = {"sheet_id": sheet_id, "position.__gte": before_sindex.position}
+        sindexes_after = await self._repo.col_repo.get_many(filter_by=filter_by, order_by=OrderBy("position", asc=True))
+        if sindexes_after:
+            for sindex in sindexes_after:
+                sindex.position = sindex.position + len(table)
+            await self._repo.col_repo.update_many(sindexes_after)
+
+        col_sindexes = [domain.ColSindex(position=before_sindex.position + i, sf=sf) for i in range(0, len(table))]
+        await self._repo.col_repo.add_many(col_sindexes)
+        row_sindexes = await self._repo.row_repo.get_many({"sheet_id": sheet_id}, order_by=OrderBy("position", True))
+        cells = []
+        for i, row in enumerate(row_sindexes):
+            for j, col in enumerate(col_sindexes):
+                cells.append(domain.Cell(sf=sf, row=row, col=col, value=table[j][i]))
+        await self._repo.cell_repo.add_many(cells)
+
     async def insert_rows(self, sheet_id: UUID, table: list[list[domain.CellValue]], before_sindex: domain.RowSindex):
         sf = (await self._repo.sheet_info_repo.get_many({"id": sheet_id})).pop()
         sf.size = (sf.size[0] + len(table), sf.size[1])

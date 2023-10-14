@@ -97,16 +97,17 @@ async def test_child_sindex_reacts_on_parent_sindex_deleted():
 @pytest.mark.asyncio
 async def test_insert_rows():
     sheet1 = await create_sheet([
-        [11, 22, 33],
-        [44, 55, 66],
+        [22, 33],
+        [55, 66],
     ])
 
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
         sheet_service = boot.get_sheet_service()
-        cmd = commands.InsertRows(id=sheet1.sf.id, receiver=sheet_service, table=[[123, 1234, 123]],
-                                  before_sindex=sheet1.rows[0])
-        await cmd.execute()
+        await commands.InsertRows(id=sheet1.sf.id, receiver=sheet_service, table=[[1234, 123]],
+                                  before_sindex=sheet1.rows[0]).execute()
+        await commands.InsertCols(id=sheet1.sf.id, receiver=sheet_service, table=[[123, 11, 44]],
+                                  before_sindex=sheet1.cols[0]).execute()
         await session.commit()
 
     async with db.get_async_session() as session:
