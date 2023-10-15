@@ -142,16 +142,6 @@ class SheetService:
                 cells.append(domain.Cell(sf=sf, row=row, col=col, value=table[i][j]))
         await self._repo.cell_repo.add_many(cells)
 
-    async def update_cells(self, cells: list[domain.Cell], old_values: list[domain.Cell] = None):
-        if old_values is None:
-            ids = [x.id for x in cells]
-            old_values = await self._repo.cell_repo.get_many_by_id(ids)
-        if len(old_values) != len(cells):
-            raise Exception
-        for old, actual in zip(old_values, cells):
-            await self._repo.cell_repo.update_one(actual)
-            self._queue.append(eventbus.Updated(key="CellUpdated", old_entity=old, actual_entity=actual))
-
     async def delete_sindexes(self, sindexes: list[domain.Sindex], cells: list[domain.Cell] = None):
         """Function changes sheet_info inplace"""
 
@@ -177,6 +167,16 @@ class SheetService:
 
         for row in sindexes:
             self._queue.append(eventbus.Deleted(key="SindexDeleted", entity=row))
+
+    async def update_cells(self, cells: list[domain.Cell], old_values: list[domain.Cell] = None):
+        if old_values is None:
+            ids = [x.id for x in cells]
+            old_values = await self._repo.cell_repo.get_many_by_id(ids)
+        if len(old_values) != len(cells):
+            raise Exception
+        for old, actual in zip(old_values, cells):
+            await self._repo.cell_repo.update_one(actual)
+            self._queue.append(eventbus.Updated(key="CellUpdated", old_entity=old, actual_entity=actual))
 
     async def reindex(self, sheet_id: UUID, axis=0):
         filter_by = {"sheet_id": sheet_id}

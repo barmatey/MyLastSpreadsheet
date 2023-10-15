@@ -110,3 +110,8 @@ class Sheet(Entity):
                 return False
         return True
 
+
+class TableInserted(eventbus.Event):
+    uuid: UUID = Field(default_factory=uuid4)
+    before: tuple[RowSindex, ColSindex]
+    table: list[list[CellValue]]
