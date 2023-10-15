@@ -144,13 +144,8 @@ async def test_expand_rows():
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
         sheet2 = await boot.get_sheet_service().get_sheet_by_uuid(sheet2.sf.id)
-        await services.expand_formulas(
-            from_cells=sheet2.cells[0:sheet2.sf.size[1]],
-            to_cells=sheet2.cells[sheet2.sf.size[1]:],
-            broker=boot.get_broker(),
-            repo=boot.get_sheet_service()._repo.cell_repo,
-            subfac=boot.get_subfac(),
-        )
+        await boot.get_expand_cell_followers().execute(from_cells=sheet2.cells[0:sheet2.sf.size[1]],
+                                                       to_cells=sheet2.cells[sheet2.sf.size[1]:], )
         await session.commit()
 
     # Assert

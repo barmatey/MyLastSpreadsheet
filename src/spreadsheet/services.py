@@ -235,20 +235,25 @@ class SindexHandler(Handler):
             await sub.on_sindex_deleted(pub=event.entity)
 
 
-async def expand_formulas(from_cells: list[domain.Cell], to_cells: list[domain.Cell],
-                          broker: BrokerService, repo: CellRepository, subfac: subscriber.SubscriberFactory):
-    len_cols = len(from_cells)
-    table = [from_cells] + [to_cells[i:i + len_cols] for i in range(0, len(to_cells), len_cols)]
+class ExpandCellFollowers:
+    def __init__(self, repo: CellRepository, broker: BrokerService, subfac: subscriber.SubscriberFactory):
+        self._repo = repo
+        self._broker = broker
+        self._subfac = subfac
 
-    for i, row in enumerate(table[1:]):
-        for j, cell in enumerate(row):
-            pubs = await broker.get_pubs(table[i][j])
-            if len(pubs) != 1:
-                raise Exception
-            pub = pubs.pop()
-            if not isinstance(pub, domain.Cell):
-                raise Exception
-            parent_row_pos, parent_col_pos = pub.row.position + 1, pub.col.position
+    async def execute(self, from_cells: list[domain.Cell], to_cells: list[domain.Cell]):
+        len_cols = len(from_cells)
+        table = [from_cells] + [to_cells[i:i + len_cols] for i in range(0, len(to_cells), len_cols)]
 
-            parent_cell = await repo.get_sliced_cells(pub.sf.id, (parent_row_pos,), (parent_col_pos,))
-            await subfac.create_cell_subscriber(cell).follow_cells(parent_cell)
+        for i, row in enumerate(table[1:]):
+            for j, cell in enumerate(row):
+                pubs = await self._broker.get_pubs(table[i][j])
+                if len(pubs) != 1:
+                    raise Exception
+                pub = pubs.pop()
+                if not isinstance(pub, domain.Cell):
+                    raise Exception
+                parent_row_pos, parent_col_pos = pub.row.position + 1, pub.col.position
+
+                parent_cell = await self._repo.get_sliced_cells(pub.sf.id, (parent_row_pos,), (parent_col_pos,))
+                await self._subfac.create_cell_subscriber(cell).follow_cells(parent_cell)

@@ -35,3 +35,6 @@ class Bootstrap:
 
     def get_broker(self) -> BrokerService:
         return self._broker
+
+    def get_expand_cell_followers(self) -> services.ExpandCellFollowers:
+        return services.ExpandCellFollowers(self._sheet_repo.cell_repo, self._broker, self._subfac)
