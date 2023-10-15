@@ -1,3 +1,5 @@
+from loguru import logger
+
 from .. import domain
 from .. import subscriber
 from .. import services
@@ -16,19 +18,14 @@ class CellSelfSubscriber(subscriber.CellSubscriber):
         old = self._entity.model_copy(deep=True)
         self._entity.value = pubs[0].value
         await self._broker_service.subscribe(pubs, self._entity)
-        await self._cell_service.update_one(self._entity, old)
+        await self._sheet_service.update_cells([self._entity], [old])
 
     async def unfollow_cells(self, pubs: list[domain.Cell]):
-        if len(pubs) != 1:
-            raise Exception
-        old = self._entity.model_copy(deep=True)
-        self._entity.value = None
-        await self._broker_service.unsubscribe(pubs, self._entity)
-        await self._cell_service.update_one(self._entity, old)
+        raise NotImplemented
 
     async def on_cell_updated(self, old: domain.Cell, actual: domain.Cell):
         self._entity.value = actual.value
-        await self._cell_service.update_one(old, actual)
+        await self._sheet_service.update_cells([old], [actual])
 
     async def on_cell_deleted(self, pub: domain.Cell):
         old = self._entity.model_copy(deep=True)

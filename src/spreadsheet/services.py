@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 from uuid import UUID
 
+from loguru import logger
+
 from src.core import OrderBy
 from . import domain
 from . import subscriber
@@ -37,6 +39,16 @@ class Repository(ABC, Generic[T]):
         raise NotImplemented
 
 
+Slice = tuple[int, int] | tuple[int]
+
+
+class CellRepository(Repository, ABC):
+    @abstractmethod
+    async def get_sliced_cells(self, sheet_id: UUID, slice_rows: Slice = None,
+                               slice_cols: Slice = None) -> list[domain.Cell]:
+        raise NotImplemented
+
+
 class SheetRepository(ABC):
     @property
     def sheet_info_repo(self) -> Repository[domain.SheetInfo]:
@@ -51,7 +63,7 @@ class SheetRepository(ABC):
         raise NotImplemented
 
     @property
-    def cell_repo(self) -> Repository[domain.Cell]:
+    def cell_repo(self) -> CellRepository:
         raise NotImplemented
 
     @abstractmethod
@@ -221,3 +233,22 @@ class SindexHandler(Handler):
         subs = [self._sub_factory.create_sindex_subscriber(x) for x in await self._broker.get_subs(event.entity)]
         for sub in subs:
             await sub.on_sindex_deleted(pub=event.entity)
+
+
+async def expand_formulas(from_cells: list[domain.Cell], to_cells: list[domain.Cell],
+                          broker: BrokerService, repo: CellRepository, subfac: subscriber.SubscriberFactory):
+    len_cols = len(from_cells)
+    table = [from_cells] + [to_cells[i:i + len_cols] for i in range(0, len(to_cells), len_cols)]
+
+    for i, row in enumerate(table[1:]):
+        for j, cell in enumerate(row):
+            pubs = await broker.get_pubs(table[i][j])
+            if len(pubs) != 1:
+                raise Exception
+            pub = pubs.pop()
+            if not isinstance(pub, domain.Cell):
+                raise Exception
+            parent_row_pos, parent_col_pos = pub.row.position + 1, pub.col.position
+
+            parent_cell = await repo.get_sliced_cells(pub.sf.id, (parent_row_pos,), (parent_col_pos,))
+            await subfac.create_cell_subscriber(cell).follow_cells(parent_cell)

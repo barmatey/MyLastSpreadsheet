@@ -3,7 +3,7 @@ from loguru import logger
 
 import db
 
-from src.spreadsheet import domain, commands, bootstrap
+from src.spreadsheet import domain, commands, bootstrap, services
 from tests.spreadsheet.before import create_sheet
 
 
@@ -125,3 +125,41 @@ async def test_insert_rows():
         assert sheet.cells[6].value == 44
         assert sheet.cells[7].value == 55
         assert sheet.cells[8].value == 66
+
+
+@pytest.mark.asyncio
+async def test_expand_rows():
+    sheet1 = await create_sheet([[1, 2], [11, 22], [111, 222, ]])
+    sheet2 = await create_sheet([[None, None], [None, None], [None, None]])
+
+    # Follow
+    async with db.get_async_session() as session:
+        boot = bootstrap.Bootstrap(session)
+        await boot.get_subfac().create_cell_subscriber(sheet2.cells[0]).follow_cells([sheet1.cells[0]])
+        await boot.get_subfac().create_cell_subscriber(sheet2.cells[1]).follow_cells([sheet1.cells[1]])
+        await boot.get_event_bus().run()
+        await session.commit()
+
+    # Expand
+    async with db.get_async_session() as session:
+        boot = bootstrap.Bootstrap(session)
+        sheet2 = await boot.get_sheet_service().get_sheet_by_uuid(sheet2.sf.id)
+        await services.expand_formulas(
+            from_cells=sheet2.cells[0:sheet2.sf.size[1]],
+            to_cells=sheet2.cells[sheet2.sf.size[1]:],
+            broker=boot.get_broker(),
+            repo=boot.get_sheet_service()._repo.cell_repo,
+            subfac=boot.get_subfac(),
+        )
+        await session.commit()
+
+    # Assert
+    async with db.get_async_session() as session:
+        boot = bootstrap.Bootstrap(session)
+        sheet2 = await boot.get_sheet_service().get_sheet_by_uuid(sheet2.sf.id)
+        assert sheet2.cells[0].value == 1
+        assert sheet2.cells[1].value == 2
+        assert sheet2.cells[2].value == 11
+        assert sheet2.cells[3].value == 22
+        assert sheet2.cells[4].value == 111
+        assert sheet2.cells[5].value == 222

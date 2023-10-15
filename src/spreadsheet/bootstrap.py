@@ -32,3 +32,6 @@ class Bootstrap:
 
     def get_subfac(self) -> subfactory.SubFactory:
         return self._subfac
+
+    def get_broker(self) -> BrokerService:
+        return self._broker

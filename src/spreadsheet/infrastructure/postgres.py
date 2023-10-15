@@ -2,13 +2,14 @@ from datetime import datetime
 from typing import Type
 from uuid import UUID
 
+from loguru import logger
 from sqlalchemy import TIMESTAMP, func, select, update, delete, Integer, ForeignKey, String
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from src.core import OrderBy
-from ..domain import Entity, SheetInfo, RowSindex, ColSindex, Cell, CellValue, CellDtype, Sheet, Sindex
-from ..services import Repository, T, SheetRepository
+from ..domain import Entity, SheetInfo, RowSindex, ColSindex, Cell, CellValue, CellDtype, Sheet
+from ..services import Repository, T, SheetRepository, CellRepository, Slice
 from ... import helpers
 
 
@@ -167,8 +168,10 @@ class PostgresRepo(Repository):
 
     async def update_one(self, data: T):
         model = self._model.from_entity(data)
-        stmt = update(self._model).where(self._model.id == data.id)
-        await self._session.execute(stmt, model.__dict__)
+        stmt = update(self._model).where(self._model.id == data.id).returning(self._model.id)
+        result = await self._session.execute(stmt, model.__dict__)
+        if len(list(result)) != 1:
+            raise LookupError
 
     async def update_many(self, data: list[T]):
         stmt = update(self._model)
@@ -214,9 +217,44 @@ class ColPostgresRepo(SindexPostgresRepo):
         super().__init__(model, session)
 
 
-class CellPostgresRepo(PostgresRepo):
+class CellPostgresRepo(PostgresRepo, CellRepository):
     def __init__(self, session: AsyncSession, model: Type[Base] = CellModel):
         super().__init__(model, session)
+
+    async def get_sliced_cells(self, sheet_id: UUID, slice_rows: Slice = None,
+                               slice_cols: Slice = None) -> list[Cell]:
+        stmt = (
+            select(SheetInfoModel, RowSindexModel, ColSindexModel, CellModel)
+            .join(SheetInfoModel, CellModel.sheet_id == SheetInfoModel.id)
+            .join(RowSindexModel, CellModel.row_sindex_id == RowSindexModel.id)
+            .join(ColSindexModel, CellModel.col_sindex_id == ColSindexModel.id)
+        )
+
+        filters = [SheetInfoModel.id == sheet_id]
+        if slice_rows:
+            if len(slice_rows) == 1:
+                filters.append(RowSindexModel.position == slice_rows[0])
+            else:
+                filters.append(RowSindexModel.position >= slice_rows[0])
+                filters.append(RowSindexModel.position < slice_rows[1])
+
+        if slice_cols:
+            if len(slice_cols) == 1:
+                filters.append(ColSindexModel.position == slice_cols[0])
+            else:
+                filters.append(ColSindexModel.position >= slice_cols[0])
+                filters.append(ColSindexModel.position < slice_cols[1])
+
+        stmt = stmt.where(*filters).order_by(RowSindexModel.position, ColSindexModel.position)
+        data = await self._session.execute(stmt)
+        entities: list[Cell] = []
+        for x in data:
+            sheet_info = x[0].to_entity()
+            row = x[1].to_entity(sheet=sheet_info)
+            col = x[2].to_entity(sheet=sheet_info)
+            cell = x[3].to_entity(sheet_info=sheet_info, row=row, col=col)
+            entities.append(cell)
+        return entities
 
     async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
         stmt = (
@@ -245,7 +283,7 @@ class SheetPostgresRepo(SheetRepository):
         self._sf_repo: Repository[SheetInfo] = SheetInfoPostgresRepo(session)
         self._row_repo: Repository[RowSindex] = RowPostgresRepo(session)
         self._col_repo: Repository[ColSindex] = ColPostgresRepo(session)
-        self._cell_repo: Repository[Cell] = CellPostgresRepo(session)
+        self._cell_repo: CellRepository = CellPostgresRepo(session)
         self._session = session
 
     @property
@@ -257,7 +295,7 @@ class SheetPostgresRepo(SheetRepository):
         return self._col_repo
 
     @property
-    def cell_repo(self) -> Repository[Cell]:
+    def cell_repo(self) -> CellRepository:
         return self._cell_repo
 
     @property

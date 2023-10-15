@@ -70,6 +70,12 @@ class Cell(Entity):
     sf: SheetInfo
     id: UUID = Field(default_factory=uuid4)
 
+    def __str__(self):
+        return f"Cell(index=({self.row.position}, {self.col.position}), value={self.value})"
+
+    def __repr__(self):
+        return f"Cell(index=({self.row.position}, {self.col.position}), value={self.value})"
+
     def __hash__(self):
         return self.id.__hash__()
 
