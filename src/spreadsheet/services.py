@@ -2,8 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 from uuid import UUID
 
-from loguru import logger
-
 from src.core import OrderBy
 from . import domain
 from . import subscriber

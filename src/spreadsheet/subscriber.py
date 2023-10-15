@@ -2,12 +2,9 @@ from abc import ABC, abstractmethod
 from typing import TypeVar
 
 from . import domain
+from ..base.subscriber import Subscriber
 
 T = TypeVar("T")
-
-
-class Subscriber(ABC):
-    pass
 
 
 class SindexSubscriber(Subscriber):
