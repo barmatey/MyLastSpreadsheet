@@ -20,7 +20,7 @@ class Base(DeclarativeBase):
         return f"{self.__class__.__name__}"
 
     @classmethod
-    def from_entity(cls, **kwargs):
+    def from_entity(cls, entity: Entity):
         raise NotImplemented
 
     def to_entity(self, **kwargs) -> Entity:

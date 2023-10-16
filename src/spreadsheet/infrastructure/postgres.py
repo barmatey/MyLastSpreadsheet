@@ -128,7 +128,7 @@ class CellModel(Base):
 
 class SheetInfoPostgresRepo(PostgresRepo):
     def __init__(self, session: AsyncSession, model: Type[Base] = SheetInfoModel):
-        super().__init__(model, session)
+        super().__init__(session, model)
 
 
 class SindexPostgresRepo(PostgresRepo):
@@ -149,17 +149,17 @@ class SindexPostgresRepo(PostgresRepo):
 
 class RowPostgresRepo(SindexPostgresRepo):
     def __init__(self, session: AsyncSession, model: Type[Base] = RowSindexModel):
-        super().__init__(model, session)
+        super().__init__(session, model)
 
 
 class ColPostgresRepo(SindexPostgresRepo):
     def __init__(self, session: AsyncSession, model: Type[Base] = ColSindexModel):
-        super().__init__(model, session)
+        super().__init__(session, model)
 
 
 class CellPostgresRepo(PostgresRepo, CellRepository):
     def __init__(self, session: AsyncSession, model: Type[Base] = CellModel):
-        super().__init__(model, session)
+        super().__init__(session, model)
 
     async def get_sliced_cells(self, sheet_id: UUID, slice_rows: Slice = None,
                                slice_cols: Slice = None) -> list[Cell]:
