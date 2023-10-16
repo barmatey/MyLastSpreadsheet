@@ -76,4 +76,5 @@ async def test_create_group():
         boot = bootstrap.Bootstrap(session)
         receiver = boot.get_sheet_service()
         sheet = await sheet_commands.GetSheetByUuid(receiver=receiver, uuid=group.sheet_info.id).execute()
-        logger.debug(f"\n{sheet.as_table()}")
+        expected = "[[0.0, 'first'], [1.0, 'second'], [2.0, 'first'], [3.0, 'second'], [4.0, 'first']]"
+        assert str(sheet.as_table()) == expected
