@@ -29,10 +29,9 @@ class Source(BaseModel):
     wires: list[Wire] = Field(default_factory=list)
 
 
-class PlanItems(Entity):
+class PlanItems(BaseModel):
     ccols: list[Ccol]
     uniques: dict[str, int] = Field(default_factory=dict)
-    id: UUID = Field(default_factory=uuid4)
 
 
 class SheetInfo(Entity):

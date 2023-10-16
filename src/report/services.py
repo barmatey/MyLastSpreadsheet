@@ -64,4 +64,5 @@ class CreateGroupUsecase:
         sheet_id = await self._gateway.create_sheet(table)
         sheet_info = domain.SheetInfo(id=sheet_id)
         group = domain.Group(title=title, plan_items=plan_items, source_info=source.source_info, sheet_info=sheet_info)
+        await self._repo.add_many([group])
         return group
