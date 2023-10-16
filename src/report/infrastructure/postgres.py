@@ -37,7 +37,7 @@ class WireModel(Base):
     sub2: Mapped[str] = mapped_column(String(1024), default="")
     source_id: Mapped[UUID] = mapped_column(ForeignKey("source.id"))
 
-    def to_entity(self, **kwargs) -> domain.Wire:
+    def to_entity(self, source_info: domain.SourceInfo) -> domain.Wire:
         return domain.Wire(
             id=self.id,
             sender=self.sender,
@@ -46,6 +46,7 @@ class WireModel(Base):
             sub1=self.sub1,
             sub2=self.sub2,
             date=self.date,
+            source_info=source_info
         )
 
     @classmethod
@@ -53,7 +54,12 @@ class WireModel(Base):
         return cls(
             id=entity.id,
             sender=entity.sender,
-
+            receiver=entity.receiver,
+            amount=entity.amount,
+            sub1=entity.sub1,
+            sub2=entity.sub2,
+            date=entity.date,
+            source_id=entity.source_info.id,
         )
 
 
@@ -99,4 +105,6 @@ class SourceFullRepo(services.SourceRepo):
             source_info = result.to_entity()
             return domain.Source(source_info=source_info)
         else:
-            raise NotImplemented
+            source_info = result[0][0].to_entity()
+            wires = [x[1].to_entity(source_info=source_info) for x in result]
+            return domain.Source(source_info=source_info, wires=wires)

@@ -1,6 +1,6 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from . import domain, services
 
@@ -25,10 +25,11 @@ class GetSourceById(BaseModel):
         return await self.receiver.get_source_by_id(self.id)
 
 
-# class CreateGroupSheet(BaseModel):
-#     source: domain.Source
-#     ccols: list[domain.Ccol]
-#     receiver: services.CreateGroupSheet
-#
-#     async def execute(self) -> UUID:
-#         raise NotImplemented
+class AppendWires(BaseModel):
+    wires: list[domain.Wire]
+    receiver: services.SourceService
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    id: UUID = Field(default_factory=uuid4)
+
+    async def execute(self) -> None:
+        await self.receiver.append_wires(self.wires)
