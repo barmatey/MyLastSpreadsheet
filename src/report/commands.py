@@ -33,3 +33,16 @@ class AppendWires(BaseModel):
 
     async def execute(self) -> None:
         await self.receiver.append_wires(self.wires)
+
+
+class CreateGroup(BaseModel):
+    title: str
+    source: domain.Source
+    ccols: list[domain.Ccol]
+    receiver: services.CreateGroupUsecase
+    id: UUID = Field(default_factory=uuid4)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> domain.Group:
+        group = await self.receiver.execute(self.title, self.source, self.ccols)
+        return group

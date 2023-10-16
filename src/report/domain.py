@@ -3,9 +3,10 @@ from uuid import UUID, uuid4
 from datetime import datetime
 from pydantic import BaseModel, Field
 
-from src.spreadsheet import domain as sheet_domain
+from src.base.entity import Entity
+from src.spreadsheet.domain import CellValue
 
-Ccol = Literal['currency', 'sender', 'receiver', 'sub1', 'sub2',]
+Ccol = Literal['currency', 'sender', 'receiver', 'sub1', 'sub2', ]
 
 
 class SourceInfo(BaseModel):
@@ -13,7 +14,7 @@ class SourceInfo(BaseModel):
     id: UUID = Field(default_factory=uuid4)
 
 
-class Wire(BaseModel):
+class Wire(Entity):
     date: datetime
     sender: float
     receiver: float
@@ -29,12 +30,19 @@ class Source(BaseModel):
     wires: list[Wire] = Field(default_factory=list)
 
 
-class PlanItems(BaseModel):
+class PlanItems(Entity):
     ccols: list[Ccol]
     uniques: dict[str, int] = Field(default_factory=dict)
     id: UUID = Field(default_factory=uuid4)
 
 
-class Group(BaseModel):
+class SheetInfo(Entity):
+    pass
+
+
+class Group(Entity):
+    title: str
     plan_items: PlanItems
-    sheet_id: UUID
+    source_info: SourceInfo
+    sheet_info: SheetInfo
+    id: UUID = Field(default_factory=uuid4)
