@@ -61,12 +61,20 @@ class SourceRepo(PostgresRepo):
     def __init__(self, session: AsyncSession, model: Type[Base] = SourceModel):
         super().__init__(session, model)
 
-    def get_one_by_id(self, uuid: UUID) -> T:
+    async def get_one_by_id(self, uuid: UUID) -> T:
         stmt = (select(SourceModel, WireModel)
                 .join(WireModel, WireModel.source_id == SourceModel.id)
                 .where(SourceModel.id == uuid)
                 )
-        raise NotImplemented
+        result = await self._session.execute(stmt)
+        result = list(result)
+
+        if len(result) == 0:
+            stmt = select(SourceModel).where(SourceModel.id == uuid)
+            result = await self._session.scalar(stmt)
+            return result.to_entity(wires=[])
+        else:
+            raise NotImplemented
 
 
 class WireRepo(PostgresRepo):

@@ -16,6 +16,15 @@ class CreateSource(BaseModel):
         return source
 
 
+class GetSourceById(BaseModel):
+    id: UUID
+    receiver: services.SourceService
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> domain.Source:
+        return await self.receiver.get_source_by_id(self.id)
+
+
 # class CreateGroupSheet(BaseModel):
 #     source: domain.Source
 #     ccols: list[domain.Ccol]
