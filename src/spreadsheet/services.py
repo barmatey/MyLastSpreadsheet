@@ -1,18 +1,16 @@
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
 from uuid import UUID
 
 from src.core import OrderBy
 from . import domain
 from . import subscriber
-from ..base import eventbus
-from src.base.broker import BrokerService
-from ..base.repository import Repository
+from src.base import eventbus, broker, repository
+
 
 Slice = tuple[int, int] | tuple[int]
 
 
-class CellRepository(Repository, ABC):
+class CellRepository(repository.Repository, ABC):
     @abstractmethod
     async def get_sliced_cells(self, sheet_id: UUID, slice_rows: Slice = None,
                                slice_cols: Slice = None) -> list[domain.Cell]:
@@ -21,15 +19,15 @@ class CellRepository(Repository, ABC):
 
 class SheetRepository(ABC):
     @property
-    def sheet_info_repo(self) -> Repository[domain.SheetInfo]:
+    def sheet_info_repo(self) -> repository.Repository[domain.SheetInfo]:
         raise NotImplemented
 
     @property
-    def row_repo(self) -> Repository[domain.RowSindex]:
+    def row_repo(self) -> repository.Repository[domain.RowSindex]:
         raise NotImplemented
 
     @property
-    def col_repo(self) -> Repository[domain.ColSindex]:
+    def col_repo(self) -> repository.Repository[domain.ColSindex]:
         raise NotImplemented
 
     @property
@@ -176,9 +174,9 @@ class SheetService:
 
 
 class Handler:
-    def __init__(self, sub_factory: subscriber.SubscriberFactory, broker: BrokerService):
+    def __init__(self, sub_factory: subscriber.SubscriberFactory, broker_service: broker.BrokerService):
         self._sub_factory = sub_factory
-        self._broker = broker
+        self._broker = broker_service
 
 
 class CellHandler(Handler):
@@ -206,9 +204,9 @@ class SindexHandler(Handler):
 
 
 class ExpandCellFollowers:
-    def __init__(self, repo: CellRepository, broker: BrokerService, subfac: subscriber.SubscriberFactory):
+    def __init__(self, repo: CellRepository, broker_service: broker.BrokerService, subfac: subscriber.SubscriberFactory):
         self._repo = repo
-        self._broker = broker
+        self._broker = broker_service
         self._subfac = subfac
 
     async def execute(self, from_cells: list[domain.Cell], to_cells: list[domain.Cell]):

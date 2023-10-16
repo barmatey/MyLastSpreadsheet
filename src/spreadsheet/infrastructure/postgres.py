@@ -9,8 +9,9 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from src.core import OrderBy
 from ..domain import Entity, SheetInfo, RowSindex, ColSindex, Cell, CellValue, CellDtype, Sheet
-from ..services import Repository, T, SheetRepository, CellRepository, Slice
+from ..services import SheetRepository, CellRepository, Slice
 from ... import helpers
+from ...base.repository import Repository, T
 
 
 class Base(DeclarativeBase):

@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
+from uuid import UUID
+
 from pydantic import BaseModel
+
+from src.core import OrderBy
 
 T = TypeVar("T", bound=BaseModel)
 
