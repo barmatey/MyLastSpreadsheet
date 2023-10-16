@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import TypeVar
 
+from src.base.subscriber import Subscriber
+from src.base.entity import Entity
 from . import domain
-from ..base.subscriber import Subscriber
 
 T = TypeVar("T")
 
@@ -63,13 +64,13 @@ class SheetSubscriber(Subscriber):
 
 class SubscriberFactory:
     @abstractmethod
-    def create_cell_subscriber(self, entity: domain.Entity) -> CellSubscriber:
+    def create_cell_subscriber(self, entity: Entity) -> CellSubscriber:
         raise NotImplemented
 
     @abstractmethod
-    def create_sindex_subscriber(self, entity: domain.Entity) -> SindexSubscriber:
+    def create_sindex_subscriber(self, entity: Entity) -> SindexSubscriber:
         raise NotImplemented
 
     @abstractmethod
-    def create_sheet_subscriber(self, entity: domain.Entity) -> SheetSubscriber:
+    def create_sheet_subscriber(self, entity: Entity) -> SheetSubscriber:
         raise NotImplemented

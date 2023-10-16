@@ -15,6 +15,10 @@ class Repository(ABC, Generic[T]):
         raise NotImplemented
 
     @abstractmethod
+    async def get_one_by_id(self, uuid: UUID) -> T:
+        raise NotImplemented
+
+    @abstractmethod
     async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
         raise NotImplemented
 
@@ -33,3 +37,4 @@ class Repository(ABC, Generic[T]):
     @abstractmethod
     async def remove_many(self, data: list[T]):
         raise NotImplemented
+

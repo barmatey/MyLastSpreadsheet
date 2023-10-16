@@ -2,16 +2,16 @@ from datetime import datetime
 from typing import Type
 from uuid import UUID
 
-from loguru import logger
 from sqlalchemy import TIMESTAMP, func, select, update, delete, Integer, ForeignKey, String
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from src.core import OrderBy
-from ..domain import Entity, SheetInfo, RowSindex, ColSindex, Cell, CellValue, CellDtype, Sheet
-from ..services import SheetRepository, CellRepository, Slice
 from ... import helpers
-from ...base.repository import Repository, T
+from ..domain import SheetInfo, RowSindex, ColSindex, Cell, CellValue, CellDtype, Sheet
+from ..services import SheetRepository, CellRepository, Slice
+from src.base.repo.repository import Repository, T
+from ...base.entity import Entity
 
 
 class Base(DeclarativeBase):
@@ -150,6 +150,9 @@ class PostgresRepo(Repository):
     async def add_many(self, data: list[T]):
         models = [self._model.from_entity(x) for x in data]
         self._session.add_all(models)
+
+    async def get_one_by_id(self, uuid: UUID) -> T:
+        raise NotImplemented
 
     async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
         stmt = select(self._model)

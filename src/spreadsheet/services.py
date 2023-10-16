@@ -4,8 +4,8 @@ from uuid import UUID
 from src.core import OrderBy
 from . import domain
 from . import subscriber
-from src.base import eventbus, broker, repository
-
+from src.base import eventbus, broker
+from ..base.repo import repository
 
 Slice = tuple[int, int] | tuple[int]
 

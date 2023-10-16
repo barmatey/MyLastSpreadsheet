@@ -3,17 +3,10 @@ from uuid import UUID, uuid4
 from datetime import datetime
 from pydantic import BaseModel, Field
 
-from src.base import eventbus
+from src.base import eventbus, entity
 
 
-class Entity(BaseModel):
-    id: UUID
-
-    def __hash__(self):
-        return self.id.__hash__()
-
-
-class SheetInfo(Entity):
+class SheetInfo(entity.Entity):
     id: UUID = Field(default_factory=uuid4)
     size: tuple[int, int]
 
@@ -30,7 +23,7 @@ class SheetInfo(Entity):
         ])
 
 
-class Sindex(Entity):
+class Sindex(entity.Entity):
     sf: SheetInfo
     position: int
     id: UUID = Field(default_factory=uuid4)
@@ -63,7 +56,7 @@ CellValue = Union[int, float, str, bool, None, datetime]
 CellDtype = Literal["int", "float", "string", "bool", "datetime"]
 
 
-class Cell(Entity):
+class Cell(entity.Entity):
     value: CellValue
     row: RowSindex
     col: ColSindex
