@@ -2,31 +2,16 @@ from datetime import datetime
 from typing import Type
 from uuid import UUID
 
-from sqlalchemy import TIMESTAMP, func, select, update, delete, Integer, ForeignKey, String
+from sqlalchemy import select, Integer, ForeignKey, String
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core import OrderBy
 from ... import helpers
 from ..domain import SheetInfo, RowSindex, ColSindex, Cell, CellValue, CellDtype, Sheet
 from ..services import SheetRepository, CellRepository, Slice
 from src.base.repo.repository import Repository, T
-from ...base.entity import Entity
-
-
-class Base(DeclarativeBase):
-    id: Mapped[UUID] = mapped_column(primary_key=True)
-    updated_at: Mapped[TIMESTAMP] = mapped_column(TIMESTAMP(timezone=True), default=func.now(), onupdate=func.now())
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}"
-
-    @classmethod
-    def from_entity(cls, entity: Entity):
-        raise NotImplemented
-
-    def to_entity(self, **kwargs) -> Entity:
-        raise NotImplemented
+from ...base.repo.postgres import Base, PostgresRepo
 
 
 class SheetInfoModel(Base):
@@ -139,55 +124,6 @@ class CellModel(Base):
             row_sindex_id=entity.row.id,
             col_sindex_id=entity.col.id,
         )
-
-
-class PostgresRepo(Repository):
-
-    def __init__(self, model: Type[Base], session: AsyncSession):
-        self._model = model
-        self._session = session
-
-    async def add_many(self, data: list[T]):
-        models = [self._model.from_entity(x) for x in data]
-        self._session.add_all(models)
-
-    async def get_one_by_id(self, uuid: UUID) -> T:
-        raise NotImplemented
-
-    async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
-        stmt = select(self._model)
-        if filter_by is not None:
-            stmt = stmt.where(*helpers.postgres.parse_filter_by(self._model, filter_by))
-        if order_by is not None:
-            stmt = stmt.order_by(*helpers.postgres.parse_order_by(self._model, order_by))
-        models = await self._session.execute(stmt)
-        entities = [x.to_entity() for x in models.scalars()]
-        return entities
-
-    async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[T]:
-        stmt = select(self._model).where(self._model.id.in_(ids))
-        result = await self._session.execute(stmt)
-        entities = [x.to_entity() for x in result]
-        return entities
-
-    async def update_one(self, data: T):
-        model = self._model.from_entity(data)
-        stmt = update(self._model).where(self._model.id == data.id).returning(self._model.id)
-        result = await self._session.execute(stmt, model.__dict__)
-        if len(list(result)) != 1:
-            raise LookupError
-
-    async def update_many(self, data: list[T]):
-        stmt = update(self._model)
-        data = [self._model.from_entity(x).__dict__ for x in data]
-        await self._session.execute(stmt, data)
-
-    async def remove_many(self, data: list[T]):
-        ids = [x.id for x in data]
-        stmt = delete(self._model).where(self._model.id.in_(ids)).returning(self._model.id)
-        result = await self._session.execute(stmt)
-        if len(list(result)) != len(data):
-            raise LookupError
 
 
 class SheetInfoPostgresRepo(PostgresRepo):
@@ -328,7 +264,7 @@ class SheetPostgresRepo(SheetRepository):
             result = list(await self._session.execute(stmt))
             if len(result) != 1:
                 raise LookupError
-            return Sheet(sf=SheetInfo(size=(0, 0), id=uuid), rows=[], cols=[], cells=[], id=uuid)
+            return Sheet(sf=SheetInfo(size=(0, 0), id=uuid), rows=[], cols=[], cells=[])
 
         sheet_info: SheetInfo = result[0][0].to_entity()
         rows = [result[x][1].to_entity(sheet_info)
@@ -340,5 +276,5 @@ class SheetPostgresRepo(SheetRepository):
                 index = i * sheet_info.size[1] + j
                 cells.append(result[index][3].to_entity(sheet_info, row, col))
 
-        sheet = Sheet(sf=sheet_info, rows=rows, cols=cols, cells=cells, id=sheet_info.id)
+        sheet = Sheet(sf=sheet_info, rows=rows, cols=cols, cells=cells)
         return sheet

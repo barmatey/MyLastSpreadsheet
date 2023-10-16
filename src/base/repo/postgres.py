@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from src.core import OrderBy
+from ..entity import Entity
 from ... import helpers
 from src.base.repo.repository import Repository, T
 
@@ -27,7 +28,6 @@ class Base(DeclarativeBase):
 
 
 class PostgresRepo(Repository):
-
     def __init__(self, model: Type[Base], session: AsyncSession):
         self._model = model
         self._session = session
