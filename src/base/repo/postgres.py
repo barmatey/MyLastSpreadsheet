@@ -20,7 +20,7 @@ class Base(DeclarativeBase):
         return f"{self.__class__.__name__}"
 
     @classmethod
-    def from_entity(cls, entity: Entity):
+    def from_entity(cls, **kwargs):
         raise NotImplemented
 
     def to_entity(self, **kwargs) -> Entity:
@@ -28,7 +28,7 @@ class Base(DeclarativeBase):
 
 
 class PostgresRepo(Repository):
-    def __init__(self, model: Type[Base], session: AsyncSession):
+    def __init__(self, session: AsyncSession, model: Type[Base]):
         self._model = model
         self._session = session
 
