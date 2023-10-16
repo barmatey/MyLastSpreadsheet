@@ -8,6 +8,11 @@ from src.spreadsheet import domain as sheet_domain
 Ccol = Literal['currency', 'sender', 'receiver', 'sub1', 'sub2',]
 
 
+class SourceInfo(BaseModel):
+    title: str
+    id: UUID = Field(default_factory=uuid4)
+
+
 class Wire(BaseModel):
     date: datetime
     sender: float
@@ -15,13 +20,13 @@ class Wire(BaseModel):
     amount: float
     sub1: str = ""
     sub2: str = ""
+    source_info: SourceInfo
     id: UUID = Field(default_factory=uuid4)
 
 
 class Source(BaseModel):
-    title: str
+    source_info: SourceInfo
     wires: list[Wire] = Field(default_factory=list)
-    id: UUID = Field(default_factory=uuid4)
 
 
 class PlanItems(BaseModel):

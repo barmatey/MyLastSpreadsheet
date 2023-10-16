@@ -11,16 +11,16 @@ from src.base.repo.repository import Repository, T
 from src.report import domain, services
 
 
-class SourceModel(Base):
+class SourceInfoModel(Base):
     __tablename__ = "source"
     title: Mapped[str] = mapped_column(String(32), nullable=False)
     wires = relationship('WireModel')
 
-    def to_entity(self, wires: list[domain.Wire]) -> domain.Source:
-        return domain.Source(id=self.id, title=self.title, wires=wires)
+    def to_entity(self) -> domain.SourceInfo:
+        return domain.SourceInfo(id=self.id, title=self.title)
 
     @classmethod
-    def from_entity(cls, entity: domain.Source):
+    def from_entity(cls, entity: domain.SourceInfo):
         return cls(
             id=entity.id,
             title=entity.title,
@@ -57,24 +57,9 @@ class WireModel(Base):
         )
 
 
-class SourceRepo(PostgresRepo):
-    def __init__(self, session: AsyncSession, model: Type[Base] = SourceModel):
+class SourceInfoRepo(PostgresRepo):
+    def __init__(self, session: AsyncSession, model: Type[Base] = SourceInfoModel):
         super().__init__(session, model)
-
-    async def get_one_by_id(self, uuid: UUID) -> T:
-        stmt = (select(SourceModel, WireModel)
-                .join(WireModel, WireModel.source_id == SourceModel.id)
-                .where(SourceModel.id == uuid)
-                )
-        result = await self._session.execute(stmt)
-        result = list(result)
-
-        if len(result) == 0:
-            stmt = select(SourceModel).where(SourceModel.id == uuid)
-            result = await self._session.scalar(stmt)
-            return result.to_entity(wires=[])
-        else:
-            raise NotImplemented
 
 
 class WireRepo(PostgresRepo):
@@ -84,13 +69,34 @@ class WireRepo(PostgresRepo):
 
 class SourceFullRepo(services.SourceRepo):
     def __init__(self, session: AsyncSession):
-        self._source_repo = SourceRepo(session)
+        self._source_info_repo = SourceInfoRepo(session)
         self._wire_repo = WireRepo(session)
+        self._session = session
 
     @property
-    def source_repo(self) -> Repository[domain.Source]:
-        return self._source_repo
+    def source_info_repo(self) -> Repository[domain.SourceInfo]:
+        return self._source_info_repo
 
     @property
     def wire_repo(self) -> Repository[domain.Wire]:
         return self._wire_repo
+
+    async def add_source(self, source: domain.Source):
+        await self.source_info_repo.add_many([source.source_info])
+        await self.wire_repo.add_many(source.wires)
+
+    async def get_source_by_id(self, uuid: UUID) -> domain.Source:
+        stmt = (select(SourceInfoModel, WireModel)
+                .join(WireModel, WireModel.source_id == SourceInfoModel.id)
+                .where(SourceInfoModel.id == uuid)
+                )
+        result = await self._session.execute(stmt)
+        result = list(result)
+
+        if len(result) == 0:
+            stmt = select(SourceInfoModel).where(SourceInfoModel.id == uuid)
+            result = await self._session.scalar(stmt)
+            source_info = result.to_entity()
+            return domain.Source(source_info=source_info)
+        else:
+            raise NotImplemented

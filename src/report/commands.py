@@ -11,7 +11,7 @@ class CreateSource(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def execute(self) -> domain.Source:
-        source = domain.Source(title=self.title)
+        source = domain.Source(source_info=domain.SourceInfo(title=self.title))
         await self.receiver.create_source(source)
         return source
 

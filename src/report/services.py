@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from uuid import UUID
 
 from src.base.repo import repository
@@ -7,11 +7,19 @@ from . import domain as report_domain
 
 class SourceRepo(ABC):
     @property
-    def source_repo(self) -> repository.Repository[report_domain.Source]:
+    def source_info_repo(self) -> repository.Repository[report_domain.SourceInfo]:
         raise NotImplemented
 
     @property
     def wire_repo(self) -> repository.Repository[report_domain.Wire]:
+        raise NotImplemented
+
+    @abstractmethod
+    async def add_source(self, source: report_domain.Source):
+        raise NotImplemented
+
+    @abstractmethod
+    async def get_source_by_id(self, uuid: UUID) -> report_domain.Source:
         raise NotImplemented
 
 
@@ -20,10 +28,10 @@ class SourceService:
         self._repo = repo
 
     async def create_source(self, source: report_domain.Source):
-        await self._repo.source_repo.add_many([source])
+        await self._repo.add_source(source)
 
     async def get_source_by_id(self, uuid: UUID) -> report_domain.Source:
-        return await self._repo.source_repo.get_one_by_id(uuid)
+        return await self._repo.get_source_by_id(uuid)
 
     async def append_wires(self, wires: list[report_domain.Wire]):
         await self._repo.wire_repo.add_many(wires)

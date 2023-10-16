@@ -11,9 +11,9 @@ async def test_create_source():
         cmd = commands.CreateSource(title="Hello", receiver=boot.get_source_service())
         source = await cmd.execute()
         await session.commit()
-        assert source.title == "Hello"
+        assert source.source_info.title == "Hello"
 
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
-        source = await commands.GetSourceById(id=source.id, receiver=boot.get_source_service()).execute()
-        assert source.title == "Hello"
+        source = await commands.GetSourceById(id=source.source_info.id, receiver=boot.get_source_service()).execute()
+        assert source.source_info.title == "Hello"
