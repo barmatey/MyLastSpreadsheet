@@ -2,9 +2,11 @@ import random
 from datetime import datetime
 
 import pytest
+from loguru import logger
 
 import db
 from src.report import bootstrap, commands, domain
+from src.spreadsheet import commands as sheet_commands
 
 
 async def create_source():
@@ -26,7 +28,7 @@ async def append_wires(source: domain.Source) -> domain.Source:
             sub2="no_info",
             date=datetime.now(),
             source_info=source.source_info,
-        ) for i in range(0, 11)
+        ) for i in range(0, 5)
     ]
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
@@ -55,7 +57,7 @@ async def test_append_wires():
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
         source = await commands.GetSourceById(id=source.source_info.id, receiver=boot.get_source_service()).execute()
-        assert len(source.wires) == 11
+        assert len(source.wires) == 5
 
 
 @pytest.mark.asyncio
@@ -69,3 +71,9 @@ async def test_create_group():
         group = await commands.CreateGroup(title="Group", source=source, receiver=receiver,
                                            ccols=['sender', 'sub1']).execute()
         await session.commit()
+
+    async with db.get_async_session() as session:
+        boot = bootstrap.Bootstrap(session)
+        receiver = boot.get_sheet_service()
+        sheet = await sheet_commands.GetSheetByUuid(receiver=receiver, uuid=group.sheet_info.id).execute()
+        logger.debug(f"\n{sheet.as_table()}")

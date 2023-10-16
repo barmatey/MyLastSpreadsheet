@@ -108,6 +108,14 @@ class Sheet(BaseModel):
                 return False
         return True
 
+    def as_table(self) -> list[list[CellValue]]:
+        table = []
+        for i in range(0, self.sf.size[0]):
+            row = []
+            for j in range(0, self.sf.size[1]):
+                row.append(self.cells[i * self.sf.size[1] + j].value)
+            table.append(row)
+        return table
 
 class TableInserted(eventbus.Event):
     uuid: UUID = Field(default_factory=uuid4)

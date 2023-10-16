@@ -2,7 +2,8 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 from src.base.repo import repository
 
-from . import domain as domain
+from . import domain
+from ..spreadsheet.domain import CellValue
 
 
 class SourceRepo(ABC):
@@ -40,12 +41,12 @@ class SourceService:
 class GroupGateway(ABC):
 
     @abstractmethod
-    async def create_sheet(self, table: list[list[domain.CellValue]]) -> UUID:
+    async def create_sheet(self, table: list[list[CellValue]]) -> UUID:
         raise NotImplemented
 
 
 class CreateGroupUsecase:
-    def __init__(self, repo: repository.Repository, gateway: GroupGateway):
+    def __init__(self, repo: repository.Repository[domain.Group], gateway: GroupGateway):
         self._gateway = gateway
         self._repo = repo
 

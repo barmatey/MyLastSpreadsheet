@@ -4,7 +4,6 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from src.base.entity import Entity
-from src.spreadsheet.domain import CellValue
 
 Ccol = Literal['currency', 'sender', 'receiver', 'sub1', 'sub2', ]
 
