@@ -3,6 +3,8 @@ from uuid import UUID, uuid4
 from datetime import datetime
 from pydantic import BaseModel, Field
 
+from src.spreadsheet import domain as sheet_domain
+
 Ccol = Literal['currency', 'sender', 'receiver', 'sub1', 'sub2',]
 
 
@@ -26,3 +28,8 @@ class PlanItems(BaseModel):
     ccols: list[Ccol]
     uniques: dict[str, int] = Field(default_factory=dict)
     id: UUID = Field(default_factory=uuid4)
+
+
+class Group(BaseModel):
+    plan_items: PlanItems
+    sheet_id: UUID

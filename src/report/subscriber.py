@@ -14,7 +14,4 @@ class SourceSubscriber(Subscriber):
         raise NotImplemented
 
 
-class PlanItemsSubscriber(Subscriber):
-    @abstractmethod
-    async def follow_plan_items(self, pub: domain.PlanItems):
-        raise NotImplemented
+

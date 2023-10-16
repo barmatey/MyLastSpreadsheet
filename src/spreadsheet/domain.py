@@ -89,12 +89,11 @@ class Cell(Entity):
         ])
 
 
-class Sheet(Entity):
+class Sheet(BaseModel):
     sf: SheetInfo
     rows: list[RowSindex]
     cols: list[ColSindex]
     cells: list[Cell]
-    id: UUID = Field(default_factory=uuid4)
 
     def __eq__(self, other: 'Sheet'):
         if self.sf != other.sf:
