@@ -2,7 +2,7 @@ from uuid import UUID
 
 from ...spreadsheet.domain import CellValue
 from ...spreadsheet.services import SheetService
-from .. import services, domain
+from .. import services
 
 
 class GroupGatewayService(services.GroupGateway):

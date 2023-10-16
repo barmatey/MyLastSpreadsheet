@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 from src.base.repo import repository
 
-from . import domain
 from ..spreadsheet.domain import CellValue
+from . import domain
 
 
 class SourceRepo(ABC):

@@ -117,6 +117,7 @@ class Sheet(BaseModel):
             table.append(row)
         return table
 
+
 class TableInserted(eventbus.Event):
     uuid: UUID = Field(default_factory=uuid4)
     before: tuple[RowSindex, ColSindex]
