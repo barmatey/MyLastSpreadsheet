@@ -6,8 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.base.repo.postgres import Base, PostgresRepo
-from src.base.repo.repository import T
-from src.report import domain
+from src.base.repo.repository import Repository, T
+
+from src.report import domain, services
 
 
 class SourceModel(Base):
@@ -65,8 +66,23 @@ class SourceRepo(PostgresRepo):
                 .join(WireModel, WireModel.source_id == SourceModel.id)
                 .where(SourceModel.id == uuid)
                 )
+        raise NotImplemented
 
 
 class WireRepo(PostgresRepo):
     def __init__(self, session: AsyncSession, model: Type[Base] = WireModel):
         super().__init__(session, model)
+
+
+class SourceFullRepo(services.SourceRepo):
+    def __init__(self, session: AsyncSession):
+        self._source_repo = SourceRepo(session)
+        self._wire_repo = WireRepo(session)
+
+    @property
+    def source_repo(self) -> Repository[domain.Source]:
+        return self._source_repo
+
+    @property
+    def wire_repo(self) -> Repository[domain.Wire]:
+        return self._wire_repo

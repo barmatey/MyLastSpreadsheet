@@ -20,7 +20,7 @@ class Wire(BaseModel):
 
 class Source(BaseModel):
     title: str
-    wires: list[Wire]
+    wires: list[Wire] = Field(default_factory=list)
     id: UUID = Field(default_factory=uuid4)
 
 
