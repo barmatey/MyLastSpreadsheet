@@ -6,8 +6,8 @@ from sqlalchemy import pool
 from alembic import context
 
 from src.base.repo.postgres import Base
-from src.spreadsheet.infrastructure import postgres as sheet_postgres
 from src.report.infrastructure import postgres as report_postgres
+from src.spreadsheet.infrastructure import postgres as sheet_postgres
 
 config = context.config
 

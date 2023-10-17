@@ -21,7 +21,6 @@ class SheetInfoModel(Base):
     row_sindexes = relationship('RowSindexModel')
     col_sindexes = relationship('ColSindexModel')
     cells = relationship('CellModel')
-    groups = relationship('GroupModel')
 
     def to_entity(self) -> SheetInfo:
         return SheetInfo(id=self.id, size=(self.row_size, self.col_size))
