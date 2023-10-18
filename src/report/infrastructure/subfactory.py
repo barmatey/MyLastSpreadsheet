@@ -11,6 +11,7 @@ class PlanItems(SourceSubscriber):
         self._entity.uniques = {}
         for wire in source.wires:
             cells = [wire.__getattribute__(ccol) for ccol in self._entity.ccols]
+            self._entity.table.append(cells)
             key = str(cells)
             if self._entity.uniques.get(key) is None:
                 self._entity.uniques[key] = 1

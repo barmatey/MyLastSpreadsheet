@@ -15,6 +15,7 @@ class SourceInfoModel(Base):
     __tablename__ = "source"
     title: Mapped[str] = mapped_column(String(32), nullable=False)
     wires = relationship('WireModel')
+    groups = relationship('GroupModel')
 
     def to_entity(self) -> domain.SourceInfo:
         return domain.SourceInfo(id=self.id, title=self.title)
@@ -59,6 +60,30 @@ class WireModel(Base):
             sub1=entity.sub1,
             sub2=entity.sub2,
             date=entity.date,
+            source_id=entity.source_info.id,
+        )
+
+
+class GroupModel(Base):
+    __tablename__ = "group"
+    title: Mapped[str] = mapped_column(String(128), nullable=False)
+    plan_items: Mapped[JSON] = mapped_column(JSON, nullable=False)
+    source_info_id: Mapped[UUID] = ForeignKey('SourceInfoModel')
+
+    def to_entity(self, source_info: domain.SourceInfo) -> domain.Group:
+        return domain.Group(
+            id=self.id,
+            title=self.title,
+            source_info=source_info,
+            plan_items=domain.PlanItems(**self.plan_items)
+        )
+
+    @classmethod
+    def from_entity(cls, entity: domain.Group):
+        return cls(
+            id=entity.id,
+            title=entity.title,
+            plan_items=entity.plan_items.model_dump(),
             source_id=entity.source_info.id,
         )
 

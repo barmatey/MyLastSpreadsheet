@@ -1,4 +1,6 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
+
+from pydantic import BaseModel
 
 from src.base.subscriber import Subscriber
 from . import domain
@@ -14,4 +16,7 @@ class SourceSubscriber(Subscriber):
         raise NotImplemented
 
 
-
+class SubscriberFactory(ABC):
+    @abstractmethod
+    def create_source_subscriber(self, entity: BaseModel) -> SourceSubscriber:
+        raise NotImplemented

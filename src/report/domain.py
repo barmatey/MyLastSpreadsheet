@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Union
 from uuid import UUID, uuid4
 from datetime import datetime
 from pydantic import BaseModel, Field
@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field
 from src.base.entity import Entity
 
 Ccol = Literal['currency', 'sender', 'receiver', 'sub1', 'sub2', ]
+CellValue = Union[int, float, str, bool, None, datetime, ]
+CellDtype = Literal["int", "float", "string", "bool", "datetime", ]
 
 
 class SourceInfo(BaseModel):
@@ -31,6 +33,7 @@ class Source(BaseModel):
 
 class PlanItems(BaseModel):
     ccols: list[Ccol]
+    table: list[list[CellValue]] = Field(default_factory=list)
     uniques: dict[str, int] = Field(default_factory=dict)
 
 

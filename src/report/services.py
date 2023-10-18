@@ -2,8 +2,7 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 from src.base.repo import repository
 
-from ..spreadsheet.domain import CellValue
-from . import domain
+from . import domain, subscriber
 
 
 class SourceRepo(ABC):
@@ -38,31 +37,14 @@ class SourceService:
         await self._repo.wire_repo.add_many(wires)
 
 
-class GroupGateway(ABC):
-
-    @abstractmethod
-    async def create_sheet(self, table: list[list[CellValue]]) -> UUID:
-        raise NotImplemented
-
-
 class CreateGroupUsecase:
-    def __init__(self, repo: repository.Repository[domain.Group], gateway: GroupGateway):
-        self._gateway = gateway
+    def __init__(self, repo: repository.Repository[domain.Group], subfac: subscriber.SubscriberFactory):
         self._repo = repo
+        self._subfac = subfac
 
     async def execute(self, title: str, source: domain.Source, ccols: list[domain.Ccol]) -> domain.Group:
         plan_items = domain.PlanItems(ccols=ccols)
-        table = []
-        for wire in source.wires:
-            cells = [wire.__getattribute__(ccol) for ccol in plan_items.ccols]
-            table.append(cells)
-            key = str(cells)
-            if plan_items.uniques.get(key) is None:
-                plan_items.uniques[key] = 0
-            plan_items.uniques[key] += 1
-
-        sheet_id = await self._gateway.create_sheet(table)
-        sheet_info = domain.SheetInfo(id=sheet_id)
-        group = domain.Group(title=title, plan_items=plan_items, source_info=source.source_info, sheet_info=sheet_info)
+        await self._subfac.create_source_subscriber(plan_items).follow_source(source)
+        group = domain.Group(title=title, plan_items=plan_items, source_info=source.source_info)
         await self._repo.add_many([group])
         return group
