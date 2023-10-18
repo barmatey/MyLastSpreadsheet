@@ -16,6 +16,6 @@ class Bootstrap(SheetBootstrap):
         source_service = services.SourceService(repo=self._source_repo)
         return source_service
 
-    def get_create_group_usecase(self) -> services.CreateGroupUsecase:
-        usecase = services.CreateGroupUsecase(repo=self._group_repo, subfac=subfactory.ReportSubfac())
+    def get_group_service(self) -> services.GroupService:
+        usecase = services.GroupService(repo=self._group_repo, subfac=subfactory.ReportSubfac())
         return usecase

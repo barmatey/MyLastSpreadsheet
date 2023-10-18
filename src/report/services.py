@@ -37,14 +37,17 @@ class SourceService:
         await self._repo.wire_repo.add_many(wires)
 
 
-class CreateGroupUsecase:
+class GroupService:
     def __init__(self, repo: repository.Repository[domain.Group], subfac: subscriber.SubscriberFactory):
         self._repo = repo
         self._subfac = subfac
 
-    async def execute(self, title: str, source: domain.Source, ccols: list[domain.Ccol]) -> domain.Group:
+    async def create(self, title: str, source: domain.Source, ccols: list[domain.Ccol]) -> domain.Group:
         plan_items = domain.PlanItems(ccols=ccols)
         await self._subfac.create_source_subscriber(plan_items).follow_source(source)
         group = domain.Group(title=title, plan_items=plan_items, source_info=source.source_info)
         await self._repo.add_many([group])
         return group
+
+    async def get_by_id(self, uuid: UUID) -> domain.Group:
+        return await self._repo.get_one_by_id(uuid)

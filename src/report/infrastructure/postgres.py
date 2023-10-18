@@ -145,5 +145,7 @@ class GroupRepo(PostgresRepo):
             .join(SourceInfoModel, GroupModel.source_info_id == SourceInfoModel.id)
             .where(GroupModel.id == uuid)
         )
-        result = await self._session.scalar(stmt)
-        print(result)
+        result = (await self._session.execute(stmt)).__next__()
+        source_info = result[1].to_entity()
+        group = result[0].to_entity(source_info=source_info)
+        return group

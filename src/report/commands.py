@@ -39,10 +39,19 @@ class CreateGroup(BaseModel):
     title: str
     source: domain.Source
     ccols: list[domain.Ccol]
-    receiver: services.CreateGroupUsecase
+    receiver: services.GroupService
     id: UUID = Field(default_factory=uuid4)
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def execute(self) -> domain.Group:
-        group = await self.receiver.execute(self.title, self.source, self.ccols)
+        group = await self.receiver.create(self.title, self.source, self.ccols)
         return group
+
+
+class GetGroupById(BaseModel):
+    id: UUID
+    receiver: services.GroupService
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> domain.Group:
+        return await self.receiver.get_by_id(self.id)

@@ -67,14 +67,15 @@ async def test_create_group():
 
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
-        receiver = boot.get_create_group_usecase()
-        group = await commands.CreateGroup(title="Group", source=source, receiver=receiver,
-                                           ccols=['sender', 'sub1']).execute()
+        receiver = boot.get_group_service()
+        expected = await commands.CreateGroup(title="Group", source=source, receiver=receiver,
+                                              ccols=['sender', 'sub1']).execute()
         await session.commit()
 
-    # async with db.get_async_session() as session:
-    #     boot = bootstrap.Bootstrap(session)
-    #     receiver = boot.get_sheet_service()
-    #     sheet = await sheet_commands.GetSheetByUuid(receiver=receiver, uuid=group.sheet_info.id).execute()
-    #     expected = "[[0.0, 'first'], [1.0, 'second'], [2.0, 'first'], [3.0, 'second'], [4.0, 'first']]"
-    #     assert str(sheet.as_table()) == expected
+    async with db.get_async_session() as session:
+        boot = bootstrap.Bootstrap(session)
+        receiver = boot.get_group_service()
+        actual = await commands.GetGroupById(id=expected.id, receiver=receiver).execute()
+        assert actual.id == expected.id
+        for left, right in zip(actual.plan_items.table, expected.plan_items.table):
+            assert str(left) == str(right)
