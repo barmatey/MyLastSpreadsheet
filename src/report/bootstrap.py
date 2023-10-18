@@ -17,6 +17,4 @@ class Bootstrap(SheetBootstrap):
         return source_service
 
     def get_create_group_usecase(self) -> services.CreateGroupUsecase:
-        gw = gateway.GroupGatewayService(sheet_service=self.get_sheet_service())
-        usecase = services.CreateGroupUsecase(repo=self._group_repo, gateway=gw)
-        return usecase
+       raise NotImplemented

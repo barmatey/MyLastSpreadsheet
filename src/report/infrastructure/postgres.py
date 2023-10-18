@@ -68,7 +68,7 @@ class GroupModel(Base):
     __tablename__ = "group"
     title: Mapped[str] = mapped_column(String(128), nullable=False)
     plan_items: Mapped[JSON] = mapped_column(JSON, nullable=False)
-    source_info_id: Mapped[UUID] = ForeignKey('SourceInfoModel')
+    source_info_id: Mapped[UUID] = mapped_column(ForeignKey("source.id"))
 
     def to_entity(self, source_info: domain.SourceInfo) -> domain.Group:
         return domain.Group(
@@ -133,3 +133,17 @@ class SourceFullRepo(services.SourceRepo):
             source_info = result[0][0].to_entity()
             wires = [x[1].to_entity(source_info=source_info) for x in result]
             return domain.Source(source_info=source_info, wires=wires)
+
+
+class GroupRepo(PostgresRepo):
+    def __init__(self, session: AsyncSession, model: Type[Base] = GroupModel):
+        super().__init__(session, model)
+
+    async def get_one_by_id(self, uuid: UUID) -> domain.Group:
+        stmt = (
+            select(GroupModel, SourceInfoModel)
+            .join(SourceInfoModel, GroupModel.source_info_id == SourceInfoModel.id)
+            .where(GroupModel.id == uuid)
+        )
+        result = await self._session.scalar(stmt)
+        print(result)
