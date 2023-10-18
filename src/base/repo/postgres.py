@@ -38,10 +38,10 @@ class PostgresRepo(Repository):
 
     async def get_one_by_id(self, uuid: UUID) -> T:
         stmt = select(self._model).where(self._model.id == uuid)
-        models = list(await self._session.execute(stmt))
+        models = list(await self._session.scalars(stmt))
         if len(models) != 1:
             raise LookupError(f"models count is {len(models)}")
-        return models.pop().to_entity()
+        return models[0].to_entity()
 
     async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
         stmt = select(self._model)

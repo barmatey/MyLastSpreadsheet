@@ -26,7 +26,7 @@ async def append_wires(source: domain.Source) -> domain.Source:
             amount=random.randrange(0, 111),
             sub1="first" if i % 2 == 0 else "second",
             sub2="no_info",
-            date=datetime(2021, i+1, 5),
+            date=datetime(2021, i + 1, 5),
             source_info=source.source_info,
         ) for i in range(0, 5)
     ]
@@ -93,15 +93,13 @@ async def test_create_profit_report():
         group = await commands.CreateGroup(title="Group", source=source, receiver=boot.get_group_service(),
                                            ccols=['sender', 'sub1']).execute()
         receiver = boot.get_report_service()
-        report = await commands.CreateReport(source=source, group=group, periods=periods, receiver=receiver).execute()
+        expected = await commands.CreateReport(source=source, group=group, periods=periods, receiver=receiver).execute()
         await session.commit()
 
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
-        report = await commands.GetReportById(id=report.id, receiver=boot.get_report_service()).execute()
-        logger.debug(f"\n{report}")
-
-    async with db.get_async_session() as session:
-        boot = bootstrap.Bootstrap(session)
+        report = await commands.GetReportById(id=expected.id, receiver=boot.get_report_service()).execute()
         sheet = await sheet_commands.GetSheetByUuid(uuid=report.sheet_id, receiver=boot.get_sheet_service()).execute()
+
+        logger.debug(f"\n{report}")
         logger.debug(f"\n{sheet.as_table()}")
