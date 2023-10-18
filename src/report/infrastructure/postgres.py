@@ -84,7 +84,7 @@ class GroupModel(Base):
             id=entity.id,
             title=entity.title,
             plan_items=entity.plan_items.model_dump(),
-            source_id=entity.source_info.id,
+            source_info_id=entity.source_info.id,
         )
 
 
