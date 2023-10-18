@@ -63,33 +63,6 @@ class WireModel(Base):
         )
 
 
-class GroupModel(Base):
-    __tablename__ = "group"
-    title: Mapped[str] = mapped_column(String(128), nullable=False)
-    source_id: Mapped[UUID] = mapped_column(ForeignKey("source.id"))
-    sheet_id: Mapped[UUID] = mapped_column(ForeignKey("sheet.id"))
-    plan_items: Mapped[JSON] = mapped_column(JSON, nullable=False)
-
-    def to_entity(self, source_info: domain.SourceInfo) -> domain.Group:
-        return domain.Group(
-            id=self.id,
-            title=self.title,
-            sheet_info=domain.SheetInfo(id=self.sheet_id),
-            source_info=source_info,
-            plan_items=domain.PlanItems(**self.plan_items)
-        )
-
-    @classmethod
-    def from_entity(cls, entity: domain.Group):
-        return cls(
-            id=entity.id,
-            title=entity.title,
-            source_id=entity.source_info.id,
-            sheet_id=entity.sheet_info.id,
-            plan_items=entity.plan_items.model_dump(),
-        )
-
-
 class SourceInfoRepo(PostgresRepo):
     def __init__(self, session: AsyncSession, model: Type[Base] = SourceInfoModel):
         super().__init__(session, model)
@@ -135,16 +108,3 @@ class SourceFullRepo(services.SourceRepo):
             source_info = result[0][0].to_entity()
             wires = [x[1].to_entity(source_info=source_info) for x in result]
             return domain.Source(source_info=source_info, wires=wires)
-
-
-class GroupRepo(PostgresRepo):
-    def __init__(self, session: AsyncSession, model: Type[Base] = GroupModel):
-        super().__init__(session, model)
-
-    async def get_one_by_id(self, uuid: UUID) -> T:
-        # stmt = (
-        #     select(GroupModel, SourceInfoModel)
-        #     .join(SourceInfoModel, GroupModel.source_id == SourceInfoModel.id)
-        #     .where(GroupModel.id == uuid)
-        # )
-        raise NotImplemented

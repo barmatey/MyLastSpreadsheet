@@ -34,13 +34,8 @@ class PlanItems(BaseModel):
     uniques: dict[str, int] = Field(default_factory=dict)
 
 
-class SheetInfo(Entity):
-    pass
-
-
 class Group(Entity):
     title: str
     plan_items: PlanItems
     source_info: SourceInfo
-    sheet_info: SheetInfo
     id: UUID = Field(default_factory=uuid4)
