@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.base.repo.postgres import Base, PostgresRepo
-from src.base.repo.repository import Repository, T
+from src.base.repo.repository import Repository
 
 from src.report import domain, services
 
@@ -88,6 +88,27 @@ class GroupModel(Base):
         )
 
 
+class ReportModel(Base):
+    __tablename__ = "report"
+    periods: Mapped[JSON] = mapped_column(JSON, nullable=True)
+    sheet_id: Mapped[UUID] = mapped_column(String(32), nullable=False)
+
+    def to_entity(self) -> domain.Report:
+        return domain.Report(
+            id=self.id,
+            periods=[domain.Period(**x) for x in self.periods],
+            sheet_id=self.sheet_id,
+        )
+
+    @classmethod
+    def from_entity(cls, entity: domain.Report):
+        return cls(
+            id=entity.id,
+            periods=[x.model_dump() for x in entity.periods],
+            sheet_id=str(entity.id),
+        )
+
+
 class SourceInfoRepo(PostgresRepo):
     def __init__(self, session: AsyncSession, model: Type[Base] = SourceInfoModel):
         super().__init__(session, model)
@@ -149,3 +170,8 @@ class GroupRepo(PostgresRepo):
         source_info = result[1].to_entity()
         group = result[0].to_entity(source_info=source_info)
         return group
+
+
+class ReportRepo(PostgresRepo):
+    def __init__(self, session: AsyncSession, model: Type[Base] = ReportModel):
+        super().__init__(session, model)

@@ -60,7 +60,7 @@ class SheetService:
             for j, cell_value in enumerate(row):
                 cells.append(domain.Cell(sf=sf, row=row_sindexes[i], col=col_sindexes[j], value=cell_value))
 
-        sheet = domain.Sheet(sf=sf, rows=row_sindexes, cols=col_sindexes, cells=cells, id=sf.id)
+        sheet = domain.Sheet(sf=sf, rows=row_sindexes, cols=col_sindexes, cells=cells)
         await self._repo.add_sheet(sheet)
         return sheet
 

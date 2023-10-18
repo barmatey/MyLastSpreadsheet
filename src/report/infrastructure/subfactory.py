@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 from ..subscriber import SubscriberFactory, SourceSubscriber
-from .. import domain
+from .. import domain, services
 
 
 class PlanItemsSubscriber(SourceSubscriber):
@@ -21,7 +21,22 @@ class PlanItemsSubscriber(SourceSubscriber):
         pass
 
 
+class ReportSubscriber(SourceSubscriber):
+    def __init__(self, entity: domain.Report, report_service: services.ReportService):
+        self._entity = entity
+        self._service = report_service
+
+    async def follow_source(self, source: domain.Source):
+        for wire in source.wires:
+            pass
+
+    async def on_wire_appended(self, wire: domain.Wire):
+        raise NotImplemented
+
+
 class ReportSubfac(SubscriberFactory):
     def create_source_subscriber(self, entity: BaseModel) -> SourceSubscriber:
         if isinstance(entity, domain.PlanItems):
             return PlanItemsSubscriber(entity)
+        if isinstance(entity, domain.Report):
+            return ReportSubscriber(entity)

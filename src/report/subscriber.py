@@ -16,6 +16,12 @@ class SourceSubscriber(Subscriber):
         raise NotImplemented
 
 
+class GroupSubscriber(Subscriber):
+    @abstractmethod
+    async def follow_group(self, group: domain.Group):
+        raise NotImplemented
+
+
 class SubscriberFactory(ABC):
     @abstractmethod
     def create_source_subscriber(self, entity: BaseModel) -> SourceSubscriber:

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
+import pandas as pd
 from src.base.repo import repository
 
 from . import domain, subscriber
@@ -50,4 +51,35 @@ class GroupService:
         return group
 
     async def get_by_id(self, uuid: UUID) -> domain.Group:
+        return await self._repo.get_one_by_id(uuid)
+
+
+class SheetGateway(ABC):
+    @abstractmethod
+    async def create_sheet(self, table: list[list[domain.CellValue]]) -> UUID:
+        raise NotImplemented
+
+    @abstractmethod
+    async def update_cell_value(self, sheet_id: UUID, row_pos: int, col_pos: int, value: domain.CellValue):
+        raise NotImplemented
+
+
+async def calculate_profit_cell(wires, ccols, period) -> float:
+    return 11
+
+
+class ReportService:
+    def __init__(self, repo: repository.Repository[domain.Report], sheet_gateway: SheetGateway):
+        self._gateway = sheet_gateway
+        self._repo = repo
+
+    async def create(self, source: domain.Source, group: domain.Group, periods: list[domain.Period]) -> domain.Report:
+        table = [[1, 2], [3, 4]]
+
+        sheet_id = await self._gateway.create_sheet(table)
+        report = domain.Report(periods=periods, sheet_id=sheet_id)
+        await self._repo.add_many([report])
+        return report
+
+    async def get_by_id(self, uuid: UUID) -> domain.Report:
         return await self._repo.get_one_by_id(uuid)

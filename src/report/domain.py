@@ -3,7 +3,6 @@ from uuid import UUID, uuid4
 from datetime import datetime
 from pydantic import BaseModel, Field
 
-from src.base.entity import Entity
 
 Ccol = Literal['currency', 'sender', 'receiver', 'sub1', 'sub2', ]
 CellValue = Union[int, float, str, bool, None, datetime, ]
@@ -15,7 +14,7 @@ class SourceInfo(BaseModel):
     id: UUID = Field(default_factory=uuid4)
 
 
-class Wire(Entity):
+class Wire(BaseModel):
     date: datetime
     sender: float
     receiver: float
@@ -37,8 +36,19 @@ class PlanItems(BaseModel):
     uniques: dict[str, int] = Field(default_factory=dict)
 
 
-class Group(Entity):
+class Group(BaseModel):
     title: str
     plan_items: PlanItems
     source_info: SourceInfo
+    id: UUID = Field(default_factory=uuid4)
+
+
+class Period(BaseModel):
+    from_date: datetime
+    to_date: datetime
+
+
+class Report(BaseModel):
+    periods: list[Period]
+    sheet_id: UUID
     id: UUID = Field(default_factory=uuid4)

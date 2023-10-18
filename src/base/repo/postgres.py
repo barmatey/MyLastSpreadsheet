@@ -37,7 +37,11 @@ class PostgresRepo(Repository):
         self._session.add_all(models)
 
     async def get_one_by_id(self, uuid: UUID) -> T:
-        raise NotImplemented
+        stmt = select(self._model).where(self._model.id == uuid)
+        models = list(await self._session.execute(stmt))
+        if len(models) != 1:
+            raise LookupError(f"models count is {len(models)}")
+        return models.pop().to_entity()
 
     async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
         stmt = select(self._model)

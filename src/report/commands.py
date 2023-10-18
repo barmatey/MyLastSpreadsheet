@@ -55,3 +55,25 @@ class GetGroupById(BaseModel):
 
     async def execute(self) -> domain.Group:
         return await self.receiver.get_by_id(self.id)
+
+
+class CreateReport(BaseModel):
+    source: domain.Source
+    group: domain.Group
+    periods: list[domain.Period]
+    receiver: services.ReportService
+    id: UUID = Field(default_factory=uuid4)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> domain.Report:
+        report = await self.receiver.create(source=self.source, group=self.group, periods=self.periods)
+        return report
+
+
+class GetReportById(BaseModel):
+    id: UUID
+    receiver: services.ReportService
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> domain.Report:
+        return await self.receiver.get_by_id(self.id)
