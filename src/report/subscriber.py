@@ -22,7 +22,7 @@ class GroupSubscriber(Subscriber):
         raise NotImplemented
 
     @abstractmethod
-    async def on_rows_appended(self, data: dict[int, list[domain.CellValue]]):
+    async def on_rows_inserted(self, data: list[tuple[int, list[domain.CellValue]]]):
         raise NotImplemented
 
 

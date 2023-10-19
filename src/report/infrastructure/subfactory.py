@@ -6,79 +6,23 @@ from ...base import eventbus
 from ...base.broker import BrokerService
 
 
-class GroupPublisher(SourceSubscriber):
-    def __init__(self, entity: domain.Group, broker: BrokerService, queue: eventbus.Queue):
-        self._queue = queue
-        self._broker = broker
-        self._entity = entity
-        self.__appended_rows: dict[int, list[domain.CellValue]] = {}
-
-    def __append_wire(self, wire: domain.Wire):
-        cells = [wire.__getattribute__(ccol) for ccol in self._entity.plan_items.ccols]
-        key = str(cells)
-        if self._entity.plan_items.uniques.get(key) is None:
-            self._entity.plan_items.uniques[key] = 0
-            self.__appended_rows[len(self._entity.plan_items.table)] = cells
-            self._entity.plan_items.table.append(cells)
-        self._entity.plan_items.uniques[key] += 1
-
-    async def follow_source(self, source: domain.Source):
-        self._entity.plan_items.uniques = {}
-        self._entity.plan_items.table = []
-        for wire in source.wires:
-            self.__append_wire(wire)
-        await self._broker.subscribe([source.source_info], self._entity)
-        self._queue.append(
-            events.GroupRowsInserted(key='GroupRowsInserted', rows=self.__appended_rows, group_info=self._entity))
-
-    async def on_wires_appended(self, wires: list[domain.Wire]):
-        for wire in wires:
-            self.__append_wire(wire)
-        self._queue.append(
-            events.GroupRowsInserted(key='GroupRowsInserted', rows=self.__appended_rows, group_info=self._entity))
-
-
-class ReportPublisher(SourceSubscriber, GroupSubscriber):
-    def __init__(self, entity: domain.Report, report_service: services.ReportService, broker: BrokerService,
-                 sheet_gateway: services.SheetGateway):
-        self._entity = entity
-        self._broker = broker
-        self._service = report_service
-        self._sheet_gateway = sheet_gateway
-
-    async def follow_source(self, source: domain.Source):
-        for wire in source.wires:
-            pass
-        await self._broker.subscribe([source], self._entity)
-
-    async def on_wires_appended(self, wire: domain.Wire):
-        raise NotImplemented
-
-    async def follow_group(self, group: domain.Group):
-        await self._broker.subscribe([group], self._entity)
-
-    async def on_rows_appended(self, data: dict[int, list[domain.CellValue]]):
-        await self._sheet_gateway.insert_rows(self._entity.sheet_id, data)
-
-
 class ReportSubfac(SubscriberFactory):
-    def __init__(self, report_service: services.ReportService, broker: BrokerService, sheet_gateway: services.SheetGateway,
+    def __init__(self, report_service: services.ReportService, broker: BrokerService,
+                 sheet_gateway: services.SheetGateway,
                  queue: eventbus.Queue):
         self._broker = broker
         self._queue = queue
         self._report_service = report_service
-        self._sheet_gateway = sheet_gateway
+        self._sheet_gw = sheet_gateway
 
     def create_group_subscriber(self, entity: BaseModel) -> GroupSubscriber:
         if isinstance(entity, domain.Report):
-            return ReportPublisher(entity, self._report_service, self._broker, self._sheet_gateway)
+            return services.ReportPublisher(entity, self._sheet_gw, self._broker)
         raise TypeError(f"{type(entity)}")
 
     def create_source_subscriber(self, entity: BaseModel) -> SourceSubscriber:
         if isinstance(entity, domain.Group):
-            return GroupPublisher(entity, self._broker, self._queue)
+            return services.GroupPublisher(entity, self._broker, self._queue)
         if isinstance(entity, domain.Report):
-            return ReportPublisher(entity, self._report_service, self._broker)
+            return services.ReportPublisher(entity, self._sheet_gw, self._broker)
         raise TypeError
-
-

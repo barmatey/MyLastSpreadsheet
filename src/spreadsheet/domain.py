@@ -53,6 +53,7 @@ class ColSindex(Sindex):
 
 
 CellValue = Union[int, float, str, bool, None, datetime]
+Table = list[list[CellValue]]
 CellDtype = Literal["int", "float", "string", "bool", "datetime"]
 
 

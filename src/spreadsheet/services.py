@@ -48,7 +48,7 @@ class SheetService:
         self._repo = repo
         self._queue = queue
 
-    async def create_sheet(self, table: list[list[domain.CellValue]]) -> domain.Sheet:
+    async def create_sheet(self, table: domain.Table) -> domain.Sheet:
         size = (len(table), len(table[0])) if len(table) else (0, 0)
         sf = domain.SheetInfo(size=size)
 
@@ -90,8 +90,11 @@ class SheetService:
         await self._repo.cell_repo.add_many(new_cells)
 
         return domain.Sheet(sf=sf, rows=new_rows, cols=new_cols, cells=new_cells)
+    
+    async def insert_sindexes_from_position(self, sheet_id: UUID, table: domain.Table, from_pos: int, axis: int):
+        raise NotImplemented
 
-    async def insert_sindexes(self, sheet_id: UUID, table: list[list[domain.CellValue]], before: domain.Sindex):
+    async def insert_sindexes(self, sheet_id: UUID, table: domain.Table, before: domain.Sindex):
         sf = (await self._repo.sheet_info_repo.get_many({"id": sheet_id})).pop()
         axis = 0 if isinstance(before, domain.RowSindex) else 1
         if axis == 0:

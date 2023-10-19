@@ -3,10 +3,10 @@ from uuid import UUID, uuid4
 from datetime import datetime
 from pydantic import BaseModel, Field
 
-
-Ccol = Literal['currency', 'sender', 'receiver', 'sub1', 'sub2', ]
-CellValue = Union[int, float, str, bool, None, datetime, ]
-CellDtype = Literal["int", "float", "string", "bool", "datetime", ]
+Ccol = Literal['currency', 'sender', 'receiver', 'sub1', 'sub2',]
+CellValue = Union[int, float, str, bool, None, datetime,]
+Table = list[list[CellValue]]
+CellDtype = Literal["int", "float", "string", "bool", "datetime",]
 
 
 class SourceInfo(BaseModel):

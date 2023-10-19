@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-import numpy as np
 import pandas as pd
 from src.base.repo import repository
 
@@ -55,6 +54,38 @@ class SourceHandler:
             await self._subfac.create_source_subscriber(sub).on_wires_appended(event.wires)
 
 
+class GroupPublisher(subscriber.SourceSubscriber):
+    def __init__(self, entity: domain.Group, broker: BrokerService, queue: eventbus.Queue):
+        self._queue = queue
+        self._broker = broker
+        self._entity = entity
+        self.__appended_rows: list[tuple[int, list[domain.CellValue]]] = []
+
+    def __append_wire(self, wire: domain.Wire):
+        cells = [wire.__getattribute__(ccol) for ccol in self._entity.plan_items.ccols]
+        key = str(cells)
+        if self._entity.plan_items.uniques.get(key) is None:
+            self._entity.plan_items.uniques[key] = 0
+            self.__appended_rows.append((len(self._entity.plan_items.table), cells))
+            self._entity.plan_items.table.append(cells)
+        self._entity.plan_items.uniques[key] += 1
+
+    async def follow_source(self, source: domain.Source):
+        self._entity.plan_items.uniques = {}
+        self._entity.plan_items.table = []
+        for wire in source.wires:
+            self.__append_wire(wire)
+        await self._broker.subscribe([source.source_info], self._entity)
+        self._queue.append(
+            events.GroupRowsInserted(key='GroupRowsInserted', rows=self.__appended_rows, group_info=self._entity))
+
+    async def on_wires_appended(self, wires: list[domain.Wire]):
+        for wire in wires:
+            self.__append_wire(wire)
+        self._queue.append(
+            events.GroupRowsInserted(key='GroupRowsInserted', rows=self.__appended_rows, group_info=self._entity))
+
+
 class GroupService:
     def __init__(self, repo: repository.Repository[domain.Group], subfac: subscriber.SubscriberFactory):
         self._repo = repo
@@ -79,7 +110,7 @@ class GroupHandler:
     async def handle_group_rows_inserted(self, event: events.GroupRowsInserted):
         subs = await self._broker.get_subs(event.group_info)
         for sub in subs:
-            await self._subfac.create_group_subscriber(sub).on_rows_appended(event.rows)
+            await self._subfac.create_group_subscriber(sub).on_rows_inserted(event.rows)
 
 
 class SheetGateway(ABC):
@@ -96,7 +127,7 @@ class SheetGateway(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def insert_rows(self, sheet_id: UUID, data: dict[int, list[domain.CellValue]]):
+    async def insert_row_from_position(self, sheet_id: UUID, from_pos: int, row: list[domain.CellValue]):
         raise NotImplemented
 
 
@@ -108,6 +139,28 @@ async def calculate_profit_cell(wires: pd.DataFrame, ccols: list[domain.Ccol], m
 
     amount = wires.loc[conditions]['amount'].sum()
     return amount
+
+
+class ReportPublisher(subscriber.SourceSubscriber, subscriber.GroupSubscriber):
+    def __init__(self, entity: domain.Report, sheet_gw: SheetGateway, broker: BrokerService):
+        self._entity = entity
+        self._broker = broker
+        self._sheet_gw = sheet_gw
+
+    async def follow_source(self, source: domain.Source):
+        for wire in source.wires:
+            pass
+        await self._broker.subscribe([source], self._entity)
+
+    async def on_wires_appended(self, wire: domain.Wire):
+        raise NotImplemented
+
+    async def follow_group(self, group: domain.Group):
+        await self._broker.subscribe([group], self._entity)
+
+    async def on_rows_inserted(self, data: list[tuple[int, list[domain.CellValue]]]):
+        for row in data:
+            await self._sheet_gw.insert_row_from_position(self._entity.sheet_id, row[0], row[1])
 
 
 class ReportService:

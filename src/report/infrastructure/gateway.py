@@ -19,6 +19,6 @@ class SheetGatewayAPI(SheetGateway):
     async def update_cell_value(self, sheet_id: UUID, row_pos: int, col_pos: int, value: domain.CellValue):
         raise NotImplemented
 
-    async def insert_rows(self, sheet_id: UUID, data: dict[int, list[domain.CellValue]]):
-        raise NotImplemented
+    async def insert_row_from_position(self, sheet_id: UUID, from_pos: int, row: list[domain.CellValue]):
+        await self._sheet_service.insert_sindexes_from_position(sheet_id, [row], from_pos, 0)
 

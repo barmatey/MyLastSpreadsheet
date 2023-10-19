@@ -14,5 +14,5 @@ class WiresAppended(Event):
 
 class GroupRowsInserted(Event):
     group_info: domain.Group
-    rows: dict[int, list[domain.CellValue]]
+    rows: list[tuple[int, list[domain.CellValue]]]
     id: UUID = Field(default_factory=uuid4)
