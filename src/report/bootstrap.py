@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.base.repo.repository import Repository
 from . import services, domain
-from .infrastructure import postgres, gateway, subfactory
+from .infrastructure import postgres, subfactory
 from src.spreadsheet.bootstrap import Bootstrap as SheetBootstrap
 from .infrastructure.gateway import SheetGatewayAPI
 from ..base import eventbus
@@ -22,7 +22,7 @@ class Bootstrap(SheetBootstrap):
     def get_group_service(self) -> services.GroupService:
         usecase = services.GroupService(
             repo=self._group_repo,
-            subfac=subfactory.ReportSubfac(report_service=self.get_report_service())
+            subfac=subfactory.ReportSubfac(report_service=self.get_report_service(), broker=self.get_broker())
         )
         return usecase
 
@@ -33,7 +33,10 @@ class Bootstrap(SheetBootstrap):
 
     def get_event_bus(self) -> eventbus.EventBus:
         bus = super().get_event_bus()
-        handler = services.SourceHandler(subfac=subfactory.ReportSubfac(self.get_report_service()), broker=self.get_broker())
+        handler = services.SourceHandler(
+            subfac=subfactory.ReportSubfac(self.get_report_service(), broker=self.get_broker()),
+            broker=self.get_broker()
+        )
         bus.register('WiresAppended', handler.handle_wires_appended)
 
         return bus

@@ -7,6 +7,6 @@ from . import domain
 
 
 class WiresAppended(Event):
-    source: domain.SourceInfo
+    source_info: domain.SourceInfo
     wires: list[domain.Wire]
     id: UUID = Field(default_factory=uuid4)

@@ -41,7 +41,7 @@ class SourceService:
 
     async def append_wires(self, source_info: domain.SourceInfo, wires: list[domain.Wire]):
         await self._repo.wire_repo.add_many(wires)
-        self._queue.append(events.WiresAppended(key='WiresAppended', wires=wires, source=source_info))
+        self._queue.append(events.WiresAppended(key='WiresAppended', wires=wires, source_info=source_info))
 
 
 class SourceHandler:
@@ -50,7 +50,7 @@ class SourceHandler:
         self._broker = broker
 
     async def handle_wires_appended(self, event: events.WiresAppended):
-        subs = await self._broker.get_subs(event.source)
+        subs = await self._broker.get_subs(event.source_info)
         for sub in subs:
             await self._subfac.create_source_subscriber(sub).on_wires_appended(event.wires)
 
@@ -62,8 +62,8 @@ class GroupService:
 
     async def create(self, title: str, source: domain.Source, ccols: list[domain.Ccol]) -> domain.Group:
         plan_items = domain.PlanItems(ccols=ccols)
-        await self._subfac.create_source_subscriber(plan_items).follow_source(source)
         group = domain.Group(title=title, plan_items=plan_items, source_info=source.source_info)
+        await self._subfac.create_source_subscriber(group).follow_source(source)
         await self._repo.add_many([group])
         return group
 

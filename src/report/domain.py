@@ -45,6 +45,9 @@ class Group(BaseModel):
     source_info: SourceInfo
     id: UUID = Field(default_factory=uuid4)
 
+    def __hash__(self):
+        return self.id.__hash__()
+
 
 class Period(BaseModel):
     from_date: datetime
