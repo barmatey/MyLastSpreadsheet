@@ -104,9 +104,10 @@ class ReportService:
         wires = pd.DataFrame.from_records([x.model_dump(exclude={'source_info'}) for x in source.wires])
         table = [[None] * len(group.plan_items.ccols) + [x.to_date for x in periods]]
         for i, row in enumerate(group.plan_items.table):
-            row += [await calculate_profit_cell(wires, group.plan_items.ccols, group.plan_items.table[i], period)
-                    for period in periods]
+            row = row + [await calculate_profit_cell(wires, group.plan_items.ccols, group.plan_items.table[i], period)
+                         for period in periods]
             table.append(row)
+
         sheet_id = await self._gateway.create_sheet(table)
         report = domain.Report(periods=periods, sheet_id=sheet_id)
         await self._repo.add_many([report])

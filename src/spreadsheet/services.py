@@ -57,6 +57,8 @@ class SheetService:
 
         cells = []
         for i, row in enumerate(table):
+            if len(row) != size[1]:
+                raise Exception(f"expected size is {size[1]} but real size is {len(row)}")
             for j, cell_value in enumerate(row):
                 cells.append(domain.Cell(sf=sf, row=row_sindexes[i], col=col_sindexes[j], value=cell_value))
 

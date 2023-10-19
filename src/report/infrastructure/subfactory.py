@@ -10,18 +10,23 @@ class GroupPublisher(SourceSubscriber):
         self._broker = broker
         self._entity = entity
 
+    def __append_wire(self, wire: domain.Wire):
+        cells = [wire.__getattribute__(ccol) for ccol in self._entity.plan_items.ccols]
+        key = str(cells)
+        if self._entity.plan_items.uniques.get(key) is None:
+            self._entity.plan_items.uniques[key] = 0
+            self._entity.plan_items.table.append(cells)
+        self._entity.plan_items.uniques[key] += 1
+
     async def follow_source(self, source: domain.Source):
         self._entity.plan_items.uniques = {}
+        self._entity.plan_items.table = []
         for wire in source.wires:
-            cells = [wire.__getattribute__(ccol) for ccol in self._entity.plan_items.ccols]
-            self._entity.plan_items.table.append(cells)
-            key = str(cells)
-            if self._entity.plan_items.uniques.get(key) is None:
-                self._entity.plan_items.uniques[key] = 1
+            self.__append_wire(wire)
         await self._broker.subscribe([source.source_info], self._entity)
 
-    async def on_wires_appended(self, wire: domain.Wire):
-        raise NotImplemented
+    async def on_wires_appended(self, wires: list[domain.Wire]):
+        pass
 
 
 class ReportSubscriber(SourceSubscriber):
