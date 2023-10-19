@@ -24,7 +24,7 @@ async def append_wires(source: domain.Source) -> domain.Source:
         domain.Wire(
             sender=i,
             receiver=i,
-            amount=1,
+            amount=111,
             sub1="first" if i % 2 == 0 else "second",
             sub2="no_info",
             date=datetime(2021, i + 1, 15),
@@ -40,6 +40,24 @@ async def append_wires(source: domain.Source) -> domain.Source:
     source.wires = wires
     return source
 
+
+async def create_group(source: domain.Source) -> domain.Group:
+    async with db.get_async_session() as session:
+        boot = bootstrap.Bootstrap(session)
+        receiver = boot.get_group_service()
+        group = await commands.CreateGroup(title="Group", source=source, receiver=receiver,
+                                           ccols=['sender', 'sub1']).execute()
+        await session.commit()
+        return group
+
+
+async def create_report(source: domain.Source, group: domain.Group, periods: list[domain.Period]) -> domain.Report:
+    async with db.get_async_session() as session:
+        boot = bootstrap.Bootstrap(session)
+        receiver = boot.get_report_service()
+        report = await commands.CreateReport(source=source, group=group, periods=periods, receiver=receiver).execute()
+        await session.commit()
+        return report
 
 @pytest.mark.asyncio
 async def test_create_source():
@@ -65,13 +83,7 @@ async def test_append_wires():
 async def test_create_group():
     source = await create_source()
     source = await append_wires(source)
-
-    async with db.get_async_session() as session:
-        boot = bootstrap.Bootstrap(session)
-        receiver = boot.get_group_service()
-        expected = await commands.CreateGroup(title="Group", source=source, receiver=receiver,
-                                              ccols=['sender', 'sub1']).execute()
-        await session.commit()
+    expected = await create_group(source)
 
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
@@ -87,15 +99,9 @@ async def test_create_group():
 async def test_create_profit_report():
     source = await create_source()
     source = await append_wires(source)
+    group = await create_group(source)
     periods = [domain.Period(from_date=datetime(2021, x, 1), to_date=datetime(2021, x, 28)) for x in range(1, 6)]
-
-    async with db.get_async_session() as session:
-        boot = bootstrap.Bootstrap(session)
-        group = await commands.CreateGroup(title="Group", source=source, receiver=boot.get_group_service(),
-                                           ccols=['sender', 'sub1']).execute()
-        receiver = boot.get_report_service()
-        expected = await commands.CreateReport(source=source, group=group, periods=periods, receiver=receiver).execute()
-        await session.commit()
+    expected = await create_report(source, group, periods)
 
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
@@ -105,3 +111,34 @@ async def test_create_profit_report():
         print()
         df = pd.DataFrame(sheet.as_table())
         print(df.to_string())
+
+
+@pytest.mark.asyncio
+async def test_report_sheet_reacts_on_wire_appended():
+    source = await append_wires(await create_source())
+    group = await create_group(source)
+    periods = [domain.Period(from_date=datetime(2021, x, 1), to_date=datetime(2021, x, 28)) for x in range(1, 6)]
+    report = await create_report(source, group, periods)
+
+    wire = domain.Wire(
+        sender=1,
+        receiver=1,
+        amount=333,
+        sub1="first",
+        sub2="no_info",
+        date=datetime(2021, 1, 16),
+        source_info=source.source_info,
+    )
+
+    async with db.get_async_session() as session:
+        boot = bootstrap.Bootstrap(session)
+        cmd = commands.AppendWires(wires=[wire], receiver=boot.get_source_service())
+        await cmd.execute()
+        bus = boot.get_event_bus()
+        await bus.run()
+        await session.commit()
+
+    async with db.get_async_session() as session:
+        boot = bootstrap.Bootstrap(session)
+        sheet = await sheet_commands.GetSheetByUuid(uuid=report.sheet_id, receiver=boot.get_sheet_service()).execute()
+        print("\n", pd.DataFrame(sheet.as_table()).to_string())

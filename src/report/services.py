@@ -5,7 +5,9 @@ import numpy as np
 import pandas as pd
 from src.base.repo import repository
 
-from . import domain, subscriber
+from . import domain, subscriber, events
+from ..base import eventbus
+from ..base.broker import BrokerService
 
 
 class SourceRepo(ABC):
@@ -27,7 +29,8 @@ class SourceRepo(ABC):
 
 
 class SourceService:
-    def __init__(self, repo: SourceRepo):
+    def __init__(self, repo: SourceRepo, queue: eventbus.Queue):
+        self._queue = queue
         self._repo = repo
 
     async def create_source(self, source: domain.Source):
@@ -38,6 +41,18 @@ class SourceService:
 
     async def append_wires(self, wires: list[domain.Wire]):
         await self._repo.wire_repo.add_many(wires)
+        self._queue.append(events.WiresAppended(key='WiresAppended', wires=wires))
+
+
+class SourceHandler:
+    def __init__(self, subfac: subscriber.SubscriberFactory, broker: BrokerService):
+        self._subfac = subfac
+        self._broker = broker
+
+    async def handle_wires_appended(self, event: events.WiresAppended):
+        subs = await self._broker.get_subs(event.source)
+        for sub in subs:
+            await self._subfac.create_source_subscriber(sub).on_wires_appended(event.wires)
 
 
 class GroupService:
@@ -59,6 +74,10 @@ class GroupService:
 class SheetGateway(ABC):
     @abstractmethod
     async def create_sheet(self, table: list[list[domain.CellValue]]) -> UUID:
+        raise NotImplemented
+
+    @abstractmethod
+    async def get_cell_value(self, sheet_id: UUID, row_pos: int, col_pos: int) -> domain.CellValue:
         raise NotImplemented
 
     @abstractmethod

@@ -18,7 +18,7 @@ class PlanItemsSubscriber(SourceSubscriber):
                 self._entity.uniques[key] = 1
 
     async def on_wire_appended(self, wire: domain.Wire):
-        pass
+        raise NotImplemented
 
 
 class ReportSubscriber(SourceSubscriber):

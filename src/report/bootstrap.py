@@ -15,7 +15,7 @@ class Bootstrap(SheetBootstrap):
         self._report_repo: Repository[domain.Report] = postgres.ReportRepo(session)
 
     def get_source_service(self) -> services.SourceService:
-        source_service = services.SourceService(repo=self._source_repo)
+        source_service = services.SourceService(repo=self._source_repo, queue=self._queue)
         return source_service
 
     def get_group_service(self) -> services.GroupService:

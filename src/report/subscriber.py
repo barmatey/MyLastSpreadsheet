@@ -12,7 +12,7 @@ class SourceSubscriber(Subscriber):
         raise NotImplemented
 
     @abstractmethod
-    async def on_wire_appended(self, wire: domain.Wire):
+    async def on_wires_appended(self, wires: list[domain.Wire]):
         raise NotImplemented
 
 

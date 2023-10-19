@@ -13,5 +13,8 @@ class SheetGatewayAPI(SheetGateway):
         sheet = await self._sheet_service.create_sheet(table)
         return sheet.sf.id
 
+    async def get_cell_value(self, sheet_id: UUID, row_pos: int, col_pos: int) -> domain.CellValue:
+        raise NotImplemented
+
     async def update_cell_value(self, sheet_id: UUID, row_pos: int, col_pos: int, value: domain.CellValue):
         raise NotImplemented
