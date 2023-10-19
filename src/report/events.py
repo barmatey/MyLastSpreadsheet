@@ -12,7 +12,7 @@ class WiresAppended(Event):
     id: UUID = Field(default_factory=uuid4)
 
 
-class GroupRowsAppended(Event):
+class GroupRowsInserted(Event):
     group_info: domain.Group
-    rows: list[list[domain.CellValue]]
+    rows: dict[int, list[domain.CellValue]]
     id: UUID = Field(default_factory=uuid4)

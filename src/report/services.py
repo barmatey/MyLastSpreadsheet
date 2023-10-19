@@ -76,7 +76,7 @@ class GroupHandler:
         self._subfac = subfac
         self._broker = broker
 
-    async def handle_group_rows_inserted(self, event: events.GroupRowsAppended):
+    async def handle_group_rows_inserted(self, event: events.GroupRowsInserted):
         subs = await self._broker.get_subs(event.group_info)
         for sub in subs:
             await self._subfac.create_group_subscriber(sub).on_rows_appended(event.rows)
@@ -93,6 +93,10 @@ class SheetGateway(ABC):
 
     @abstractmethod
     async def update_cell_value(self, sheet_id: UUID, row_pos: int, col_pos: int, value: domain.CellValue):
+        raise NotImplemented
+
+    @abstractmethod
+    async def insert_rows(self, sheet_id: UUID, data: dict[int, list[domain.CellValue]]):
         raise NotImplemented
 
 
