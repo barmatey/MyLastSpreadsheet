@@ -21,8 +21,16 @@ class GroupSubscriber(Subscriber):
     async def follow_group(self, group: domain.Group):
         raise NotImplemented
 
+    @abstractmethod
+    async def on_rows_appended(self, data: dict[int, list[domain.CellValue]]):
+        raise NotImplemented
+
 
 class SubscriberFactory(ABC):
     @abstractmethod
     def create_source_subscriber(self, entity: BaseModel) -> SourceSubscriber:
+        raise NotImplemented
+
+    @abstractmethod
+    def create_group_subscriber(self, entity: BaseModel) -> GroupSubscriber:
         raise NotImplemented

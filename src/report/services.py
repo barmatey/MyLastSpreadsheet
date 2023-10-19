@@ -71,6 +71,17 @@ class GroupService:
         return await self._repo.get_one_by_id(uuid)
 
 
+class GroupHandler:
+    def __init__(self, subfac: subscriber.SubscriberFactory, broker: BrokerService):
+        self._subfac = subfac
+        self._broker = broker
+
+    async def handle_group_rows_inserted(self, event: events.GroupRowsAppended):
+        subs = await self._broker.get_subs(event.group_info)
+        for sub in subs:
+            await self._subfac.create_group_subscriber(sub).on_rows_appended(event.rows)
+
+
 class SheetGateway(ABC):
     @abstractmethod
     async def create_sheet(self, table: list[list[domain.CellValue]]) -> UUID:
@@ -96,7 +107,9 @@ async def calculate_profit_cell(wires: pd.DataFrame, ccols: list[domain.Ccol], m
 
 
 class ReportService:
-    def __init__(self, repo: repository.Repository[domain.Report], sheet_gateway: SheetGateway):
+    def __init__(self, repo: repository.Repository[domain.Report], sheet_gateway: SheetGateway,
+                 subfac: subscriber.SubscriberFactory):
+        self._subfac = subfac
         self._gateway = sheet_gateway
         self._repo = repo
 
@@ -110,6 +123,7 @@ class ReportService:
 
         sheet_id = await self._gateway.create_sheet(table)
         report = domain.Report(periods=periods, sheet_id=sheet_id)
+        await self._subfac.create_group_subscriber(report).follow_group(group)
         await self._repo.add_many([report])
         return report
 

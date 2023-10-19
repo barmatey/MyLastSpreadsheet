@@ -14,6 +14,7 @@ class Bootstrap(SheetBootstrap):
         self._source_repo: services.SourceRepo = postgres.SourceFullRepo(session)
         self._group_repo: Repository[domain.Group] = postgres.GroupRepo(session)
         self._report_repo: Repository[domain.Report] = postgres.ReportRepo(session)
+        self._subfac = subfactory.ReportSubfac(self.get_report_service(), broker=self.get_broker(), queue=self._queue)
 
     def get_source_service(self) -> services.SourceService:
         source_service = services.SourceService(repo=self._source_repo, queue=self._queue)
@@ -22,21 +23,25 @@ class Bootstrap(SheetBootstrap):
     def get_group_service(self) -> services.GroupService:
         usecase = services.GroupService(
             repo=self._group_repo,
-            subfac=subfactory.ReportSubfac(report_service=self.get_report_service(), broker=self.get_broker())
+            subfac=subfactory.ReportSubfac(report_service=self.get_report_service(),
+                                           broker=self.get_broker(), queue=self._queue)
         )
         return usecase
 
     def get_report_service(self) -> services.ReportService:
         sheet_service = self.get_sheet_service()
         gw = SheetGatewayAPI(sheet_service=sheet_service)
-        return services.ReportService(self._report_repo, gw)
+        return services.ReportService(self._report_repo, gw, self._subfac)
 
     def get_event_bus(self) -> eventbus.EventBus:
         bus = super().get_event_bus()
         handler = services.SourceHandler(
-            subfac=subfactory.ReportSubfac(self.get_report_service(), broker=self.get_broker()),
+            subfac=subfactory.ReportSubfac(self.get_report_service(), broker=self.get_broker(), queue=self._queue),
             broker=self.get_broker()
         )
         bus.register('WiresAppended', handler.handle_wires_appended)
+
+        handler = services.GroupHandler(self._subfac, self.get_broker())
+        bus.register('GroupRowsInserted', handler.handle_group_rows_inserted)
 
         return bus

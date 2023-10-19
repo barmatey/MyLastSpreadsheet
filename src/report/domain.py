@@ -58,3 +58,6 @@ class Report(BaseModel):
     periods: list[Period]
     sheet_id: UUID
     id: UUID = Field(default_factory=uuid4)
+
+    def __hash__(self):
+        return self.id.__hash__()
