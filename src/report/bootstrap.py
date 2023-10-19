@@ -5,6 +5,7 @@ from . import services, domain
 from .infrastructure import postgres, gateway, subfactory
 from src.spreadsheet.bootstrap import Bootstrap as SheetBootstrap
 from .infrastructure.gateway import SheetGatewayAPI
+from ..base import eventbus
 
 
 class Bootstrap(SheetBootstrap):
@@ -19,10 +20,20 @@ class Bootstrap(SheetBootstrap):
         return source_service
 
     def get_group_service(self) -> services.GroupService:
-        usecase = services.GroupService(repo=self._group_repo, subfac=subfactory.ReportSubfac())
+        usecase = services.GroupService(
+            repo=self._group_repo,
+            subfac=subfactory.ReportSubfac(report_service=self.get_report_service())
+        )
         return usecase
 
     def get_report_service(self) -> services.ReportService:
         sheet_service = self.get_sheet_service()
         gw = SheetGatewayAPI(sheet_service=sheet_service)
         return services.ReportService(self._report_repo, gw)
+
+    def get_event_bus(self) -> eventbus.EventBus:
+        bus = super().get_event_bus()
+        handler = services.SourceHandler(subfac=subfactory.ReportSubfac(self.get_report_service()), broker=self.get_broker())
+        bus.register('WiresAppended', handler.handle_wires_appended)
+
+        return bus

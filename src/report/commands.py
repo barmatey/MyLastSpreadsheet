@@ -26,13 +26,14 @@ class GetSourceById(BaseModel):
 
 
 class AppendWires(BaseModel):
+    source_info: domain.SourceInfo
     wires: list[domain.Wire]
     receiver: services.SourceService
     model_config = ConfigDict(arbitrary_types_allowed=True)
     id: UUID = Field(default_factory=uuid4)
 
     async def execute(self) -> None:
-        await self.receiver.append_wires(self.wires)
+        await self.receiver.append_wires(self.source_info, self.wires)
 
 
 class CreateGroup(BaseModel):

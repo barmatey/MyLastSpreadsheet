@@ -39,9 +39,9 @@ class SourceService:
     async def get_source_by_id(self, uuid: UUID) -> domain.Source:
         return await self._repo.get_source_by_id(uuid)
 
-    async def append_wires(self, wires: list[domain.Wire]):
+    async def append_wires(self, source_info: domain.SourceInfo, wires: list[domain.Wire]):
         await self._repo.wire_repo.add_many(wires)
-        self._queue.append(events.WiresAppended(key='WiresAppended', wires=wires))
+        self._queue.append(events.WiresAppended(key='WiresAppended', wires=wires, source=source_info))
 
 
 class SourceHandler:

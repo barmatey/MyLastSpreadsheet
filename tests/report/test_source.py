@@ -33,7 +33,7 @@ async def append_wires(source: domain.Source) -> domain.Source:
     ]
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
-        await boot.get_source_service().append_wires(wires)
+        await boot.get_source_service().append_wires(source.source_info, wires)
         await session.commit()
 
     source = source.model_copy(deep=True)
@@ -58,6 +58,7 @@ async def create_report(source: domain.Source, group: domain.Group, periods: lis
         report = await commands.CreateReport(source=source, group=group, periods=periods, receiver=receiver).execute()
         await session.commit()
         return report
+
 
 @pytest.mark.asyncio
 async def test_create_source():
@@ -132,7 +133,7 @@ async def test_report_sheet_reacts_on_wire_appended():
 
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
-        cmd = commands.AppendWires(wires=[wire], receiver=boot.get_source_service())
+        cmd = commands.AppendWires(source_info=source.source_info, wires=[wire], receiver=boot.get_source_service())
         await cmd.execute()
         bus = boot.get_event_bus()
         await bus.run()
