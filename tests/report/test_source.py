@@ -1,6 +1,7 @@
 import random
 from datetime import datetime
 
+import pandas as pd
 import pytest
 from loguru import logger
 
@@ -23,10 +24,10 @@ async def append_wires(source: domain.Source) -> domain.Source:
         domain.Wire(
             sender=i,
             receiver=i,
-            amount=random.randrange(0, 111),
+            amount=1,
             sub1="first" if i % 2 == 0 else "second",
             sub2="no_info",
-            date=datetime(2021, i + 1, 5),
+            date=datetime(2021, i + 1, 15),
             source_info=source.source_info,
         ) for i in range(0, 5)
     ]
@@ -86,7 +87,7 @@ async def test_create_group():
 async def test_create_profit_report():
     source = await create_source()
     source = await append_wires(source)
-    periods = [domain.Period(from_date=datetime(2021, x, 10), to_date=datetime(2021, x, 15)) for x in range(1, 6)]
+    periods = [domain.Period(from_date=datetime(2021, x, 1), to_date=datetime(2021, x, 28)) for x in range(1, 6)]
 
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
@@ -101,5 +102,6 @@ async def test_create_profit_report():
         report = await commands.GetReportById(id=expected.id, receiver=boot.get_report_service()).execute()
         sheet = await sheet_commands.GetSheetByUuid(uuid=report.sheet_id, receiver=boot.get_sheet_service()).execute()
 
-        logger.debug(f"\n{report}")
-        logger.debug(f"\n{sheet.as_table()}")
+        print()
+        df = pd.DataFrame(sheet.as_table())
+        print(df.to_string())

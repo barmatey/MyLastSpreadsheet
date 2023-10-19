@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
+
+import numpy as np
 import pandas as pd
 from src.base.repo import repository
 
@@ -64,8 +66,14 @@ class SheetGateway(ABC):
         raise NotImplemented
 
 
-async def calculate_profit_cell(wires, ccols, period) -> float:
-    return 11
+async def calculate_profit_cell(wires: pd.DataFrame, ccols: list[domain.Ccol], mappers: list[domain.CellValue],
+                                period: domain.Period) -> float:
+    conditions = (wires['date'] >= period.from_date) & (wires['date'] <= period.to_date)
+    for ccol, x in zip(ccols, mappers):
+        conditions = conditions & (wires[ccol] == x)
+
+    amount = wires.loc[conditions]['amount'].sum()
+    return amount
 
 
 class ReportService:
@@ -74,8 +82,12 @@ class ReportService:
         self._repo = repo
 
     async def create(self, source: domain.Source, group: domain.Group, periods: list[domain.Period]) -> domain.Report:
-        table = [[1, 2], [3, 4]]
-
+        wires = pd.DataFrame.from_records([x.model_dump(exclude={'source_info'}) for x in source.wires])
+        table = [[None] * len(group.plan_items.ccols) + [x.to_date for x in periods]]
+        for i, row in enumerate(group.plan_items.table):
+            row += [await calculate_profit_cell(wires, group.plan_items.ccols, group.plan_items.table[i], period)
+                    for period in periods]
+            table.append(row)
         sheet_id = await self._gateway.create_sheet(table)
         report = domain.Report(periods=periods, sheet_id=sheet_id)
         await self._repo.add_many([report])
