@@ -13,6 +13,9 @@ class SourceInfo(BaseModel):
     title: str
     id: UUID = Field(default_factory=uuid4)
 
+    def __hash__(self):
+        return self.id.__hash__()
+
 
 class Wire(BaseModel):
     date: datetime
