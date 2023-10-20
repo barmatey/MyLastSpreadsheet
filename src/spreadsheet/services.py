@@ -129,35 +129,7 @@ class SheetService:
     async def insert_sindexes(self, sheet_id: UUID, table: domain.Table, before: domain.Sindex):
         sf = (await self._repo.sheet_info_repo.get_many({"id": sheet_id})).pop()
         axis = 0 if isinstance(before, domain.RowSindex) else 1
-        if axis == 0:
-            sf.size = (sf.size[0] + len(table), sf.size[1])
-            primary_repo = self._repo.row_repo
-            secondary_repo = self._repo.col_repo
-            sindex_class = domain.RowSindex
-        else:
-            sf.size = (sf.size[0], sf.size[1] + len(table))
-            primary_repo = self._repo.col_repo
-            secondary_repo = self._repo.row_repo
-            sindex_class = domain.ColSindex
-        await self._repo.sheet_info_repo.update_one(sf)
-
-        filter_by = {"sheet_id": sheet_id, "position.__gte": before.position}
-        sindexes_after = await primary_repo.get_many(filter_by=filter_by, order_by=OrderBy("position", asc=True))
-        if sindexes_after:
-            for sindex in sindexes_after:
-                sindex.position = sindex.position + len(table)
-            await primary_repo.update_many(sindexes_after)
-
-        primary_sindexes = [sindex_class(position=before.position + i, sf=sf) for i in range(0, len(table))]
-        await primary_repo.add_many(primary_sindexes)
-        secondary_sindexes = await secondary_repo.get_many({"sheet_id": sheet_id}, order_by=OrderBy("position", True))
-
-        cells = []
-        for i, primary in enumerate(primary_sindexes):
-            for j, secondary in enumerate(secondary_sindexes):
-                row, col = (primary, secondary) if axis == 0 else (secondary, primary)
-                cells.append(domain.Cell(sf=sf, row=row, col=col, value=table[i][j]))
-        await self._repo.cell_repo.add_many(cells)
+        await self.insert_sindexes_from_position(sheet_id, table, before.position, axis)
 
     async def delete_sindexes(self, sindexes: list[domain.Sindex], cells: list[domain.Cell] = None):
         """Function changes sheet_info inplace"""
