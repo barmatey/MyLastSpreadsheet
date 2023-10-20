@@ -16,21 +16,7 @@ class SourceSubscriber(Subscriber):
         raise NotImplemented
 
 
-class GroupSubscriber(Subscriber):
-    @abstractmethod
-    async def follow_group(self, group: domain.Group):
-        raise NotImplemented
-
-    @abstractmethod
-    async def on_group_rows_inserted(self, data: list[tuple[int, list[domain.CellValue]]]):
-        raise NotImplemented
-
-
 class SubscriberFactory(ABC):
     @abstractmethod
     def create_source_subscriber(self, entity: BaseModel) -> SourceSubscriber:
-        raise NotImplemented
-
-    @abstractmethod
-    def create_group_subscriber(self, entity: BaseModel) -> GroupSubscriber:
         raise NotImplemented

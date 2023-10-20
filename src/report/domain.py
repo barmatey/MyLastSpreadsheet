@@ -47,15 +47,6 @@ class PlanItems(BaseModel):
             "order": list(self.order),
         }
 
-class Group(BaseModel):
-    title: str
-    plan_items: PlanItems
-    source_info: SourceInfo
-    id: UUID = Field(default_factory=uuid4)
-
-    def __hash__(self):
-        return self.id.__hash__()
-
 
 class Period(BaseModel):
     from_date: datetime

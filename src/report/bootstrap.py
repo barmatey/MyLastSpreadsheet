@@ -12,25 +12,16 @@ class Bootstrap(SheetBootstrap):
     def __init__(self, session: AsyncSession):
         super().__init__(session)
         self._source_repo: services.SourceRepo = postgres.SourceFullRepo(session)
-        self._group_repo: Repository[domain.Group] = postgres.GroupRepo(session)
         self._report_repo: Repository[domain.Report] = postgres.ReportRepo(session)
         self._gw = SheetGatewayAPI(sheet_service=self.get_sheet_service())
 
-        self._subfac = subfactory.ReportSubfac(group_repo=self._group_repo,
-                                               broker=self.get_broker(),
+        self._subfac = subfactory.ReportSubfac(broker=self.get_broker(),
                                                queue=self._queue,
                                                sheet_gateway=self._gw)
 
     def get_source_service(self) -> services.SourceService:
         source_service = services.SourceService(repo=self._source_repo, queue=self._queue)
         return source_service
-
-    def get_group_service(self) -> services.GroupService:
-        usecase = services.GroupService(
-            repo=self._group_repo,
-            subfac=self._subfac
-        )
-        return usecase
 
     def get_report_service(self) -> services.ReportService:
         sheet_service = self.get_sheet_service()
@@ -44,8 +35,4 @@ class Bootstrap(SheetBootstrap):
             broker=self.get_broker()
         )
         bus.register('WiresAppended', handler.handle_wires_appended)
-
-        handler = services.GroupHandler(self._subfac, self.get_broker())
-        bus.register('GroupRowsInserted', handler.handle_group_rows_inserted)
-
         return bus

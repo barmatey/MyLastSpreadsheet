@@ -36,38 +36,16 @@ class AppendWires(BaseModel):
         await self.receiver.append_wires(self.source_info, self.wires)
 
 
-class CreateGroup(BaseModel):
-    title: str
-    source: domain.Source
-    ccols: list[domain.Ccol]
-    receiver: services.GroupService
-    id: UUID = Field(default_factory=uuid4)
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    async def execute(self) -> domain.Group:
-        group = await self.receiver.create(self.title, self.source, self.ccols)
-        return group
-
-
-class GetGroupById(BaseModel):
-    id: UUID
-    receiver: services.GroupService
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    async def execute(self) -> domain.Group:
-        return await self.receiver.get_by_id(self.id)
-
-
 class CreateReport(BaseModel):
     source: domain.Source
-    group: domain.Group
     periods: list[domain.Period]
+    plan_items: domain.PlanItems
     receiver: services.ReportService
     id: UUID = Field(default_factory=uuid4)
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def execute(self) -> domain.Report:
-        report = await self.receiver.create(source=self.source, plan_items=self.group.plan_items, periods=self.periods)
+        report = await self.receiver.create(source=self.source, plan_items=self.plan_items, periods=self.periods)
         return report
 
 

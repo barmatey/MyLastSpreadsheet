@@ -16,7 +16,6 @@ class SourceInfoModel(Base):
     __tablename__ = "source"
     title: Mapped[str] = mapped_column(String(32), nullable=False)
     wires = relationship('WireModel')
-    groups = relationship('GroupModel')
 
     def to_entity(self) -> domain.SourceInfo:
         return domain.SourceInfo(id=self.id, title=self.title)
@@ -62,35 +61,6 @@ class WireModel(Base):
             sub2=entity.sub2,
             date=entity.date,
             source_id=entity.source_info.id,
-        )
-
-
-class GroupModel(Base):
-    __tablename__ = "group"
-    title: Mapped[str] = mapped_column(String(128), nullable=False)
-    plan_items: Mapped[JSON] = mapped_column(JSON, nullable=False)
-    source_info_id: Mapped[UUID] = mapped_column(ForeignKey("source.id"))
-
-    def to_entity(self, source_info: domain.SourceInfo) -> domain.Group:
-        plan_items = domain.PlanItems(
-            ccols=self.plan_items['ccols'],
-            uniques=self.plan_items['uniques'],
-            order=SortedList(self.plan_items['order']),
-        )
-        return domain.Group(
-            id=self.id,
-            title=self.title,
-            source_info=source_info,
-            plan_items=plan_items,
-        )
-
-    @classmethod
-    def from_entity(cls, entity: domain.Group):
-        return cls(
-            id=entity.id,
-            title=entity.title,
-            plan_items=entity.plan_items.to_json(),
-            source_info_id=entity.source_info.id,
         )
 
 
@@ -168,22 +138,6 @@ class SourceFullRepo(services.SourceRepo):
             source_info = result[0][0].to_entity()
             wires = [x[1].to_entity(source_info=source_info) for x in result]
             return domain.Source(source_info=source_info, wires=wires)
-
-
-class GroupRepo(PostgresRepo):
-    def __init__(self, session: AsyncSession, model: Type[Base] = GroupModel):
-        super().__init__(session, model)
-
-    async def get_one_by_id(self, uuid: UUID) -> domain.Group:
-        stmt = (
-            select(GroupModel, SourceInfoModel)
-            .join(SourceInfoModel, GroupModel.source_info_id == SourceInfoModel.id)
-            .where(GroupModel.id == uuid)
-        )
-        result = (await self._session.execute(stmt)).__next__()
-        source_info = result[1].to_entity()
-        group = result[0].to_entity(source_info=source_info)
-        return group
 
 
 class ReportRepo(PostgresRepo):

@@ -2,20 +2,20 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 import pandas as pd
 
-from src.base.repo import repository
 from ..base import eventbus
 from ..base.broker import BrokerService
+from ..base.repo.repository import Repository
 
 from . import domain, subscriber, events
 
 
 class SourceRepo(ABC):
     @property
-    def source_info_repo(self) -> repository.Repository[domain.SourceInfo]:
+    def source_info_repo(self) -> Repository[domain.SourceInfo]:
         raise NotImplemented
 
     @property
-    def wire_repo(self) -> repository.Repository[domain.Wire]:
+    def wire_repo(self) -> Repository[domain.Wire]:
         raise NotImplemented
 
     @abstractmethod
@@ -52,62 +52,6 @@ class SourceHandler:
         subs = await self._broker.get_subs(event.source_info)
         for sub in subs:
             await self._subfac.create_source_subscriber(sub).on_wires_appended(event.wires)
-
-
-class GroupPublisher(subscriber.SourceSubscriber):
-    def __init__(self, entity: domain.Group, broker: BrokerService, queue: eventbus.Queue,
-                 repo: repository.Repository[domain.Group]):
-        self._queue = queue
-        self._broker = broker
-        self._entity = entity.model_copy(deep=True)
-        self._repo = repo
-        self.__appended_rows: list[tuple[int, list[domain.CellValue]]] = []
-
-    def __append_wire(self, wire: domain.Wire):
-        cells = [wire.__getattribute__(ccol) for ccol in self._entity.plan_items.ccols]
-        key = str(cells)
-        if self._entity.plan_items.uniques.get(key) is None:
-            self._entity.plan_items.uniques[key] = 0
-        self._entity.plan_items.uniques[key] += 1
-
-    async def follow_source(self, source: domain.Source):
-        self._entity.plan_items.uniques = {}
-        await self.on_wires_appended(source.wires)
-        await self._broker.subscribe([source.source_info], self._entity)
-
-    async def on_wires_appended(self, wires: list[domain.Wire]):
-        for wire in wires:
-            self.__append_wire(wire)
-        await self._repo.update_one(self._entity)
-        self._queue.append(
-            events.GroupRowsInserted(key='GroupRowsInserted', rows=self.__appended_rows, group_info=self._entity))
-
-
-class GroupService:
-    def __init__(self, repo: repository.Repository[domain.Group], subfac: subscriber.SubscriberFactory):
-        self._repo = repo
-        self._subfac = subfac
-
-    async def create(self, title: str, source: domain.Source, ccols: list[domain.Ccol]) -> domain.Group:
-        plan_items = domain.PlanItems(ccols=ccols)
-        group = domain.Group(title=title, plan_items=plan_items, source_info=source.source_info)
-        await self._repo.add_many([group])
-        await self._subfac.create_source_subscriber(group).follow_source(source)
-        return group
-
-    async def get_by_id(self, uuid: UUID) -> domain.Group:
-        return await self._repo.get_one_by_id(uuid)
-
-
-class GroupHandler:
-    def __init__(self, subfac: subscriber.SubscriberFactory, broker: BrokerService):
-        self._subfac = subfac
-        self._broker = broker
-
-    async def handle_group_rows_inserted(self, event: events.GroupRowsInserted):
-        subs = await self._broker.get_subs(event.group_info)
-        for sub in subs:
-            await self._subfac.create_group_subscriber(sub).on_group_rows_inserted(event.rows)
 
 
 class SheetGateway(ABC):
@@ -170,13 +114,11 @@ class ReportPublisher(subscriber.SourceSubscriber):
                 from_pos=self._entity.plan_items.order.bisect_left(key) + 1,
                 row=row,
             )
-        else:
-            print(self._entity.plan_items)
         self._entity.plan_items.uniques[key] += 1
 
 
 class ReportService:
-    def __init__(self, repo: repository.Repository[domain.Report], sheet_gateway: SheetGateway,
+    def __init__(self, repo: Repository[domain.Report], sheet_gateway: SheetGateway,
                  subfac: subscriber.SubscriberFactory):
         self._subfac = subfac
         self._gateway = sheet_gateway
