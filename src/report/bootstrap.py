@@ -16,7 +16,9 @@ class Bootstrap(SheetBootstrap):
         self._report_repo: Repository[domain.Report] = postgres.ReportRepo(session)
         self._gw = SheetGatewayAPI(sheet_service=self.get_sheet_service())
 
-        self._subfac = subfactory.ReportSubfac(self.get_report_service(), broker=self.get_broker(), queue=self._queue,
+        self._subfac = subfactory.ReportSubfac(group_repo=self._group_repo,
+                                               broker=self.get_broker(),
+                                               queue=self._queue,
                                                sheet_gateway=self._gw)
 
     def get_source_service(self) -> services.SourceService:

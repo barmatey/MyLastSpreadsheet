@@ -64,7 +64,7 @@ class PostgresRepo(Repository):
         stmt = update(self._model).where(self._model.id == data.id).returning(self._model.id)
         result = await self._session.execute(stmt, model.__dict__)
         if len(list(result)) != 1:
-            raise LookupError
+            raise LookupError(f"{len(list(result))}")
 
     async def update_many(self, data: list[T]):
         stmt = update(self._model)

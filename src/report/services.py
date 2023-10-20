@@ -55,10 +55,12 @@ class SourceHandler:
 
 
 class GroupPublisher(subscriber.SourceSubscriber):
-    def __init__(self, entity: domain.Group, broker: BrokerService, queue: eventbus.Queue):
+    def __init__(self, entity: domain.Group, broker: BrokerService, queue: eventbus.Queue,
+                 repo: repository.Repository[domain.Group]):
         self._queue = queue
         self._broker = broker
         self._entity = entity
+        self._repo = repo
         self.__appended_rows: list[tuple[int, list[domain.CellValue]]] = []
 
     def __append_wire(self, wire: domain.Wire):
@@ -73,15 +75,13 @@ class GroupPublisher(subscriber.SourceSubscriber):
     async def follow_source(self, source: domain.Source):
         self._entity.plan_items.uniques = {}
         self._entity.plan_items.table = []
-        for wire in source.wires:
-            self.__append_wire(wire)
+        await self.on_wires_appended(source.wires)
         await self._broker.subscribe([source.source_info], self._entity)
-        self._queue.append(
-            events.GroupRowsInserted(key='GroupRowsInserted', rows=self.__appended_rows, group_info=self._entity))
 
     async def on_wires_appended(self, wires: list[domain.Wire]):
         for wire in wires:
             self.__append_wire(wire)
+        await self._repo.update_one(self._entity)
         self._queue.append(
             events.GroupRowsInserted(key='GroupRowsInserted', rows=self.__appended_rows, group_info=self._entity))
 
@@ -94,8 +94,8 @@ class GroupService:
     async def create(self, title: str, source: domain.Source, ccols: list[domain.Ccol]) -> domain.Group:
         plan_items = domain.PlanItems(ccols=ccols)
         group = domain.Group(title=title, plan_items=plan_items, source_info=source.source_info)
-        await self._subfac.create_source_subscriber(group).follow_source(source)
         await self._repo.add_many([group])
+        await self._subfac.create_source_subscriber(group).follow_source(source)
         return group
 
     async def get_by_id(self, uuid: UUID) -> domain.Group:

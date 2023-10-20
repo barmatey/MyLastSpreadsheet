@@ -151,4 +151,6 @@ async def test_report_sheet_reacts_on_wire_appended():
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
         sheet = await sheet_commands.GetSheetByUuid(uuid=report.sheet_id, receiver=boot.get_sheet_service()).execute()
+        group = await commands.GetGroupById(id=group.id, receiver=boot.get_group_service()).execute()
+        print("\n", pd.DataFrame(group.plan_items.table).to_string())
         print("\n", pd.DataFrame(sheet.as_table()).to_string())

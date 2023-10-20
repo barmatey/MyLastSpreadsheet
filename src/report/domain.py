@@ -2,11 +2,12 @@ from typing import Literal, Union
 from uuid import UUID, uuid4
 from datetime import datetime
 from pydantic import BaseModel, Field
+from sortedcontainers import SortedList
 
-Ccol = Literal['currency', 'sender', 'receiver', 'sub1', 'sub2',]
-CellValue = Union[int, float, str, bool, None, datetime,]
+Ccol = Literal['currency', 'sender', 'receiver', 'sub1', 'sub2', ]
+CellValue = Union[int, float, str, bool, None, datetime, ]
 Table = list[list[CellValue]]
-CellDtype = Literal["int", "float", "string", "bool", "datetime",]
+CellDtype = Literal["int", "float", "string", "bool", "datetime", ]
 
 
 class SourceInfo(BaseModel):
