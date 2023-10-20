@@ -1,6 +1,7 @@
 from typing import Type
 from uuid import UUID
 
+from sortedcontainers import SortedList
 from sqlalchemy import String, Integer, TIMESTAMP, func, Float, ForeignKey, select, JSON
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -71,11 +72,16 @@ class GroupModel(Base):
     source_info_id: Mapped[UUID] = mapped_column(ForeignKey("source.id"))
 
     def to_entity(self, source_info: domain.SourceInfo) -> domain.Group:
+        plan_items = domain.PlanItems(
+            ccols=self.plan_items['ccols'],
+            uniques=self.plan_items['uniques'],
+            order=SortedList(self.plan_items['order']),
+        )
         return domain.Group(
             id=self.id,
             title=self.title,
             source_info=source_info,
-            plan_items=domain.PlanItems(**self.plan_items)
+            plan_items=plan_items,
         )
 
     @classmethod
@@ -83,7 +89,7 @@ class GroupModel(Base):
         return cls(
             id=entity.id,
             title=entity.title,
-            plan_items=entity.plan_items.model_dump(),
+            plan_items=entity.plan_items.to_json(),
             source_info_id=entity.source_info.id,
         )
 
@@ -95,10 +101,15 @@ class ReportModel(Base):
     sheet_id: Mapped[UUID] = mapped_column(String(64), nullable=False)
 
     def to_entity(self) -> domain.Report:
+        plan_items = domain.PlanItems(
+            ccols=self.plan_items['ccols'],
+            uniques=self.plan_items['uniques'],
+            order=SortedList(self.plan_items['order']),
+        )
         return domain.Report(
             id=self.id,
             periods=[domain.Period(**x) for x in self.periods],
-            plan_items=domain.PlanItems(**self.plan_items),
+            plan_items=plan_items,
             sheet_id=self.sheet_id,
         )
 
@@ -107,7 +118,7 @@ class ReportModel(Base):
         return cls(
             id=entity.id,
             periods=[x.model_dump(mode='json') for x in entity.periods],
-            plan_items=entity.plan_items.model_dump(mode='json'),
+            plan_items=entity.plan_items.to_json(),
             sheet_id=str(entity.sheet_id),
         )
 

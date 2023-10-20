@@ -157,6 +157,7 @@ class ReportPublisher(subscriber.SourceSubscriber):
         key = str(cells)
         if self._entity.plan_items.uniques.get(key) is None:
             self._entity.plan_items.uniques[key] = 0
+            self._entity.plan_items.order.add(key)
 
             row: list[domain.CellValue] = [wire.__getattribute__(c)
                                            for c in self._entity.plan_items.ccols] + [0] * len(self._entity.periods)
@@ -166,7 +167,7 @@ class ReportPublisher(subscriber.SourceSubscriber):
                     break
             await self._sheet_gw.insert_row_from_position(
                 sheet_id=self._entity.sheet_id,
-                from_pos=len(self._entity.plan_items.uniques),
+                from_pos=self._entity.plan_items.order.bisect_left(key) + 1,
                 row=row,
             )
         else:

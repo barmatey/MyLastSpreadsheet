@@ -37,8 +37,15 @@ class Source(BaseModel):
 class PlanItems(BaseModel):
     ccols: list[Ccol]
     uniques: dict[str, int] = Field(default_factory=dict)
+    order: SortedList[str] = Field(default_factory=SortedList)
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    def to_json(self):
+        return {
+            "ccols": self.ccols,
+            "uniques": self.uniques,
+            "order": list(self.order),
+        }
 
 class Group(BaseModel):
     title: str
