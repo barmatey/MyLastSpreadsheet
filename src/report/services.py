@@ -1,7 +1,10 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
+import bisect
 
 import pandas as pd
+from sortedcontainers import SortedList
+
 from src.base.repo import repository
 
 from . import domain, subscriber, events
@@ -68,8 +71,12 @@ class GroupPublisher(subscriber.SourceSubscriber):
         key = str(cells)
         if self._entity.plan_items.uniques.get(key) is None:
             self._entity.plan_items.uniques[key] = 0
-            self._entity.plan_items.table.append(cells)
-            self.__appended_rows.append((len(self._entity.plan_items.table), cells))
+            bisect.insort(self._entity.plan_items.table, cells, key=lambda x: str(x))
+            # todo I need to use binary search here
+            for i, item in enumerate(self._entity.plan_items.table):
+                if str(item) == str(cells):
+                    self.__appended_rows.append((i + 1, cells))
+                    break
         self._entity.plan_items.uniques[key] += 1
 
     async def follow_source(self, source: domain.Source):
@@ -115,7 +122,7 @@ class GroupHandler:
 
 class SheetGateway(ABC):
     @abstractmethod
-    async def create_sheet(self, table: list[list[domain.CellValue]]) -> UUID:
+    async def create_sheet(self, table: domain.Table = None) -> UUID:
         raise NotImplemented
 
     @abstractmethod
@@ -141,26 +148,40 @@ async def calculate_profit_cell(wires: pd.DataFrame, ccols: list[domain.Ccol], m
     return amount
 
 
-class ReportPublisher(subscriber.SourceSubscriber, subscriber.GroupSubscriber):
+class ReportPublisher(subscriber.SourceSubscriber):
     def __init__(self, entity: domain.Report, sheet_gw: SheetGateway, broker: BrokerService):
         self._entity = entity
         self._broker = broker
         self._sheet_gw = sheet_gw
 
     async def follow_source(self, source: domain.Source):
-        for wire in source.wires:
-            pass
-        await self._broker.subscribe([source], self._entity)
+        await self._broker.subscribe([source.source_info], self._entity)
 
-    async def on_wires_appended(self, wire: domain.Wire):
-        raise NotImplemented
+    async def on_wires_appended(self, wires: list[domain.Wire]):
+        for wire in wires:
+            await self.__append_wire(wire)
 
-    async def follow_group(self, group: domain.Group):
-        await self._broker.subscribe([group], self._entity)
+    async def __append_wire(self, wire: domain.Wire):
+        cells = [wire.__getattribute__(ccol) for ccol in self._entity.plan_items.ccols]
+        key = str(cells)
+        if self._entity.plan_items.uniques.get(key) is None:
+            self._entity.plan_items.uniques[key] = 0
 
-    async def on_group_rows_inserted(self, data: list[tuple[int, list[domain.CellValue]]]):
-        for row in data:
-            await self._sheet_gw.insert_row_from_position(self._entity.sheet_id, row[0], row[1])
+            row: list[domain.CellValue] = [wire.__getattribute__(c)
+                                           for c in self._entity.plan_items.ccols] + [0] * len(self._entity.periods)
+            for j, period in enumerate(self._entity.periods, start=len(self._entity.plan_items.ccols)):
+                if period.from_date <= wire.date <= period.to_date:
+                    row[j] = wire.amount
+                    break
+            await self._sheet_gw.insert_row_from_position(
+                sheet_id=self._entity.sheet_id,
+                from_pos=len(self._entity.plan_items.uniques),
+                row=row,
+            )
+        else:
+            print('\n', self._entity.plan_items.uniques)
+            raise Exception
+        self._entity.plan_items.uniques[key] += 1
 
 
 class ReportService:
@@ -170,17 +191,17 @@ class ReportService:
         self._gateway = sheet_gateway
         self._repo = repo
 
-    async def create(self, source: domain.Source, group: domain.Group, periods: list[domain.Period]) -> domain.Report:
+    async def create(self, source: domain.Source, plan_items: domain.PlanItems,
+                     periods: list[domain.Period]) -> domain.Report:
         wires = pd.DataFrame.from_records([x.model_dump(exclude={'source_info'}) for x in source.wires])
-        table = [[None] * len(group.plan_items.ccols) + [x.to_date for x in periods]]
-        for i, row in enumerate(group.plan_items.table):
-            row = row + [await calculate_profit_cell(wires, group.plan_items.ccols, group.plan_items.table[i], period)
-                         for period in periods]
+        table = [[None] * len(plan_items.ccols) + [x.to_date for x in periods]]
+        for i, row in enumerate(plan_items.table):
+            row = row + [await calculate_profit_cell(wires, plan_items.ccols, plan_items.table[i], x) for x in periods]
             table.append(row)
 
         sheet_id = await self._gateway.create_sheet(table)
-        report = domain.Report(periods=periods, sheet_id=sheet_id)
-        await self._subfac.create_group_subscriber(report).follow_group(group)
+        report = domain.Report(sheet_id=sheet_id, periods=periods, plan_items=plan_items)
+        await self._subfac.create_source_subscriber(report).follow_source(source)
         await self._repo.add_many([report])
         return report
 

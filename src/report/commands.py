@@ -67,7 +67,7 @@ class CreateReport(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def execute(self) -> domain.Report:
-        report = await self.receiver.create(source=self.source, group=self.group, periods=self.periods)
+        report = await self.receiver.create(source=self.source, plan_items=self.group.plan_items, periods=self.periods)
         return report
 
 

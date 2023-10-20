@@ -90,13 +90,15 @@ class GroupModel(Base):
 
 class ReportModel(Base):
     __tablename__ = "report"
-    periods: Mapped[JSON] = mapped_column(JSON, nullable=True)
+    periods: Mapped[JSON] = mapped_column(JSON, nullable=False)
+    plan_items: Mapped[JSON] = mapped_column(JSON, nullable=False)
     sheet_id: Mapped[UUID] = mapped_column(String(64), nullable=False)
 
     def to_entity(self) -> domain.Report:
         return domain.Report(
             id=self.id,
             periods=[domain.Period(**x) for x in self.periods],
+            plan_items=domain.PlanItems(**self.plan_items),
             sheet_id=self.sheet_id,
         )
 
@@ -105,6 +107,7 @@ class ReportModel(Base):
         return cls(
             id=entity.id,
             periods=[x.model_dump(mode='json') for x in entity.periods],
+            plan_items=entity.plan_items.model_dump(mode='json'),
             sheet_id=str(entity.sheet_id),
         )
 

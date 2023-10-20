@@ -9,7 +9,7 @@ class SheetGatewayAPI(SheetGateway):
     def __init__(self, sheet_service: SheetService):
         self._sheet_service = sheet_service
 
-    async def create_sheet(self, table: list[list[domain.CellValue]]) -> UUID:
+    async def create_sheet(self, table: domain.Table = None) -> UUID:
         sheet = await self._sheet_service.create_sheet(table)
         return sheet.sf.id
 

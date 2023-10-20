@@ -1,7 +1,7 @@
 from typing import Literal, Union
 from uuid import UUID, uuid4
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from sortedcontainers import SortedList
 
 Ccol = Literal['currency', 'sender', 'receiver', 'sub1', 'sub2', ]
@@ -34,10 +34,15 @@ class Source(BaseModel):
     wires: list[Wire] = Field(default_factory=list)
 
 
+def sorted_list_factory() -> SortedList:
+    return SortedList(key=lambda x: str(x))
+
+
 class PlanItems(BaseModel):
     ccols: list[Ccol]
     table: list[list[CellValue]] = Field(default_factory=list)
     uniques: dict[str, int] = Field(default_factory=dict)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class Group(BaseModel):
@@ -57,6 +62,7 @@ class Period(BaseModel):
 
 class Report(BaseModel):
     periods: list[Period]
+    plan_items: PlanItems
     sheet_id: UUID
     id: UUID = Field(default_factory=uuid4)
 

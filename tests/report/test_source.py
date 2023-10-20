@@ -131,12 +131,12 @@ async def test_report_sheet_reacts_on_wire_appended():
         source_info=source.source_info,
     )
     wire2 = domain.Wire(
-        sender=10,
+        sender=11,
         receiver=1,
         amount=777,
         sub1="AppendedWire2",
         sub2="no_info",
-        date=datetime(2021, 1, 16),
+        date=datetime(2021, 3, 16),
         source_info=source.source_info,
     )
 
