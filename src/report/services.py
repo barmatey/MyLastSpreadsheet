@@ -68,6 +68,10 @@ class SheetGateway(ABC):
         raise NotImplemented
 
     @abstractmethod
+    async def add_value_to_cell_value(self, sheet_id: UUID, row_pos: int, col_pos: int, value: domain.CellValue):
+        raise NotImplemented
+
+    @abstractmethod
     async def insert_row_from_position(self, sheet_id: UUID, from_pos: int, row: list[domain.CellValue]):
         raise NotImplemented
 
@@ -105,15 +109,17 @@ class ReportPublisher(subscriber.SourceSubscriber):
 
             row: list[domain.CellValue] = [wire.__getattribute__(c)
                                            for c in self._entity.plan_items.ccols] + [0] * len(self._entity.periods)
-            for j, period in enumerate(self._entity.periods, start=len(self._entity.plan_items.ccols)):
-                if period.from_date <= wire.date <= period.to_date:
-                    row[j] = wire.amount
-                    break
+            row[self._entity.find_col_pos(wire.date)] = wire.amount
             await self._sheet_gw.insert_row_from_position(
                 sheet_id=self._entity.sheet_id,
                 from_pos=self._entity.plan_items.order.bisect_left(key) + 1,
                 row=row,
             )
+        else:
+            row_pos = self._entity.plan_items.order.bisect_left(key)
+            col_pos = self._entity.find_col_pos(wire.date)
+            await self._sheet_gw.add_value_to_cell_value(self._entity.sheet_id, row_pos, col_pos, wire.amount)
+
         self._entity.plan_items.uniques[key] += 1
 
 
@@ -135,3 +141,4 @@ class ReportService:
 
     async def get_by_id(self, uuid: UUID) -> domain.Report:
         return await self._repo.get_one_by_id(uuid)
+

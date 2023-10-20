@@ -61,3 +61,9 @@ class Report(BaseModel):
 
     def __hash__(self):
         return self.id.__hash__()
+
+    def find_col_pos(self, date: datetime) -> int:
+        for j, period in enumerate(self.periods, start=len(self.plan_items.ccols)):
+            if period.from_date <= date <= period.to_date:
+                return j
+        raise LookupError

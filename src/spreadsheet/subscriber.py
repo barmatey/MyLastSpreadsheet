@@ -1,11 +1,8 @@
-from abc import ABC, abstractmethod
-from typing import TypeVar
+from abc import abstractmethod
+from pydantic import BaseModel
 
 from src.base.subscriber import Subscriber
-from src.base.entity import Entity
 from . import domain
-
-T = TypeVar("T")
 
 
 class SindexSubscriber(Subscriber):
@@ -64,13 +61,13 @@ class SheetSubscriber(Subscriber):
 
 class SubscriberFactory:
     @abstractmethod
-    def create_cell_subscriber(self, entity: Entity) -> CellSubscriber:
+    def create_cell_subscriber(self, entity: BaseModel) -> CellSubscriber:
         raise NotImplemented
 
     @abstractmethod
-    def create_sindex_subscriber(self, entity: Entity) -> SindexSubscriber:
+    def create_sindex_subscriber(self, entity: BaseModel) -> SindexSubscriber:
         raise NotImplemented
 
     @abstractmethod
-    def create_sheet_subscriber(self, entity: Entity) -> SheetSubscriber:
+    def create_sheet_subscriber(self, entity: BaseModel) -> SheetSubscriber:
         raise NotImplemented

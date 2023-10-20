@@ -112,10 +112,18 @@ async def test_report_sheet_reacts_on_wire_appended():
         date=datetime(2021, 3, 16),
         source_info=source.source_info,
     )
+    wire3 = domain.Wire(
+        sender=0,
+        receiver=10,
+        sub1="first",
+        amount=1000,
+        date=datetime(2021, 3, 15),
+        source_info=source.source_info,
+    )
 
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
-        cmd = commands.AppendWires(source_info=source.source_info, wires=[wire1, wire2],
+        cmd = commands.AppendWires(source_info=source.source_info, wires=[wire1, wire2, wire3],
                                    receiver=boot.get_source_service())
         await cmd.execute()
         bus = boot.get_event_bus()
