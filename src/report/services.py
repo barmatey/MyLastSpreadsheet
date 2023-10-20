@@ -1,15 +1,12 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
-import bisect
-
 import pandas as pd
-from sortedcontainers import SortedList
 
 from src.base.repo import repository
-
-from . import domain, subscriber, events
 from ..base import eventbus
 from ..base.broker import BrokerService
+
+from . import domain, subscriber, events
 
 
 class SourceRepo(ABC):
@@ -62,7 +59,7 @@ class GroupPublisher(subscriber.SourceSubscriber):
                  repo: repository.Repository[domain.Group]):
         self._queue = queue
         self._broker = broker
-        self._entity = entity
+        self._entity = entity.model_copy(deep=True)
         self._repo = repo
         self.__appended_rows: list[tuple[int, list[domain.CellValue]]] = []
 
@@ -71,17 +68,10 @@ class GroupPublisher(subscriber.SourceSubscriber):
         key = str(cells)
         if self._entity.plan_items.uniques.get(key) is None:
             self._entity.plan_items.uniques[key] = 0
-            bisect.insort(self._entity.plan_items.table, cells, key=lambda x: str(x))
-            # todo I need to use binary search here
-            for i, item in enumerate(self._entity.plan_items.table):
-                if str(item) == str(cells):
-                    self.__appended_rows.append((i + 1, cells))
-                    break
         self._entity.plan_items.uniques[key] += 1
 
     async def follow_source(self, source: domain.Source):
         self._entity.plan_items.uniques = {}
-        self._entity.plan_items.table = []
         await self.on_wires_appended(source.wires)
         await self._broker.subscribe([source.source_info], self._entity)
 
@@ -155,6 +145,7 @@ class ReportPublisher(subscriber.SourceSubscriber):
         self._sheet_gw = sheet_gw
 
     async def follow_source(self, source: domain.Source):
+        await self.on_wires_appended(source.wires)
         await self._broker.subscribe([source.source_info], self._entity)
 
     async def on_wires_appended(self, wires: list[domain.Wire]):
@@ -179,8 +170,7 @@ class ReportPublisher(subscriber.SourceSubscriber):
                 row=row,
             )
         else:
-            print('\n', self._entity.plan_items.uniques)
-            raise Exception
+            print(self._entity.plan_items)
         self._entity.plan_items.uniques[key] += 1
 
 
@@ -193,13 +183,8 @@ class ReportService:
 
     async def create(self, source: domain.Source, plan_items: domain.PlanItems,
                      periods: list[domain.Period]) -> domain.Report:
-        wires = pd.DataFrame.from_records([x.model_dump(exclude={'source_info'}) for x in source.wires])
-        table = [[None] * len(plan_items.ccols) + [x.to_date for x in periods]]
-        for i, row in enumerate(plan_items.table):
-            row = row + [await calculate_profit_cell(wires, plan_items.ccols, plan_items.table[i], x) for x in periods]
-            table.append(row)
-
-        sheet_id = await self._gateway.create_sheet(table)
+        first_row = [None] * len(plan_items.ccols) + [x.to_date for x in periods]
+        sheet_id = await self._gateway.create_sheet([first_row])
         report = domain.Report(sheet_id=sheet_id, periods=periods, plan_items=plan_items)
         await self._subfac.create_source_subscriber(report).follow_source(source)
         await self._repo.add_many([report])

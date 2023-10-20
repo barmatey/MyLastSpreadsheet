@@ -125,10 +125,7 @@ class SheetService:
         for i, primary in enumerate(primary_sindexes):
             for j, secondary in enumerate(secondary_sindexes):
                 row, col = (primary, secondary) if axis == 0 else (secondary, primary)
-                try:
-                    cells.append(domain.Cell(sf=sf, row=row, col=col, value=table[i][j]))
-                except IndexError:
-                    cells.append(domain.Cell(sf=sf, row=row, col=col, value="JackDaniels"))
+                cells.append(domain.Cell(sf=sf, row=row, col=col, value=table[i][j]))
         await self._repo.cell_repo.add_many(cells)
 
     async def insert_sindexes(self, sheet_id: UUID, table: domain.Table, before: domain.Sindex):

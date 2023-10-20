@@ -34,13 +34,8 @@ class Source(BaseModel):
     wires: list[Wire] = Field(default_factory=list)
 
 
-def sorted_list_factory() -> SortedList:
-    return SortedList(key=lambda x: str(x))
-
-
 class PlanItems(BaseModel):
     ccols: list[Ccol]
-    table: list[list[CellValue]] = Field(default_factory=list)
     uniques: dict[str, int] = Field(default_factory=dict)
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
