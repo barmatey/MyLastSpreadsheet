@@ -66,8 +66,8 @@ class GroupPublisher(subscriber.SourceSubscriber):
         key = str(cells)
         if self._entity.plan_items.uniques.get(key) is None:
             self._entity.plan_items.uniques[key] = 0
-            self.__appended_rows.append((len(self._entity.plan_items.table), cells))
             self._entity.plan_items.table.append(cells)
+            self.__appended_rows.append((len(self._entity.plan_items.table), cells))
         self._entity.plan_items.uniques[key] += 1
 
     async def follow_source(self, source: domain.Source):
@@ -110,7 +110,7 @@ class GroupHandler:
     async def handle_group_rows_inserted(self, event: events.GroupRowsInserted):
         subs = await self._broker.get_subs(event.group_info)
         for sub in subs:
-            await self._subfac.create_group_subscriber(sub).on_rows_inserted(event.rows)
+            await self._subfac.create_group_subscriber(sub).on_group_rows_inserted(event.rows)
 
 
 class SheetGateway(ABC):
@@ -158,7 +158,7 @@ class ReportPublisher(subscriber.SourceSubscriber, subscriber.GroupSubscriber):
     async def follow_group(self, group: domain.Group):
         await self._broker.subscribe([group], self._entity)
 
-    async def on_rows_inserted(self, data: list[tuple[int, list[domain.CellValue]]]):
+    async def on_group_rows_inserted(self, data: list[tuple[int, list[domain.CellValue]]]):
         for row in data:
             await self._sheet_gw.insert_row_from_position(self._entity.sheet_id, row[0], row[1])
 

@@ -121,11 +121,20 @@ async def test_report_sheet_reacts_on_wire_appended():
     periods = [domain.Period(from_date=datetime(2021, x, 1), to_date=datetime(2021, x, 28)) for x in range(1, 6)]
     report = await create_report(source, group, periods)
 
-    wire = domain.Wire(
+    wire1 = domain.Wire(
         sender=1,
         receiver=1,
         amount=333,
-        sub1="first",
+        sub1="AppendedWire1",
+        sub2="no_info",
+        date=datetime(2021, 1, 16),
+        source_info=source.source_info,
+    )
+    wire2 = domain.Wire(
+        sender=10,
+        receiver=1,
+        amount=777,
+        sub1="AppendedWire2",
         sub2="no_info",
         date=datetime(2021, 1, 16),
         source_info=source.source_info,
@@ -133,7 +142,7 @@ async def test_report_sheet_reacts_on_wire_appended():
 
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
-        cmd = commands.AppendWires(source_info=source.source_info, wires=[wire], receiver=boot.get_source_service())
+        cmd = commands.AppendWires(source_info=source.source_info, wires=[wire1, wire2], receiver=boot.get_source_service())
         await cmd.execute()
         bus = boot.get_event_bus()
         await bus.run()
