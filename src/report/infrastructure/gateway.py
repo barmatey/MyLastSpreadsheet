@@ -13,12 +13,12 @@ class SheetGatewayAPI(SheetGateway):
         sheet = await self._sheet_service.create_sheet(table)
         return sheet.sf.id
 
-    async def get_cell_value(self, sheet_id: UUID, row_pos: int, col_pos: int) -> domain.CellValue:
+    async def get_cell(self, sheet_id: UUID, row_pos: int, col_pos: int) -> domain.Cell:
         cell = await self._sheet_service.get_cell_by_index(sheet_id, row_pos, col_pos)
-        return cell.value
+        return cell
 
-    async def update_cell_value(self, sheet_id: UUID, row_pos: int, col_pos: int, value: domain.CellValue):
-        await self._sheet_service.update_cell_value_by_index(sheet_id, row_pos, col_pos, value)
+    async def update_cell(self, cell: domain.Cell):
+        await self._sheet_service.update_cells([cell])
 
     async def insert_row_from_position(self, sheet_id: UUID, from_pos: int, row: list[domain.CellValue]):
         await self._sheet_service.insert_sindexes_from_position(sheet_id, [row], from_pos, 0)

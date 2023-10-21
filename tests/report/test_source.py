@@ -113,7 +113,7 @@ async def test_report_sheet_reacts_on_wire_appended():
         source_info=source.source_info,
     )
     wire3 = domain.Wire(
-        sender=0,
+        sender=2,
         receiver=10,
         sub1="first",
         amount=1000,

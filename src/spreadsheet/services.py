@@ -168,7 +168,7 @@ class SheetService:
             ids = [x.id for x in cells]
             old_values = await self._repo.cell_repo.get_many_by_id(ids)
         if len(old_values) != len(cells):
-            raise Exception
+            raise Exception(f"{len(old_values)} != {len(cells)}")
         for old, actual in zip(old_values, cells):
             await self._repo.cell_repo.update_one(actual)
             self._queue.append(eventbus.Updated(key="CellUpdated", old_entity=old, actual_entity=actual))

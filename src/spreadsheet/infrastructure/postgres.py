@@ -220,6 +220,27 @@ class CellPostgresRepo(PostgresRepo, CellRepository):
             entities.append(cell)
         return entities
 
+    async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[T]:
+        stmt = (
+            select(SheetInfoModel, RowSindexModel, ColSindexModel, CellModel)
+            .join(SheetInfoModel, CellModel.sheet_id == SheetInfoModel.id)
+            .join(RowSindexModel, CellModel.row_sindex_id == RowSindexModel.id)
+            .join(ColSindexModel, CellModel.col_sindex_id == ColSindexModel.id)
+            .where(CellModel.id.in_(ids))
+        )
+        if order_by is not None:
+            stmt = stmt.order_by(*helpers.postgres.parse_order_by(self._model, order_by))
+
+        data = await self._session.execute(stmt)
+        entities: list[Cell] = []
+        for x in data:
+            sheet_info = x[0].to_entity()
+            row = x[1].to_entity(sheet=sheet_info)
+            col = x[2].to_entity(sheet=sheet_info)
+            cell = x[3].to_entity(sheet_info=sheet_info, row=row, col=col)
+            entities.append(cell)
+        return entities
+
 
 class SheetPostgresRepo(SheetRepository):
     def __init__(self, session: AsyncSession):
