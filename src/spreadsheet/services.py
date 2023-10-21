@@ -132,8 +132,13 @@ class SheetService:
                 cells.append(domain.Cell(sf=sf, row=row, col=col, value=table[i][j]))
         await self._repo.cell_repo.add_many(cells)
 
+    async def delete_sindexes_from_position(self, sheet_id: UUID, from_pos: int, count: int, axis: int):
+        repo = self._repo.row_repo if axis == 0 else self._repo.col_repo
+        filter_by = {"sheet_id": sheet_id, "position.__gte": from_pos, "position.__lt": from_pos + count}
+        sindexes = await repo.get_many(filter_by=filter_by)
+        await self.delete_sindexes(sindexes)
+
     async def insert_sindexes(self, sheet_id: UUID, table: domain.Table, before: domain.Sindex):
-        sf = (await self._repo.sheet_info_repo.get_many({"id": sheet_id})).pop()
         axis = 0 if isinstance(before, domain.RowSindex) else 1
         await self.insert_sindexes_from_position(sheet_id, table, before.position, axis)
 
@@ -160,8 +165,8 @@ class SheetService:
         await self._repo.sheet_info_repo.update_one(new_sf)
         await self.reindex(sindexes[0].sf.id, axis)
 
-        for row in sindexes:
-            self._queue.append(eventbus.Deleted(key="SindexDeleted", entity=row))
+        for x in sindexes:
+            self._queue.append(eventbus.Deleted(key="SindexDeleted", entity=x))
 
     async def update_cells(self, cells: list[domain.Cell], old_values: list[domain.Cell] = None):
         if old_values is None:
@@ -226,7 +231,8 @@ class SindexHandler(Handler):
 
 
 class ExpandCellFollowers:
-    def __init__(self, repo: CellRepository, broker_service: broker.BrokerService, subfac: subscriber.SubscriberFactory):
+    def __init__(self, repo: CellRepository, broker_service: broker.BrokerService,
+                 subfac: subscriber.SubscriberFactory):
         self._repo = repo
         self._broker = broker_service
         self._subfac = subfac

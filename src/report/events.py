@@ -10,3 +10,10 @@ class WiresAppended(Event):
     source_info: domain.SourceInfo
     wires: list[domain.Wire]
     id: UUID = Field(default_factory=uuid4)
+
+
+class WiresDeleted(Event):
+    source_info: domain.SourceInfo
+    wires: list[domain.Wire]
+    id: UUID = Field(default_factory=uuid4)
+

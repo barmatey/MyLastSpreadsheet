@@ -42,6 +42,10 @@ class SourceService:
         await self._repo.wire_repo.add_many(wires)
         self._queue.append(events.WiresAppended(key='WiresAppended', wires=wires, source_info=source_info))
 
+    async def delete_wires(self, source_info: domain.SourceInfo, wires: list[domain.Wire]):
+        await self._repo.wire_repo.remove_many(wires)
+        self._queue.append(events.WiresDeleted(key="WiresDeleted", wires=wires, source_info=source_info))
+
 
 class SourceHandler:
     def __init__(self, subfac: subscriber.SubscriberFactory, broker: BrokerService):
@@ -52,6 +56,11 @@ class SourceHandler:
         subs = await self._broker.get_subs(event.source_info)
         for sub in subs:
             await self._subfac.create_source_subscriber(sub).on_wires_appended(event.wires)
+
+    async def handle_wires_deleted(self, event: events.WiresDeleted):
+        subs = await self._broker.get_subs(event.source_info)
+        for sub in subs:
+            await self._subfac.create_source_subscriber(sub).on_wires_deleted(event.wires)
 
 
 class SheetGateway(ABC):
@@ -69,6 +78,10 @@ class SheetGateway(ABC):
 
     @abstractmethod
     async def insert_row_from_position(self, sheet_id: UUID, from_pos: int, row: list[domain.CellValue]):
+        raise NotImplemented
+
+    @abstractmethod
+    async def delete_row_from_position(self, sheet_id: UUID, from_pos: int):
         raise NotImplemented
 
 
@@ -95,6 +108,26 @@ class ReportPublisher(subscriber.SourceSubscriber):
     async def on_wires_appended(self, wires: list[domain.Wire]):
         for wire in wires:
             await self.__append_wire(wire)
+
+    async def on_wires_deleted(self, wires: list[domain.Wire]):
+        for wire in wires:
+            await self.__delete_wire(wire)
+
+    async def __delete_wire(self, wire: domain.Wire):
+        cells = [wire.__getattribute__(ccol) for ccol in self._entity.plan_items.ccols]
+        key = str(cells)
+        self._entity.plan_items.uniques[key] -= 1
+        if self._entity.plan_items.uniques[key] == 0:
+            row_pos = self._entity.find_row_pos(key) + 1
+            del self._entity.plan_items.uniques[key]
+            self._entity.plan_items.order.remove(key)
+            await self._sheet_gw.delete_row_from_position(self._entity.sheet_id, row_pos)
+        else:
+            row_pos = self._entity.find_row_pos(key)
+            col_pos = self._entity.find_col_pos(wire.date)
+            cell = await self._sheet_gw.get_cell(self._entity.sheet_id, row_pos, col_pos)
+            cell.value -= wire.amount
+            await self._sheet_gw.update_cell(cell)
 
     async def __append_wire(self, wire: domain.Wire):
         cells = [wire.__getattribute__(ccol) for ccol in self._entity.plan_items.ccols]

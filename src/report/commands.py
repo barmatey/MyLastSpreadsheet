@@ -29,11 +29,22 @@ class AppendWires(BaseModel):
     source_info: domain.SourceInfo
     wires: list[domain.Wire]
     receiver: services.SourceService
-    model_config = ConfigDict(arbitrary_types_allowed=True)
     id: UUID = Field(default_factory=uuid4)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def execute(self) -> None:
         await self.receiver.append_wires(self.source_info, self.wires)
+
+
+class DeleteWires(BaseModel):
+    source_info: domain.SourceInfo
+    wires: list[domain.Wire]
+    receiver: services.SourceService
+    id: UUID = Field(default_factory=uuid4)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> None:
+        await self.receiver.delete_wires(self.source_info,  self.wires)
 
 
 class CreateReport(BaseModel):

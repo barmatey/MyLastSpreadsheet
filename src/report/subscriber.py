@@ -15,6 +15,10 @@ class SourceSubscriber(Subscriber):
     async def on_wires_appended(self, wires: list[domain.Wire]):
         raise NotImplemented
 
+    @abstractmethod
+    async def on_wires_deleted(self, wires: list[domain.Wire]):
+        raise NotImplemented
+
 
 class SubscriberFactory(ABC):
     @abstractmethod

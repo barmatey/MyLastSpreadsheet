@@ -35,4 +35,5 @@ class Bootstrap(SheetBootstrap):
             broker=self.get_broker()
         )
         bus.register('WiresAppended', handler.handle_wires_appended)
+        bus.register('WiresDeleted', handler.handle_wires_deleted)
         return bus

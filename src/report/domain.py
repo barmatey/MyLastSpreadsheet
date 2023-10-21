@@ -72,3 +72,6 @@ class Report(BaseModel):
             if period.from_date <= date <= period.to_date:
                 return j
         raise LookupError
+
+    def find_row_pos(self, key: str):
+        return self.plan_items.order.bisect_left(key)

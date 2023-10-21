@@ -123,10 +123,15 @@ async def test_report_sheet_reacts_on_wire_appended():
 
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
+        bus = boot.get_event_bus()
+
         cmd = commands.AppendWires(source_info=source.source_info, wires=[wire1, wire2, wire3],
                                    receiver=boot.get_source_service())
         await cmd.execute()
-        bus = boot.get_event_bus()
+
+        cmd = commands.DeleteWires(source_info=source.source_info, wires=[wire1], receiver=boot.get_source_service())
+        await cmd.execute()
+
         await bus.run()
         await session.commit()
 
