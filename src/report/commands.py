@@ -48,7 +48,7 @@ class DeleteWires(BaseModel):
 
 
 class UpdateWires(BaseModel):
-    source_info:domain.SourceInfo
+    source_info: domain.SourceInfo
     wires: list[domain.Wire]
     receiver: services.SourceService
     id: UUID = Field(default_factory=uuid4)

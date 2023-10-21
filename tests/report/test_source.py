@@ -27,7 +27,7 @@ async def append_wires(source: domain.Source) -> domain.Source:
             amount=111,
             sub1="first" if i % 2 == 0 else "second",
             sub2="no_info",
-            date=datetime(2021, i + 1, 15),
+            date=datetime(2021, i + 1, 15, tzinfo=pytz.UTC),
             source_info=source.source_info,
         ) for i in range(0, 5)
     ]
@@ -107,7 +107,7 @@ async def test_report_sheet_reacts_on_wire_appended():
         amount=333,
         sub1="AppendedWire1",
         sub2="no_info",
-        date=datetime(2021, 1, 16),
+        date=datetime(2021, 1, 16, tzinfo=pytz.UTC),
         source_info=source.source_info,
     )
     wire2 = domain.Wire(
@@ -116,7 +116,7 @@ async def test_report_sheet_reacts_on_wire_appended():
         amount=777,
         sub1="AppendedWire2",
         sub2="no_info",
-        date=datetime(2021, 3, 16),
+        date=datetime(2021, 3, 16, tzinfo=pytz.UTC),
         source_info=source.source_info,
     )
     wire3 = domain.Wire(
@@ -124,7 +124,7 @@ async def test_report_sheet_reacts_on_wire_appended():
         receiver=10,
         sub1="first",
         amount=1000,
-        date=datetime(2021, 3, 15),
+        date=datetime(2021, 3, 15, tzinfo=pytz.UTC),
         source_info=source.source_info,
     )
 

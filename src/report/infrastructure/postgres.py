@@ -1,5 +1,7 @@
 from typing import Type
 from uuid import UUID
+from datetime import datetime
+import pytz
 
 from sortedcontainers import SortedList
 from sqlalchemy import String, Integer, TIMESTAMP, func, Float, ForeignKey, select, JSON
@@ -77,9 +79,16 @@ class ReportModel(Base):
             uniques=self.plan_items['uniques'],
             order=SortedList(self.plan_items['order']),
         )
+        periods = [
+            domain.Period(
+                from_date=datetime(**x['from_date'], tzinfo=pytz.UTC),
+                to_date=datetime(**x['to_date'], tzinfo=pytz.UTC)
+            ) for x in self.periods
+        ]
+
         return domain.Report(
             id=self.id,
-            periods=[domain.Period(**x) for x in self.periods],
+            periods=periods,
             plan_items=plan_items,
             sheet_id=self.sheet_id,
         )
