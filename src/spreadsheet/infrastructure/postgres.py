@@ -132,7 +132,8 @@ class SheetInfoPostgresRepo(PostgresRepo):
 
 
 class SindexPostgresRepo(PostgresRepo):
-    async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
+    async def get_many(self, filter_by: dict = None, order_by: OrderBy = None,
+                       slice_from=None, slice_to=None) -> list[T]:
         stmt = (
             select(self._model, SheetInfoModel)
             .join(SheetInfoModel, self._model.sheet_id == SheetInfoModel.id)
@@ -141,6 +142,8 @@ class SindexPostgresRepo(PostgresRepo):
             stmt = stmt.where(*helpers.postgres.parse_filter_by(self._model, filter_by))
         if order_by is not None:
             stmt = stmt.order_by(*helpers.postgres.parse_order_by(self._model, order_by))
+        if slice_from is not None and slice_to is not None:
+            stmt = stmt.slice(slice_from, slice_to)
 
         models = await self._session.execute(stmt)
         sindexes = [x[0].to_entity(x[1].to_entity()) for x in models]
@@ -199,7 +202,8 @@ class CellPostgresRepo(PostgresRepo, CellRepository):
     async def update_cell_by_position(self, sheet_id: UUID, row_pos: int, col_pos: int, data: dict):
         raise NotImplemented
 
-    async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
+    async def get_many(self, filter_by: dict = None, order_by: OrderBy = None,
+                       slice_from=None, slice_to=None) -> list[T]:
         stmt = (
             select(SheetInfoModel, RowSindexModel, ColSindexModel, CellModel)
             .join(SheetInfoModel, CellModel.sheet_id == SheetInfoModel.id)
@@ -210,6 +214,8 @@ class CellPostgresRepo(PostgresRepo, CellRepository):
             stmt = stmt.where(*helpers.postgres.parse_filter_by(self._model, filter_by))
         if order_by is not None:
             stmt = stmt.order_by(*helpers.postgres.parse_order_by(self._model, order_by))
+        if slice_from is not None and slice_to is not None:
+            stmt = stmt.slice(slice_from, slice_to)
         data = await self._session.execute(stmt)
         entities: list[Cell] = []
         for x in data:

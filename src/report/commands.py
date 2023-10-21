@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import domain, services
+from ..core import OrderBy
 
 
 class CreateSource(BaseModel):
@@ -16,6 +17,15 @@ class CreateSource(BaseModel):
         return source
 
 
+class GetSourceInfoById(BaseModel):
+    id: UUID
+    receiver: services.SourceService
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> domain.SourceInfo:
+        return await self.receiver.get_source_info_by_id(self.id)
+
+
 class GetSourceById(BaseModel):
     id: UUID
     receiver: services.SourceService
@@ -23,6 +33,26 @@ class GetSourceById(BaseModel):
 
     async def execute(self) -> domain.Source:
         return await self.receiver.get_source_by_id(self.id)
+
+
+class GetSourceInfoList(BaseModel):
+    receiver: services.SourceService
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> list[domain.SourceInfo]:
+        return await self.receiver.get_source_info_list()
+
+
+class GetWires(BaseModel):
+    filter_by: dict
+    order_by: OrderBy
+    slice_from:  int | None
+    slice_to: int | None
+    receiver: services.SourceService
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> list[domain.Wire]:
+        return await self.receiver.get_wires(self.filter_by, self.order_by, self.slice_from, self.slice_to)
 
 
 class AppendWires(BaseModel):
@@ -44,7 +74,7 @@ class DeleteWires(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def execute(self) -> None:
-        await self.receiver.delete_wires(self.source_info,  self.wires)
+        await self.receiver.delete_wires(self.source_info, self.wires)
 
 
 class UpdateWires(BaseModel):

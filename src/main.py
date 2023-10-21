@@ -1,28 +1,27 @@
-import asyncio
-from src.spreadsheet.sheet_info import router
+import uvicorn
+from fastapi import FastAPI
+from starlette.middleware.cors import CORSMiddleware
+
+from src.report.infrastructure.router import router_report, router_source, router_wire
+
+app = FastAPI()
+
+origins = [
+    "http://localhost:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(router_report)
+app.include_router(router_source)
+app.include_router(router_wire)
 
 
-def print_hi(name):
-    print(f'Hi, {name}')
-
-
-async def main():
-    task1 = asyncio.create_task(router.create_sheet())
-    sheet_id = await task1
-
-    task2 = asyncio.create_task(router.get_sheet(sheet_id))
-    sheet = await task2
-
-    table = [[1, 2], [3, 4], [5, 6]]
-    task3 = asyncio.create_task(router.append_rows(sheet, table))
-    await task3
-
-    task4 = asyncio.create_task(router.get_sheet(sheet_id))
-    sheet = await task4
-
-    print(sheet)
-
-
-if __name__ == '__main__':
-    asyncio.run(main())
-    print_hi("Alex")
+if __name__ == "__main__":
+    uvicorn.run(app, host="127.0.0.1", port=9999)

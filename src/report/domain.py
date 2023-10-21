@@ -1,4 +1,5 @@
 from typing import Literal, Union
+from typing_extensions import TypedDict
 from uuid import UUID, uuid4
 from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict
@@ -15,9 +16,32 @@ class Cell(BaseModel):
     value: CellValue
 
 
+class WcolSchema(TypedDict):
+    title: str
+    label: str
+    dtype: Literal["str", "int", "float", "date"]
+
+
+def wcols_factory():
+    return [
+        {'title': 'date', 'label': 'Date', 'dtype': 'date', },
+        {'title': 'sender', 'label': 'Sender', 'dtype': 'float', },
+        {'title': 'receiver', 'label': 'Receiver', 'dtype': 'float', },
+        {'title': 'debit', 'label': 'Debit', 'dtype': 'float', },
+        {'title': 'credit', 'label': 'Credit', 'dtype': 'float', },
+        {'title': 'sub1', 'label': 'First subconto', 'dtype': 'str', },
+        {'title': 'sub2', 'label': 'Second subconto', 'dtype': 'str', },
+        {'title': 'comment', 'label': 'Comment', 'dtype': 'str', },
+    ]
+
+
 class SourceInfo(BaseModel):
     title: str
+    wcols: list[WcolSchema] = Field(default_factory=wcols_factory)
     id: UUID = Field(default_factory=uuid4)
+    total_start_date: datetime = Field(default_factory=datetime.now)
+    total_end_date: datetime = Field(default_factory=datetime.now)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __hash__(self):
         return self.id.__hash__()

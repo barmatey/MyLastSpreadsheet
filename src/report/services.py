@@ -7,6 +7,7 @@ from ..base.broker import BrokerService
 from ..base.repo.repository import Repository
 
 from . import domain, subscriber, events
+from ..core import OrderBy
 
 
 class SourceRepo(ABC):
@@ -37,6 +38,16 @@ class SourceService:
 
     async def get_source_by_id(self, uuid: UUID) -> domain.Source:
         return await self._repo.get_source_by_id(uuid)
+
+    async def get_source_info_by_id(self, uuid: UUID) -> domain.SourceInfo:
+        return await self._repo.source_info_repo.get_one_by_id(uuid)
+
+    async def get_source_info_list(self) -> list[domain.SourceInfo]:
+        return await self._repo.source_info_repo.get_many()
+
+    async def get_wires(self, filter_by: dict, order_by: OrderBy = None,
+                        slice_from: int = None, slice_to: int = None) -> list[domain.Wire]:
+        return await self._repo.wire_repo.get_many(filter_by, order_by, slice_from, slice_to)
 
     async def update_wires(self, source_info: domain.SourceInfo, wires: list[domain.Wire]):
         old_wires = await self._repo.wire_repo.get_many_by_id([x.id for x in wires])

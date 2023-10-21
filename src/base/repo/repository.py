@@ -19,7 +19,7 @@ class Repository(ABC, Generic[T]):
         raise NotImplemented
 
     @abstractmethod
-    async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
+    async def get_many(self, filter_by: dict = None, order_by: OrderBy = None, slice_from=None, slice_to=None) -> list[T]:
         raise NotImplemented
 
     @abstractmethod
