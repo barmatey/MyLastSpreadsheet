@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Type
 from uuid import UUID
 
-from sqlalchemy import select, Integer, ForeignKey, String
+from sqlalchemy import select, Integer, ForeignKey, String, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -172,18 +172,18 @@ class CellPostgresRepo(PostgresRepo, CellRepository):
 
         filters = [SheetInfoModel.id == sheet_id]
         if slice_rows:
-            if len(slice_rows) == 1:
-                filters.append(RowSindexModel.position == slice_rows[0])
-            else:
+            if isinstance(slice_rows, tuple):
                 filters.append(RowSindexModel.position >= slice_rows[0])
                 filters.append(RowSindexModel.position < slice_rows[1])
+            else:
+                filters.append(RowSindexModel.position == slice_rows)
 
         if slice_cols:
-            if len(slice_cols) == 1:
-                filters.append(ColSindexModel.position == slice_cols[0])
-            else:
+            if isinstance(slice_cols, tuple):
                 filters.append(ColSindexModel.position >= slice_cols[0])
                 filters.append(ColSindexModel.position < slice_cols[1])
+            else:
+                filters.append(ColSindexModel.position == slice_cols)
 
         stmt = stmt.where(*filters).order_by(RowSindexModel.position, ColSindexModel.position)
         data = await self._session.execute(stmt)
@@ -195,6 +195,9 @@ class CellPostgresRepo(PostgresRepo, CellRepository):
             cell = x[3].to_entity(sheet_info=sheet_info, row=row, col=col)
             entities.append(cell)
         return entities
+
+    async def update_cell_by_position(self, sheet_id: UUID, row_pos: int, col_pos: int, data: dict):
+        raise NotImplemented
 
     async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
         stmt = (

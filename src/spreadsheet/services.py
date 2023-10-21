@@ -7,13 +7,17 @@ from . import subscriber
 from src.base import eventbus, broker
 from ..base.repo import repository
 
-Slice = tuple[int, int] | tuple[int]
+Slice = tuple[int, int] | int
 
 
 class CellRepository(repository.Repository, ABC):
     @abstractmethod
     async def get_sliced_cells(self, sheet_id: UUID, slice_rows: Slice = None,
                                slice_cols: Slice = None) -> list[domain.Cell]:
+        raise NotImplemented
+
+    @abstractmethod
+    async def update_cell_by_position(self, sheet_id: UUID, row_pos: int, col_pos: int, data: dict):
         raise NotImplemented
 
 
@@ -182,6 +186,13 @@ class SheetService:
 
     async def get_sheet_by_uuid(self, uuid: UUID) -> domain.Sheet:
         return await self._repo.get_sheet_by_id(uuid)
+
+    async def get_cell_by_index(self, sheet_id: UUID, row_pos: int, col_pos: int) -> domain.Cell:
+        cells = await self._repo.cell_repo.get_sliced_cells(sheet_id, row_pos, col_pos)
+        return cells.pop()
+
+    async def update_cell_value_by_index(self, sheet_id: UUID, row_pos: int, col_pos: int, value: domain.CellValue):
+        raise NotImplemented
 
 
 class Handler:

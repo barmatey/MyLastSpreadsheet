@@ -68,10 +68,6 @@ class SheetGateway(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def add_value_to_cell_value(self, sheet_id: UUID, row_pos: int, col_pos: int, value: domain.CellValue):
-        raise NotImplemented
-
-    @abstractmethod
     async def insert_row_from_position(self, sheet_id: UUID, from_pos: int, row: list[domain.CellValue]):
         raise NotImplemented
 
@@ -118,7 +114,8 @@ class ReportPublisher(subscriber.SourceSubscriber):
         else:
             row_pos = self._entity.plan_items.order.bisect_left(key)
             col_pos = self._entity.find_col_pos(wire.date)
-            await self._sheet_gw.add_value_to_cell_value(self._entity.sheet_id, row_pos, col_pos, wire.amount)
+            old_value = await self._sheet_gw.get_cell_value(self._entity.sheet_id, row_pos, col_pos)
+            await self._sheet_gw.update_cell_value(self._entity.sheet_id, row_pos, col_pos, old_value + wire.amount)
 
         self._entity.plan_items.uniques[key] += 1
 
@@ -141,4 +138,3 @@ class ReportService:
 
     async def get_by_id(self, uuid: UUID) -> domain.Report:
         return await self._repo.get_one_by_id(uuid)
-
