@@ -144,7 +144,6 @@ class SheetService:
 
     async def delete_sindexes(self, sindexes: list[domain.Sindex], cells: list[domain.Cell] = None):
         """Function changes sheet_info inplace"""
-
         axis = 0 if isinstance(sindexes[0], domain.RowSindex) else 1
         new_sf = sindexes[0].sf
         if axis == 0:

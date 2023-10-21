@@ -17,6 +17,7 @@ class Bootstrap(SheetBootstrap):
 
         self._subfac = subfactory.ReportSubfac(broker=self.get_broker(),
                                                queue=self._queue,
+                                               repo=self._report_repo,
                                                sheet_gateway=self._gw)
 
     def get_source_service(self) -> services.SourceService:

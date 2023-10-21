@@ -101,10 +101,12 @@ async def calculate_profit_cell(wires: pd.DataFrame, ccols: list[domain.Ccol], m
 
 
 class ReportPublisher(subscriber.SourceSubscriber):
-    def __init__(self, entity: domain.Report, sheet_gw: SheetGateway, broker: BrokerService):
+    def __init__(self, entity: domain.Report, repo: Repository[domain.Report],
+                 sheet_gw: SheetGateway, broker: BrokerService):
         self._entity = entity
         self._broker = broker
         self._sheet_gw = sheet_gw
+        self._repo = repo
 
     async def follow_source(self, source: domain.Source):
         await self.on_wires_appended(source.wires)
@@ -133,6 +135,7 @@ class ReportPublisher(subscriber.SourceSubscriber):
             cell = await self._sheet_gw.get_cell(self._entity.sheet_id, row_pos, col_pos)
             cell.value -= wire.amount
             await self._sheet_gw.update_cell(cell)
+        await self._repo.update_one(self._entity)
 
     async def __append_wire(self, wire: domain.Wire):
         cells = [wire.__getattribute__(ccol) for ccol in self._entity.plan_items.ccols]
