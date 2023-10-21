@@ -17,3 +17,9 @@ class WiresDeleted(Event):
     wires: list[domain.Wire]
     id: UUID = Field(default_factory=uuid4)
 
+
+class WiresUpdated(Event):
+    source_info: domain.SourceInfo
+    old_values: list[domain.Wire]
+    new_values: list[domain.Wire]
+    id: UUID = Field(default_factory=uuid4)

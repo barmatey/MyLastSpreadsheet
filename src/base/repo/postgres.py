@@ -55,7 +55,7 @@ class PostgresRepo(Repository):
     async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[T]:
         stmt = select(self._model).where(self._model.id.in_(ids))
         result = await self._session.execute(stmt)
-        entities = [x.to_entity() for x in result]
+        entities = [x.to_entity() for x in result.scalars()]
         return entities
 
     async def update_one(self, data: T):

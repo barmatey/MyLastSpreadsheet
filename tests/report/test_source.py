@@ -1,4 +1,5 @@
 from datetime import datetime
+import pytz
 
 import pandas as pd
 import pytest
@@ -75,7 +76,10 @@ async def test_append_wires():
 async def test_create_profit_report():
     source = await create_source()
     source = await append_wires(source)
-    periods = [domain.Period(from_date=datetime(2021, x, 1), to_date=datetime(2021, x, 28)) for x in range(1, 6)]
+    periods = [
+        domain.Period(from_date=datetime(2021, x, 1, tzinfo=pytz.UTC), to_date=datetime(2021, x, 28, tzinfo=pytz.UTC))
+        for x in range(1, 6)
+    ]
     expected = await create_report(source, periods)
 
     async with db.get_async_session() as session:
@@ -91,7 +95,10 @@ async def test_create_profit_report():
 @pytest.mark.asyncio
 async def test_report_sheet_reacts_on_wire_appended():
     source = await append_wires(await create_source())
-    periods = [domain.Period(from_date=datetime(2021, x, 1), to_date=datetime(2021, x, 28)) for x in range(1, 6)]
+    periods = [
+        domain.Period(from_date=datetime(2021, x, 1, tzinfo=pytz.UTC), to_date=datetime(2021, x, 28, tzinfo=pytz.UTC))
+        for x in range(1, 6)
+    ]
     report = await create_report(source, periods)
 
     wire1 = domain.Wire(
@@ -130,6 +137,11 @@ async def test_report_sheet_reacts_on_wire_appended():
         await cmd.execute()
 
         cmd = commands.DeleteWires(source_info=source.source_info, wires=[wire1], receiver=boot.get_source_service())
+        await cmd.execute()
+
+        updated = wire3.model_copy(deep=True)
+        updated.sender = 99
+        cmd = commands.UpdateWires(source_info=source.source_info, wires=[updated], receiver=boot.get_source_service())
         await cmd.execute()
 
         await bus.run()

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.base.repo.postgres import Base, PostgresRepo
 from src.base.repo.repository import Repository
+from src.core import OrderBy
 
 from src.report import domain, services
 
@@ -101,6 +102,19 @@ class SourceInfoRepo(PostgresRepo):
 class WireRepo(PostgresRepo):
     def __init__(self, session: AsyncSession, model: Type[Base] = WireModel):
         super().__init__(session, model)
+
+    async def get_one_by_id(self, uuid: UUID) -> domain.Wire:
+        raise NotImplemented
+
+    async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[domain.Wire]:
+        stmt = (
+            select(WireModel, SourceInfoModel)
+            .join(SourceInfoModel, WireModel.source_id == SourceInfoModel.id)
+            .where(WireModel.id.in_(ids))
+        )
+        result = await self._session.execute(stmt)
+        entities = [x[0].to_entity(source_info=x[1].to_entity()) for x in result]
+        return entities
 
 
 class SourceFullRepo(services.SourceRepo):

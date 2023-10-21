@@ -21,7 +21,7 @@ class SheetGatewayAPI(SheetGateway):
         await self._sheet_service.update_cells([cell])
 
     async def insert_row_from_position(self, sheet_id: UUID, from_pos: int, row: list[domain.CellValue]):
-        await self._sheet_service.insert_sindexes_from_position(sheet_id, [row], from_pos, 0)
+        await self._sheet_service.insert_sindexes_from_position(sheet_id, [row], from_pos, axis=0)
 
     async def delete_row_from_position(self, sheet_id: UUID, from_pos: int):
         await self._sheet_service.delete_sindexes_from_position(sheet_id, from_pos, count=1, axis=0)
