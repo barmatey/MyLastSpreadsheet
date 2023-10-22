@@ -49,6 +49,9 @@ class SourceService:
                         slice_from: int = None, slice_to: int = None) -> list[domain.Wire]:
         return await self._repo.wire_repo.get_many(filter_by, order_by, slice_from, slice_to)
 
+    async def get_uniques(self, by_fields: list[str], filter_by: dict, order_by: OrderBy=None) -> list[domain.Wire]:
+        return await self._repo.wire_repo.get_uniques(by_fields, filter_by, order_by)
+
     async def update_wires(self, source_info: domain.SourceInfo, wires: list[domain.Wire]):
         old_wires = await self._repo.wire_repo.get_many_by_id([x.id for x in wires])
         await self.delete_wires(source_info, old_wires)

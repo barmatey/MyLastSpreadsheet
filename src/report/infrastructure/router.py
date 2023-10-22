@@ -42,8 +42,13 @@ async def get_source(source_id: UUID, get_asession=Depends(db.get_async_session)
 
 
 @router_source.get("/{source_id}/plan-items")
-async def get_plan_items(source_id: UUID, get_asession=Depends(db.get_async_session)):
-    raise NotImplemented
+async def get_plan_items(source_id: UUID, get_asession=Depends(db.get_async_session)) -> list[domain.Wire]:
+    async with get_asession as session:
+        boot = bootstrap.Bootstrap(session)
+        cmd = commands.GetUniqueWires(fields=["sender", "receiver", "sub1", "sub2"],
+                                      source_id=source_id, receiver=boot.get_source_service())
+        result = await cmd.execute()
+        return result
 
 
 router_wire = APIRouter(

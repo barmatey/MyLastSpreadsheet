@@ -43,10 +43,20 @@ class GetSourceInfoList(BaseModel):
         return await self.receiver.get_source_info_list()
 
 
+class GetUniqueWires(BaseModel):
+    receiver: services.SourceService
+    fields: list[domain.Ccol]
+    source_id: UUID
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> list[domain.Wire]:
+        return await self.receiver.get_uniques(self.fields, filter_by={"source_id": self.source_id})
+
+
 class GetWires(BaseModel):
     filter_by: dict
     order_by: OrderBy
-    slice_from:  int | None
+    slice_from: int | None
     slice_to: int | None
     receiver: services.SourceService
     model_config = ConfigDict(arbitrary_types_allowed=True)

@@ -139,7 +139,13 @@ class WireRepo(PostgresRepo):
 
     async def get_uniques(self, columns_by: list[str], filter_by: dict = None,
                           order_by: OrderBy = None) -> list[domain.Wire]:
-        result = await super().get_uniques(columns_by, filter_by, order_by)
+        stmt = (
+            select(WireModel, SourceInfoModel)
+            .join(SourceInfoModel, WireModel.source_id == SourceInfoModel.id)
+            .distinct(*[self._model.__table__.c[col] for col in columns_by])
+        )
+        stmt = self._expand_statement(stmt, filter_by, order_by)
+        result = await self._session.execute(stmt)
         entities = [x[0].to_entity(source_info=x[1].to_entity()) for x in result]
         return entities
 
