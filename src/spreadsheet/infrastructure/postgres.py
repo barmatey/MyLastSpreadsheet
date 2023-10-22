@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core import OrderBy
-from ... import helpers
 from ..domain import SheetInfo, RowSindex, ColSindex, Cell, CellValue, CellDtype, Sheet
 from ..services import SheetRepository, CellRepository, Slice
 from src.base.repo.repository import Repository, T
@@ -219,9 +218,7 @@ class CellPostgresRepo(PostgresRepo, CellRepository):
             .join(ColSindexModel, CellModel.col_sindex_id == ColSindexModel.id)
             .where(CellModel.id.in_(ids))
         )
-        if order_by is not None:
-            stmt = stmt.order_by(*helpers.postgres.parse_order_by(self._model, order_by))
-
+        stmt = self._expand_statement(stmt, order_by=order_by)
         data = await self._session.execute(stmt)
         entities: list[Cell] = [CellModel.to_entity_from_tuple_of_models(x) for x in data]
         return entities
