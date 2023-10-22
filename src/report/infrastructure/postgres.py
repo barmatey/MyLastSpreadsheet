@@ -132,12 +132,7 @@ class WireRepo(PostgresRepo):
             select(WireModel, SourceInfoModel)
             .join(SourceInfoModel, WireModel.source_id == SourceInfoModel.id)
         )
-        if filter_by is not None:
-            stmt = stmt.where(*helpers.postgres.parse_filter_by(self._model, filter_by))
-        if order_by is not None:
-            stmt = stmt.order_by(*helpers.postgres.parse_order_by(self._model, order_by))
-        if slice_from is not None and slice_to is not None:
-            stmt = stmt.slice(slice_from, slice_to)
+        stmt = self._expand_statement(stmt, filter_by, order_by, slice_from, slice_to)
         result = await self._session.execute(stmt)
         entities = [x[0].to_entity(source_info=x[1].to_entity()) for x in result]
         return entities

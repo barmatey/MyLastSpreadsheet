@@ -42,15 +42,19 @@ class PostgresRepo(Repository):
             raise LookupError(f"models count is {len(models)}")
         return models[0].to_entity()
 
-    async def get_many(self, filter_by: dict = None, order_by: OrderBy = None,
-                       slice_from=None, slice_to=None) -> list[T]:
-        stmt = select(self._model)
+    def _expand_statement(self, stmt, filter_by=None, order_by=None, slice_from=None, slice_to=None):
         if filter_by is not None:
             stmt = stmt.where(*helpers.postgres.parse_filter_by(self._model, filter_by))
         if order_by is not None:
             stmt = stmt.order_by(*helpers.postgres.parse_order_by(self._model, order_by))
         if slice_from is not None and slice_to is not None:
             stmt = stmt.slice(slice_from, slice_to)
+        return stmt
+
+    async def get_many(self, filter_by: dict = None, order_by: OrderBy = None,
+                       slice_from=None, slice_to=None) -> list[T]:
+        stmt = select(self._model)
+        stmt = self._expand_statement(stmt, filter_by, order_by, slice_from, slice_to)
         models = await self._session.execute(stmt)
         entities = [x.to_entity() for x in models.scalars()]
         return entities

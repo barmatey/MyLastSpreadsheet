@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Type
 from uuid import UUID
 
-from sqlalchemy import select, Integer, ForeignKey, String, update
+from sqlalchemy import select, Integer, ForeignKey, String
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -114,6 +114,14 @@ class CellModel(Base):
         return Cell(sf=sheet_info, row=row, col=col, value=self.__get_value(self.value, self.dtype),
                     id=self.id)
 
+    @staticmethod
+    def to_entity_from_tuple_of_models(data):
+        sheet_info = data[0].to_entity()
+        row = data[1].to_entity(sheet=sheet_info)
+        col = data[2].to_entity(sheet=sheet_info)
+        cell = data[3].to_entity(sheet_info=sheet_info, row=row, col=col)
+        return cell
+
     @classmethod
     def from_entity(cls, entity: Cell):
         return cls(
@@ -138,13 +146,7 @@ class SindexPostgresRepo(PostgresRepo):
             select(self._model, SheetInfoModel)
             .join(SheetInfoModel, self._model.sheet_id == SheetInfoModel.id)
         )
-        if filter_by is not None:
-            stmt = stmt.where(*helpers.postgres.parse_filter_by(self._model, filter_by))
-        if order_by is not None:
-            stmt = stmt.order_by(*helpers.postgres.parse_order_by(self._model, order_by))
-        if slice_from is not None and slice_to is not None:
-            stmt = stmt.slice(slice_from, slice_to)
-
+        stmt = self._expand_statement(stmt, filter_by, order_by, slice_from, slice_to)
         models = await self._session.execute(stmt)
         sindexes = [x[0].to_entity(x[1].to_entity()) for x in models]
         return sindexes
@@ -190,13 +192,7 @@ class CellPostgresRepo(PostgresRepo, CellRepository):
 
         stmt = stmt.where(*filters).order_by(RowSindexModel.position, ColSindexModel.position)
         data = await self._session.execute(stmt)
-        entities: list[Cell] = []
-        for x in data:
-            sheet_info = x[0].to_entity()
-            row = x[1].to_entity(sheet=sheet_info)
-            col = x[2].to_entity(sheet=sheet_info)
-            cell = x[3].to_entity(sheet_info=sheet_info, row=row, col=col)
-            entities.append(cell)
+        entities: list[Cell] = [CellModel.to_entity_from_tuple_of_models(x) for x in data]
         return entities
 
     async def update_cell_by_position(self, sheet_id: UUID, row_pos: int, col_pos: int, data: dict):
@@ -210,20 +206,9 @@ class CellPostgresRepo(PostgresRepo, CellRepository):
             .join(RowSindexModel, CellModel.row_sindex_id == RowSindexModel.id)
             .join(ColSindexModel, CellModel.col_sindex_id == ColSindexModel.id)
         )
-        if filter_by is not None:
-            stmt = stmt.where(*helpers.postgres.parse_filter_by(self._model, filter_by))
-        if order_by is not None:
-            stmt = stmt.order_by(*helpers.postgres.parse_order_by(self._model, order_by))
-        if slice_from is not None and slice_to is not None:
-            stmt = stmt.slice(slice_from, slice_to)
+        stmt = self._expand_statement(stmt, filter_by, order_by, slice_from, slice_to)
         data = await self._session.execute(stmt)
-        entities: list[Cell] = []
-        for x in data:
-            sheet_info = x[0].to_entity()
-            row = x[1].to_entity(sheet=sheet_info)
-            col = x[2].to_entity(sheet=sheet_info)
-            cell = x[3].to_entity(sheet_info=sheet_info, row=row, col=col)
-            entities.append(cell)
+        entities: list[Cell] = [CellModel.to_entity_from_tuple_of_models(x) for x in data]
         return entities
 
     async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[T]:
@@ -238,13 +223,7 @@ class CellPostgresRepo(PostgresRepo, CellRepository):
             stmt = stmt.order_by(*helpers.postgres.parse_order_by(self._model, order_by))
 
         data = await self._session.execute(stmt)
-        entities: list[Cell] = []
-        for x in data:
-            sheet_info = x[0].to_entity()
-            row = x[1].to_entity(sheet=sheet_info)
-            col = x[2].to_entity(sheet=sheet_info)
-            cell = x[3].to_entity(sheet_info=sheet_info, row=row, col=col)
-            entities.append(cell)
+        entities: list[Cell] = [CellModel.to_entity_from_tuple_of_models(x) for x in data]
         return entities
 
 
