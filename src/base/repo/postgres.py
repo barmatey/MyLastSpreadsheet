@@ -1,7 +1,7 @@
 from typing import Type
 from uuid import UUID
 
-from sqlalchemy import TIMESTAMP, func, select, update, delete
+from sqlalchemy import TIMESTAMP, func, select, update, delete, Result
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -54,6 +54,15 @@ class PostgresRepo(Repository):
         models = await self._session.execute(stmt)
         entities = [x.to_entity() for x in models.scalars()]
         return entities
+
+    async def get_uniques(self, columns_by: list[str], filter_by: dict = None, order_by: OrderBy = None) -> Result:
+        stmt = select(self._model).distinct(*[self._model.__table__.c[col] for col in columns_by])
+        if filter_by is not None:
+            stmt = stmt.where(*helpers.postgres.parse_filter_by(self._model, filter_by))
+        if order_by is not None:
+            stmt = stmt.order_by(*helpers.postgres.parse_order_by(self._model, order_by))
+        result = await self._session.execute(stmt)
+        return result
 
     async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[T]:
         stmt = select(self._model).where(self._model.id.in_(ids))

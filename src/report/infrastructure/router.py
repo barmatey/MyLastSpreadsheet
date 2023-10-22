@@ -41,6 +41,11 @@ async def get_source(source_id: UUID, get_asession=Depends(db.get_async_session)
         return result
 
 
+@router_source.get("/{source_id}/plan-items")
+async def get_plan_items(source_id: UUID, get_asession=Depends(db.get_async_session)):
+    raise NotImplemented
+
+
 router_wire = APIRouter(
     prefix="/wire",
     tags=["Wire"]

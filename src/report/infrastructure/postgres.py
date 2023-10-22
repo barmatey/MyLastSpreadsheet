@@ -142,6 +142,12 @@ class WireRepo(PostgresRepo):
         entities = [x[0].to_entity(source_info=x[1].to_entity()) for x in result]
         return entities
 
+    async def get_uniques(self, columns_by: list[str], filter_by: dict = None,
+                          order_by: OrderBy = None) -> list[domain.Wire]:
+        result = await super().get_uniques(columns_by, filter_by, order_by)
+        entities = [x[0].to_entity(source_info=x[1].to_entity()) for x in result]
+        return entities
+
 
 class SourceFullRepo(services.SourceRepo):
     def __init__(self, session: AsyncSession):

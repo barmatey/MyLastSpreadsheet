@@ -23,6 +23,10 @@ class Repository(ABC, Generic[T]):
         raise NotImplemented
 
     @abstractmethod
+    async def get_uniques(self, columns_by: list[str], filter_by: dict = None, order_by: OrderBy = None) -> list[T]:
+        raise NotImplemented
+
+    @abstractmethod
     async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[T]:
         raise NotImplemented
 
