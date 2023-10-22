@@ -98,3 +98,11 @@ class Report(BaseModel):
 
     def find_row_pos(self, key: str):
         return self.plan_items.order.bisect_left(key)
+
+    def to_json(self) -> dict:
+        return {
+            "periods": [x.model_dump(mode='json') for x in self.periods],
+            "plan_items": self.plan_items.to_json(),
+            "sheet_id": self.sheet_id,
+            "id": self.id,
+        }
