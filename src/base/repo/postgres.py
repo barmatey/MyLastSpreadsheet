@@ -86,9 +86,7 @@ class PostgresRepo(Repository):
         data = [self._model.from_entity(x).__dict__ for x in data]
         await self._session.execute(stmt, data)
 
-    async def remove_many(self, data: list[T]):
-        ids = [x.id for x in data]
-        stmt = delete(self._model).where(self._model.id.in_(ids)).returning(self._model.id)
-        result = await self._session.execute(stmt)
-        if len(list(result)) != len(data):
-            raise LookupError
+    async def remove_many(self, filter_by: dict):
+        stmt = delete(self._model)
+        stmt = self._expand_statement(stmt, filter_by)
+        _ = await self._session.execute(stmt)

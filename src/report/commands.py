@@ -43,6 +43,15 @@ class GetSourceInfoList(BaseModel):
         return await self.receiver.get_source_info_list()
 
 
+class DeleteSourceById(BaseModel):
+    id: UUID
+    receiver: services.SourceService
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> None:
+        await self.receiver.delete_source_by_id(self.id)
+
+
 class GetUniqueWires(BaseModel):
     receiver: services.SourceService
     fields: list[domain.Ccol]

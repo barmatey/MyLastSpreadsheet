@@ -34,6 +34,17 @@ async def get_sources(get_asession=Depends(db.get_async_session)) -> list[domain
         return result
 
 
+@router_source.delete("/{source_id}")
+async def delete_source(source_id: UUID, get_asession=Depends(db.get_async_session)) -> int:
+    async with get_asession as session:
+        boot = bootstrap.Bootstrap(session)
+        cmd = commands.DeleteSourceById(id=source_id, receiver=boot.get_source_service())
+        await cmd.execute()
+        await boot.get_event_bus().run()
+        await session.commit()
+        return 1
+
+
 @router_source.get("/{source_id}")
 async def get_source(source_id: UUID, get_asession=Depends(db.get_async_session)) -> domain.SourceInfo:
     async with get_asession as session:
@@ -68,8 +79,7 @@ async def create_many_from_csv(source_id: UUID, file: UploadFile, get_asession=D
         df = pd.read_csv(file.file, parse_dates=['date'])
         df['date'] = pd.to_datetime(df['date'], utc=True)
         df['amount'] = df['debit'] - df['credit']
-        print(df.columns)
-        df = df.drop(['debit', 'credit'], axis=1)
+        df = df[['sender', 'receiver', 'sub1', 'sub2', 'date', 'amount']]
         wires = [domain.Wire(**x, source_info=source_info) for x in df.to_dict(orient='records')]
         cmd = commands.AppendWires(wires=wires, source_info=source_info, receiver=boot.get_source_service())
         await cmd.execute()

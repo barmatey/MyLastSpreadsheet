@@ -39,6 +39,6 @@ class Repository(ABC, Generic[T]):
         raise NotImplemented
 
     @abstractmethod
-    async def remove_many(self, data: list[T]):
+    async def remove_many(self, filter_by: dict):
         raise NotImplemented
 

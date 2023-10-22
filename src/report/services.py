@@ -36,6 +36,10 @@ class SourceService:
     async def create_source(self, source: domain.Source):
         await self._repo.add_source(source)
 
+    async def delete_source_by_id(self, uuid: UUID):
+        await self._repo.wire_repo.remove_many(filter_by={"source_id": uuid})
+        await self._repo.source_info_repo.remove_many(filter_by={"id": uuid})
+
     async def get_source_by_id(self, uuid: UUID) -> domain.Source:
         return await self._repo.get_source_by_id(uuid)
 
