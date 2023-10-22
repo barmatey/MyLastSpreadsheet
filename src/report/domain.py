@@ -31,7 +31,6 @@ def wcols_factory():
         {'title': 'credit', 'label': 'Credit', 'dtype': 'float', },
         {'title': 'sub1', 'label': 'First subconto', 'dtype': 'str', },
         {'title': 'sub2', 'label': 'Second subconto', 'dtype': 'str', },
-        {'title': 'comment', 'label': 'Comment', 'dtype': 'str', },
     ]
 
 

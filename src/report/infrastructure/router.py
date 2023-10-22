@@ -1,7 +1,8 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+import pandas as pd
+from fastapi import APIRouter, Depends, UploadFile
 from fastapi.responses import JSONResponse
 
 import db
@@ -15,11 +16,12 @@ router_source = APIRouter(
 
 
 @router_source.post("/")
-async def create_source(title: str, get_asession=Depends(db.get_async_session)) -> domain.SourceInfo:
+async def create_source(sf: domain.SourceInfo, get_asession=Depends(db.get_async_session)) -> domain.SourceInfo:
     async with get_asession as session:
         boot = bootstrap.Bootstrap(session)
-        cmd = commands.CreateSource(title=title, receiver=boot.get_source_service())
+        cmd = commands.CreateSource(title=sf.title, receiver=boot.get_source_service())
         source = await cmd.execute()
+        await session.commit()
         return source.source_info
 
 
@@ -55,6 +57,24 @@ router_wire = APIRouter(
     prefix="/wire",
     tags=["Wire"]
 )
+
+
+@router_wire.post("/{source_id}/csv")
+async def create_many_from_csv(source_id: UUID, file: UploadFile, get_asession=Depends(db.get_async_session)) -> int:
+    async with get_asession as session:
+        boot = bootstrap.Bootstrap(session)
+        source_info = await commands.GetSourceInfoById(id=source_id, receiver=boot.get_source_service()).execute()
+
+        df = pd.read_csv(file.file, parse_dates=['date'])
+        df['date'] = pd.to_datetime(df['date'], utc=True)
+        df['amount'] = df['debit'] - df['credit']
+        print(df.columns)
+        df = df.drop(['debit', 'credit'], axis=1)
+        wires = [domain.Wire(**x, source_info=source_info) for x in df.to_dict(orient='records')]
+        cmd = commands.AppendWires(wires=wires, source_info=source_info, receiver=boot.get_source_service())
+        await cmd.execute()
+        await session.commit()
+        return 1
 
 
 @router_wire.get("/")
