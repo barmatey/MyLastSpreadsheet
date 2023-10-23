@@ -42,13 +42,13 @@ class IntervalSchema(BaseModel):
         return result
 
     @classmethod
-    def from_periods(cls, data: list[domain.Period]):
+    def from_interval(cls, entity: domain.Interval) -> 'IntervalSchema':
         return cls(
-            start_date=data[0].from_date,
-            end_date=data[-1].to_date,
             period_day=777,
             period_month=777,
             period_year=777,
+            start_date=entity.start_date,
+            end_date=entity.end_date,
         )
 
 
@@ -77,7 +77,7 @@ class ReportRetrieveSchema(BaseModel):
         return cls(
             id=entity.id,
             title=entity.title,
-            interval=IntervalSchema.from_periods(entity.periods),
+            interval=IntervalSchema.from_interval(entity.interval),
             updated_at=entity.updated_at,
             category="TEST_CATEGORY",
             source_info=entity.source_info,

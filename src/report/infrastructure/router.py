@@ -148,9 +148,9 @@ async def create_report(data: schema.ReportCreateSchema,
 
 
 @router_report.get("/")
-async def get_reports(get_asession=Depends(db.get_async_session)) -> list[domain.Report]:
+async def get_reports(get_asession=Depends(db.get_async_session)) -> list[schema.ReportRetrieveSchema]:
     async with get_asession as session:
         boot = bootstrap.Bootstrap(session)
         cmd = commands.GetReportList(receiver=boot.get_report_service())
         reports = await cmd.execute()
-        return reports
+        return [schema.ReportRetrieveSchema.from_entity(x) for x in reports]
