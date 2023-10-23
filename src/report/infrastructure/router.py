@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 import db
 from . import schema
 from .. import bootstrap, commands, domain
+from ... import helpers
 from ...core import OrderBy
 
 router_source = APIRouter(
@@ -128,7 +129,8 @@ router_report = APIRouter(
 
 
 @router_report.post("/")
-async def create_report(data: schema.ReportCreateSchema, get_asession=Depends(db.get_async_session)) -> JSONResponse:
+@helpers.decorators.async_timeit
+async def create_report(data: schema.ReportCreateSchema, get_asession=Depends(db.get_async_session)) -> domain.Report:
     async with get_asession as session:
         boot = bootstrap.Bootstrap(session)
         source = await commands.GetSourceById(id=data.source_id, receiver=boot.get_source_service()).execute()
@@ -137,4 +139,4 @@ async def create_report(data: schema.ReportCreateSchema, get_asession=Depends(db
         cmd = commands.CreateReport(source=source, periods=periods, plan_items=plan_items,
                                     receiver=boot.get_report_service())
         report = await cmd.execute()
-        return JSONResponse(content=report.to_json())
+        return report

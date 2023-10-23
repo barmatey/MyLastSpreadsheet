@@ -2,7 +2,7 @@ from typing import Literal, Union
 from typing_extensions import TypedDict
 from uuid import UUID, uuid4
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_serializer
 from sortedcontainers import SortedList
 
 Ccol = Literal['currency', 'sender', 'receiver', 'sub1', 'sub2']
@@ -68,6 +68,10 @@ class PlanItems(BaseModel):
     order: SortedList[str] = Field(default_factory=SortedList)
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    @field_serializer('order')
+    def serialize_order(self, order: SortedList) -> list[str]:
+        return list(order)
+
     def to_json(self):
         return {
             "ccols": self.ccols,
@@ -99,10 +103,14 @@ class Report(BaseModel):
     def find_row_pos(self, key: str):
         return self.plan_items.order.bisect_left(key)
 
+    @field_serializer('id')
+    def serialize_dt(self, uuid: UUID) -> str:
+        return str(uuid)
+
     def to_json(self) -> dict:
         return {
             "periods": [x.model_dump(mode='json') for x in self.periods],
             "plan_items": self.plan_items.to_json(),
-            "sheet_id": self.sheet_id,
-            "id": self.id,
+            "sheet_id": str(self.sheet_id),
+            "id": str(self.id),
         }

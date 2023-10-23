@@ -127,12 +127,13 @@ class ReportPublisher(subscriber.SourceSubscriber):
         self._repo = repo
 
     async def follow_source(self, source: domain.Source):
-        await self.on_wires_appended(source.wires)
+        wires = [x.model_dump() for x in source.wires]
+        wires = pd.DataFrame.from_records(wires)
+        print(wires)
         await self._broker.subscribe([source.source_info], self._entity)
 
     async def on_wires_appended(self, wires: list[domain.Wire]):
-        for wire in wires:
-            await self.__append_wire(wire)
+        raise NotImplemented
 
     async def on_wires_deleted(self, wires: list[domain.Wire]):
         for wire in wires:
@@ -165,17 +166,17 @@ class ReportPublisher(subscriber.SourceSubscriber):
             row: list[domain.CellValue] = [wire.__getattribute__(c)
                                            for c in self._entity.plan_items.ccols] + [0] * len(self._entity.periods)
             row[self._entity.find_col_pos(wire.date)] = wire.amount
-            await self._sheet_gw.insert_row_from_position(
-                sheet_id=self._entity.sheet_id,
-                from_pos=self._entity.plan_items.order.bisect_left(key) + 1,
-                row=row,
-            )
+            # await self._sheet_gw.insert_row_from_position(
+            #     sheet_id=self._entity.sheet_id,
+            #     from_pos=self._entity.plan_items.order.bisect_left(key) + 1,
+            #     row=row,
+            # )
         else:
             row_pos = self._entity.plan_items.order.bisect_left(key)
             col_pos = self._entity.find_col_pos(wire.date)
-            cell = await self._sheet_gw.get_cell(self._entity.sheet_id, row_pos, col_pos)
-            cell.value += wire.amount
-            await self._sheet_gw.update_cell(cell)
+            # cell = await self._sheet_gw.get_cell(self._entity.sheet_id, row_pos, col_pos)
+            # cell.value += wire.amount
+            # await self._sheet_gw.update_cell(cell)
 
         self._entity.plan_items.uniques[key] += 1
 
