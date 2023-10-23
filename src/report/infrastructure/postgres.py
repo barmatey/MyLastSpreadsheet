@@ -73,8 +73,7 @@ class ReportModel(Base):
     __tablename__ = "report"
     start_date: Mapped[TIMESTAMP] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
     end_date: Mapped[TIMESTAMP] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
-    periods: Mapped[int] = mapped_column(Integer, nullable=False)
-    freq: Mapped[str] = mapped_column(String(2), nullable=False)
+    freq: Mapped[str] = mapped_column(String(16), nullable=False)
     plan_items: Mapped[JSON] = mapped_column(JSON, nullable=False)
     sheet_id: Mapped[UUID] = mapped_column(String(64), nullable=False)
     source_id: Mapped[UUID] = mapped_column(ForeignKey("source.id"))
@@ -87,7 +86,7 @@ class ReportModel(Base):
         return cls(
             id=entity.id,
             plan_items=entity.plan_items.model_dump(),
-            sheet_id=entity.sheet_info.id,
+            sheet_id=str(entity.sheet_info.id),
             source_id=entity.source_info.id,
             **entity.interval.model_dump(),
         )
