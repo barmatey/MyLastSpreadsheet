@@ -106,9 +106,10 @@ class SheetInfo(BaseModel):
 
 
 class Report(BaseModel):
+    title: str
+    category: str
     source_info: SourceInfo
     sheet_info: SheetInfo
-    title: str
     interval: Interval
     plan_items: PlanItems
     updated_at: datetime = Field(default_factory=datetime.now)

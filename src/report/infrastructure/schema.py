@@ -66,6 +66,7 @@ class SheetSchema(BaseModel):
 class ReportRetrieveSchema(BaseModel):
     id: UUID
     title: str
+    category: str
     interval: IntervalSchema
     updated_at: datetime
     category: str
@@ -76,10 +77,10 @@ class ReportRetrieveSchema(BaseModel):
     def from_entity(cls, entity: domain.Report):
         return cls(
             id=entity.id,
+            category=entity.category,
             title=entity.title,
             interval=IntervalSchema.from_interval(entity.interval),
             updated_at=entity.updated_at,
-            category="TEST_CATEGORY",
             source_info=entity.source_info,
             sheet_info=entity.sheet_info
         )

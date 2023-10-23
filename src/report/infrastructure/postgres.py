@@ -93,6 +93,7 @@ class ReportModel(Base):
         )
         return domain.Report(
             title=report_model.title,
+            category="PROFIT",
             id=report_model.id,
             plan_items=pl,
             source_info=source_info_model.to_entity(),
