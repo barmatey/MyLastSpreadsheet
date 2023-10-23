@@ -159,8 +159,8 @@ class SheetService:
             ids = [x.id for x in sindexes]
             cells = await self._repo.cell_repo.get_many(filter_by={key: ids})
 
-        await self._repo.cell_repo.remove_many(cells)
-        await repo.remove_many(sindexes)
+        await self._repo.cell_repo.remove_many(filter_by={"id.__in": [x.id for x in cells]})
+        await repo.remove_many(filter_by={"id.__in": [x.id for x in sindexes]})
         await self._repo.sheet_info_repo.update_one(new_sf)
         await self.reindex(sindexes[0].sf.id, axis)
 
