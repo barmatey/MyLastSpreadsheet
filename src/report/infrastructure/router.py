@@ -131,7 +131,7 @@ router_report = APIRouter(
 @router_report.post("/")
 @helpers.decorators.async_timeit
 async def create_report(data: schema.ReportCreateSchema,
-                        get_asession=Depends(db.get_async_session)) -> schema.ReportRetrieveSchema:
+                        get_asession=Depends(db.get_async_session)) -> domain.Report:
     async with get_asession as session:
         boot = bootstrap.Bootstrap(session)
         source = await commands.GetSourceById(id=data.source_id, receiver=boot.get_source_service()).execute()

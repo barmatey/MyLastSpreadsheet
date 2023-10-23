@@ -57,7 +57,7 @@ class ReportRetrieveSchema(BaseModel):
     updated_at: datetime
     category: str
     source_info: domain.SourceInfo
-    sheet_info: SheetSchema
+    sheet_info: domain.SheetInfo
 
     @classmethod
     def from_entity(cls, entity: domain.Report):
@@ -68,5 +68,5 @@ class ReportRetrieveSchema(BaseModel):
             updated_at=entity.updated_at,
             category="TEST_CATEGORY",
             source_info=entity.source_info,
-            sheet_info=SheetSchema(id=entity.sheet_id)
+            sheet_info=entity.sheet_info
         )

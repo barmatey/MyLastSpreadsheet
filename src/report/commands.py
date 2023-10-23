@@ -108,15 +108,16 @@ class UpdateWires(BaseModel):
 
 
 class CreateReport(BaseModel):
+    title: str
     source: domain.Source
-    periods: list[domain.Period]
+    interval: domain.Interval
     plan_items: domain.PlanItems
     receiver: services.ReportService
     id: UUID = Field(default_factory=uuid4)
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def execute(self) -> domain.Report:
-        report = await self.receiver.create(source=self.source, plan_items=self.plan_items, periods=self.periods)
+        report = await self.receiver.create(source=self.source, plan_items=self.plan_items, interval=self.interval)
         return report
 
 

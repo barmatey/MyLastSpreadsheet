@@ -20,6 +20,7 @@ class SourceInfoModel(Base):
     __tablename__ = "source"
     title: Mapped[str] = mapped_column(String(32), nullable=False)
     wires = relationship('WireModel')
+    reports = relationship('ReportModel')
 
     def to_entity(self) -> domain.SourceInfo:
         return domain.SourceInfo(id=self.id, title=self.title)
@@ -70,37 +71,25 @@ class WireModel(Base):
 
 class ReportModel(Base):
     __tablename__ = "report"
-    periods: Mapped[JSON] = mapped_column(JSON, nullable=False)
+    start_date: Mapped[TIMESTAMP] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
+    end_date: Mapped[TIMESTAMP] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
+    periods: Mapped[int] = mapped_column(Integer, nullable=False)
+    freq: Mapped[str] = mapped_column(String(2), nullable=False)
     plan_items: Mapped[JSON] = mapped_column(JSON, nullable=False)
     sheet_id: Mapped[UUID] = mapped_column(String(64), nullable=False)
+    source_id: Mapped[UUID] = mapped_column(ForeignKey("source.id"))
 
     def to_entity(self) -> domain.Report:
-        plan_items = domain.PlanItems(
-            ccols=self.plan_items['ccols'],
-            uniques=self.plan_items['uniques'],
-            order=SortedList(self.plan_items['order']),
-        )
-        periods = [
-            domain.Period(
-                from_date=datetime(**x['from_date'], tzinfo=pytz.UTC),
-                to_date=datetime(**x['to_date'], tzinfo=pytz.UTC)
-            ) for x in self.periods
-        ]
-
-        return domain.Report(
-            id=self.id,
-            periods=periods,
-            plan_items=plan_items,
-            sheet_id=self.sheet_id,
-        )
+        raise NotImplemented
 
     @classmethod
     def from_entity(cls, entity: domain.Report):
         return cls(
             id=entity.id,
-            periods=[x.model_dump(mode='json') for x in entity.periods],
-            plan_items=entity.plan_items.to_json(),
-            sheet_id=str(entity.sheet_id),
+            plan_items=entity.plan_items.model_dump(),
+            sheet_id=entity.sheet_info.id,
+            source_id=entity.source_info.id,
+            **entity.interval.model_dump(),
         )
 
 
@@ -190,3 +179,13 @@ class SourceFullRepo(services.SourceRepo):
 class ReportRepo(PostgresRepo):
     def __init__(self, session: AsyncSession, model: Type[Base] = ReportModel):
         super().__init__(session, model)
+
+    async def get_one_by_id(self, uuid: UUID) -> domain.Report:
+        raise NotImplemented
+
+    async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[domain.Report]:
+        raise NotImplemented
+
+    async def get_many(self, filter_by: dict = None, order_by: OrderBy = None,
+                       slice_from=None, slice_to=None) -> list[domain.Report]:
+        raise NotImplemented

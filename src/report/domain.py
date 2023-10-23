@@ -1,4 +1,6 @@
 from typing import Literal, Union
+
+import pandas as pd
 from typing_extensions import TypedDict
 from uuid import UUID, uuid4
 from datetime import datetime
@@ -85,10 +87,32 @@ class Period(BaseModel):
     to_date: datetime
 
 
+class Interval(BaseModel):
+    start_date: datetime
+    end_date: datetime
+    periods: int
+    freq: Literal["Y", "M", "D"]
+
+    def to_intervals(self) -> list[pd.Interval]:
+        periods = pd.date_range(self.start_date, self.end_date, periods=self.periods, freq=self.freq)
+        intervals = [
+            pd.Interval(start, end)
+            for start, end in zip(periods[0:-1], periods[1:])
+        ]
+        return intervals
+
+
+class SheetInfo(BaseModel):
+    id: UUID
+
+
 class Report(BaseModel):
-    periods: list[Period]
+    source_info: SourceInfo
+    sheet_info: SheetInfo
+    title: str
+    interval: Interval
     plan_items: PlanItems
-    sheet_id: UUID
+    updated_at: datetime = Field(default_factory=datetime.now)
     id: UUID = Field(default_factory=uuid4)
 
     def __hash__(self):

@@ -188,11 +188,20 @@ class ReportService:
         self._gateway = sheet_gateway
         self._repo = repo
 
-    async def create(self, source: domain.Source, plan_items: domain.PlanItems,
-                     periods: list[domain.Period]) -> domain.Report:
-        first_row = [None] * len(plan_items.ccols) + [x.to_date for x in periods]
+    async def create(self,
+                     title: str,
+                     source: domain.Source,
+                     plan_items: domain.PlanItems,
+                     interval:  domain.Interval) -> domain.Report:
+        first_row = [None] * len(plan_items.ccols) + [x.right for x in interval.to_intervals()]
         sheet_id = await self._gateway.create_sheet([first_row])
-        report = domain.Report(sheet_id=sheet_id, periods=periods, plan_items=plan_items)
+        report = domain.Report(
+            title=title,
+            source_info=source.source_info,
+            sheet_info=domain.SheetInfo(id=sheet_id),
+            interval=interval,
+            plan_items=plan_items,
+        )
         await self._subfac.create_source_subscriber(report).follow_source(source)
         await self._repo.add_many([report])
         return report
