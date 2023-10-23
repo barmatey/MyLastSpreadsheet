@@ -17,6 +17,19 @@ class IntervalSchema(BaseModel):
     total_start_date: typing.Optional[datetime] = None
     total_end_date: typing.Optional[datetime] = None
 
+    def to_interval(self) -> domain.Interval:
+        if self.period_day:
+            freq = f"{self.period_day}D"
+        elif self.period_month:
+            freq = f"{self.period_month}M"
+        else:
+            freq = f"{self.period_year}"
+        return domain.Interval(
+            start_date=self.start_date,
+            end_date=self.end_date,
+            freq=freq,
+        )
+
     def to_periods(self) -> list[domain.Period]:
         if self.period_day:
             freq = f"{self.period_day}D"

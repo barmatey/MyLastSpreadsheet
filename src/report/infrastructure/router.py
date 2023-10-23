@@ -135,9 +135,13 @@ async def create_report(data: schema.ReportCreateSchema,
     async with get_asession as session:
         boot = bootstrap.Bootstrap(session)
         source = await commands.GetSourceById(id=data.source_id, receiver=boot.get_source_service()).execute()
-        periods = data.interval.to_periods()
-        plan_items = domain.PlanItems(ccols=data.ccols)
-        cmd = commands.CreateReport(source=source, periods=periods, plan_items=plan_items,
-                                    receiver=boot.get_report_service())
+        cmd = commands.CreateReport(
+            title=data.title,
+            interval=data.interval.to_interval(),
+            plan_items=domain.PlanItems(ccols=data.ccols),
+            source=source,
+            receiver=boot.get_report_service(),
+        )
         report = await cmd.execute()
+        await session.commit()
         return report

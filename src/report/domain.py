@@ -90,11 +90,10 @@ class Period(BaseModel):
 class Interval(BaseModel):
     start_date: datetime
     end_date: datetime
-    periods: int
-    freq: Literal["Y", "M", "D"]
+    freq: str
 
     def to_intervals(self) -> list[pd.Interval]:
-        periods = pd.date_range(self.start_date, self.end_date, periods=self.periods, freq=self.freq)
+        periods = pd.date_range(self.start_date, self.end_date, freq=self.freq)
         intervals = [
             pd.Interval(start, end)
             for start, end in zip(periods[0:-1], periods[1:])
@@ -114,6 +113,7 @@ class Report(BaseModel):
     plan_items: PlanItems
     updated_at: datetime = Field(default_factory=datetime.now)
     id: UUID = Field(default_factory=uuid4)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __hash__(self):
         return self.id.__hash__()
