@@ -1,14 +1,11 @@
 from typing import Type
 from uuid import UUID
-from datetime import datetime
-import pytz
 
 from sortedcontainers import SortedList
 from sqlalchemy import String, Integer, TIMESTAMP, func, Float, ForeignKey, select, JSON
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src import helpers
 from src.base.repo.postgres import Base, PostgresRepo
 from src.base.repo.repository import Repository
 from src.core import OrderBy
@@ -202,7 +199,15 @@ class ReportRepo(PostgresRepo):
         super().__init__(session, model)
 
     async def get_one_by_id(self, uuid: UUID) -> domain.Report:
-        raise NotImplemented
+        stmt = (
+            select(ReportModel, SourceInfoModel)
+            .join(SourceInfoModel, SourceInfoModel.id == ReportModel.source_id)
+            .where(ReportModel.id == uuid)
+        )
+        data = await self._session.execute(stmt)
+        data = data.__next__()
+        report = ReportModel.to_entity_from_tuple(data)
+        return report
 
     async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[domain.Report]:
         raise NotImplemented
@@ -217,4 +222,3 @@ class ReportRepo(PostgresRepo):
         data = await self._session.execute(stmt)
         reports = [ReportModel.to_entity_from_tuple(x) for x in data]
         return reports
-

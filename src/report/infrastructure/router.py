@@ -154,3 +154,12 @@ async def get_reports(get_asession=Depends(db.get_async_session)) -> list[schema
         cmd = commands.GetReportList(receiver=boot.get_report_service())
         reports = await cmd.execute()
         return [schema.ReportRetrieveSchema.from_entity(x) for x in reports]
+
+
+@router_report.get("/{report_id}")
+async def get_report(report_id: UUID, get_asession=Depends(db.get_async_session)) -> schema.ReportRetrieveSchema:
+    async with get_asession as session:
+        boot = bootstrap.Bootstrap(session)
+        cmd = commands.GetReportById(id=report_id, receiver=boot.get_report_service())
+        report = await cmd.execute()
+        return schema.ReportRetrieveSchema.from_entity(report)
