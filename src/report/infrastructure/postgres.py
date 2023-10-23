@@ -71,6 +71,7 @@ class WireModel(Base):
 
 class ReportModel(Base):
     __tablename__ = "report"
+    title: Mapped[str] = mapped_column(String(64), default='default_title')
     start_date: Mapped[TIMESTAMP] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
     end_date: Mapped[TIMESTAMP] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
     freq: Mapped[str] = mapped_column(String(16), nullable=False)
@@ -81,9 +82,29 @@ class ReportModel(Base):
     def to_entity(self) -> domain.Report:
         raise NotImplemented
 
+    @staticmethod
+    def to_entity_from_tuple(data) -> domain.Report:
+        report_model: ReportModel = data[0]
+        source_info_model: SourceInfoModel = data[1]
+        pl = domain.PlanItems(
+            ccols=report_model.plan_items.get('ccols'),
+            uniques=report_model.plan_items.get('uniques'),
+            order=SortedList(report_model.plan_items.get('order')),
+        )
+        return domain.Report(
+            title=report_model.title,
+            id=report_model.id,
+            plan_items=pl,
+            source_info=source_info_model.to_entity(),
+            sheet_info=domain.SheetInfo(id=report_model.sheet_id),
+            interval=domain.Interval(start_date=report_model.start_date, end_date=report_model.end_date,
+                                     freq=report_model.freq)
+        )
+
     @classmethod
     def from_entity(cls, entity: domain.Report):
         return cls(
+            title=entity.title,
             id=entity.id,
             plan_items=entity.plan_items.model_dump(),
             sheet_id=str(entity.sheet_info.id),
@@ -187,4 +208,12 @@ class ReportRepo(PostgresRepo):
 
     async def get_many(self, filter_by: dict = None, order_by: OrderBy = None,
                        slice_from=None, slice_to=None) -> list[domain.Report]:
-        raise NotImplemented
+        stmt = (
+            select(ReportModel, SourceInfoModel)
+            .join(SourceInfoModel, SourceInfoModel.id == ReportModel.source_id)
+        )
+        stmt = self._expand_statement(stmt, filter_by, order_by, slice_from, slice_to)
+        data = await self._session.execute(stmt)
+        reports = [ReportModel.to_entity_from_tuple(x) for x in data]
+        return reports
+

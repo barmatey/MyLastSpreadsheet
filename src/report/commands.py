@@ -133,3 +133,11 @@ class GetReportById(BaseModel):
 
     async def execute(self) -> domain.Report:
         return await self.receiver.get_by_id(self.id)
+
+
+class GetReportList(BaseModel):
+    receiver: services.ReportService
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> list[domain.Report]:
+        return await self.receiver.get_many()

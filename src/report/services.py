@@ -53,7 +53,7 @@ class SourceService:
                         slice_from: int = None, slice_to: int = None) -> list[domain.Wire]:
         return await self._repo.wire_repo.get_many(filter_by, order_by, slice_from, slice_to)
 
-    async def get_uniques(self, by_fields: list[str], filter_by: dict, order_by: OrderBy=None) -> list[domain.Wire]:
+    async def get_uniques(self, by_fields: list[str], filter_by: dict, order_by: OrderBy = None) -> list[domain.Wire]:
         return await self._repo.wire_repo.get_uniques(by_fields, filter_by, order_by)
 
     async def update_wires(self, source_info: domain.SourceInfo, wires: list[domain.Wire]):
@@ -192,7 +192,7 @@ class ReportService:
                      title: str,
                      source: domain.Source,
                      plan_items: domain.PlanItems,
-                     interval:  domain.Interval) -> domain.Report:
+                     interval: domain.Interval) -> domain.Report:
         first_row = [None] * len(plan_items.ccols) + [x.right for x in interval.to_intervals()]
         sheet_id = await self._gateway.create_sheet([first_row])
         report = domain.Report(
@@ -208,3 +208,6 @@ class ReportService:
 
     async def get_by_id(self, uuid: UUID) -> domain.Report:
         return await self._repo.get_one_by_id(uuid)
+
+    async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[domain.Report]:
+        return await self._repo.get_many(filter_by, order_by)
