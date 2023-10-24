@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from src.core import OrderBy
+from src.base import eventbus, broker
+from src.base.repo import repository
 from . import domain
 from . import subscriber
-from src.base import eventbus, broker
-from ..base.repo import repository
 
 Slice = tuple[int, int] | int
 
