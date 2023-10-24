@@ -307,3 +307,6 @@ class ReportService:
 
     async def get_many(self, filter_by: dict = None, order_by: OrderBy = None) -> list[domain.Report]:
         return await self._repo.get_many(filter_by, order_by)
+
+    async def delete_many(self, filter_by: dict) -> None:
+        await self._repo.remove_many(filter_by)

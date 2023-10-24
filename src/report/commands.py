@@ -141,3 +141,13 @@ class GetReportList(BaseModel):
 
     async def execute(self) -> list[domain.Report]:
         return await self.receiver.get_many()
+
+
+class DeleteReportById(BaseModel):
+    id: UUID
+    receiver: services.ReportService
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> None:
+        await self.receiver.delete_many(filter_by={"id": self.id})
+

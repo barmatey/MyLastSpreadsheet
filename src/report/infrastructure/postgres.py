@@ -6,9 +6,9 @@ from sqlalchemy import String, Integer, TIMESTAMP, func, Float, ForeignKey, sele
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from src.core import OrderBy
 from src.base.repo.postgres import Base, PostgresRepo
 from src.base.repo.repository import Repository
-from src.core import OrderBy
 
 from src.report import domain, services
 

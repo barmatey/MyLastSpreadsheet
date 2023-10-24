@@ -165,3 +165,16 @@ async def get_report(report_id: UUID, get_asession=Depends(db.get_async_session)
         cmd = commands.GetReportById(id=report_id, receiver=boot.get_report_service())
         report = await cmd.execute()
         return schema.ReportRetrieveSchema.from_entity(report)
+
+
+@router_report.delete("/{report_id}")
+async def delete_report(report_id: UUID, get_asession=Depends(db.get_async_session)) -> int:
+    async with get_asession as session:
+        boot = bootstrap.Bootstrap(session)
+        cmd = commands.DeleteReportById(id=report_id, receiver=boot.get_report_service())
+        await cmd.execute()
+        bus = boot.get_event_bus()
+        await bus.run()
+        await session.commit()
+        return 1
+
