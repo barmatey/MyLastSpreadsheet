@@ -126,7 +126,8 @@ class SheetService:
                 sindex.position = sindex.position + len(table)
             await primary_repo.update_many(sindexes_after)
 
-        primary_sindexes = [sindex_class(position=from_pos + i, sf=sf) for i in range(0, len(table))]
+        primary_sindexes = [sindex_class(position=from_pos + i, sf=sf, size=30, scroll=(from_pos+i)*30)
+                            for i in range(0, len(table))]
         await primary_repo.add_many(primary_sindexes)
         secondary_sindexes = await secondary_repo.get_many({"sheet_id": sheet_id}, order_by=OrderBy("position", True))
 
@@ -134,7 +135,10 @@ class SheetService:
         for i, primary in enumerate(primary_sindexes):
             for j, secondary in enumerate(secondary_sindexes):
                 row, col = (primary, secondary) if axis == 0 else (secondary, primary)
-                cells.append(domain.Cell(sf=sf, row=row, col=col, value=table[i][j]))
+                try:
+                    cells.append(domain.Cell(sf=sf, row=row, col=col, value=table[i][j]))
+                except IndexError:
+                    cells.append(domain.Cell(sf=sf, row=row, col=col, value=None))
         await self._repo.cell_repo.add_many(cells)
 
     async def delete_sindexes_from_position(self, sheet_id: UUID, from_pos: int, count: int, axis: int):

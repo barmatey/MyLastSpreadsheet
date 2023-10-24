@@ -4,6 +4,7 @@ from uuid import UUID
 import pandas as pd
 from fastapi import APIRouter, Depends, UploadFile
 from fastapi.responses import JSONResponse
+from loguru import logger
 
 import db
 from . import schema
@@ -133,6 +134,7 @@ router_report = APIRouter(
 async def create_report(data: schema.ReportCreateSchema,
                         get_asession=Depends(db.get_async_session)) -> domain.Report:
     async with get_asession as session:
+        logger.warning(data)
         boot = bootstrap.Bootstrap(session)
         source = await commands.GetSourceById(id=data.source_id, receiver=boot.get_source_service()).execute()
         cmd = commands.CreateReport(

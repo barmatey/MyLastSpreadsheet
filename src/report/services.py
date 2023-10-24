@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
+from typing import Self
 from uuid import UUID
+
+import numpy as np
 import pandas as pd
+from sortedcontainers import SortedList
 
 from ..base import eventbus
 from ..base.broker import BrokerService
@@ -100,12 +104,83 @@ class SheetGateway(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def insert_row_from_position(self, sheet_id: UUID, from_pos: int, row: list[domain.CellValue]):
+    async def insert_rows_from_position(self, sheet_id: UUID, from_pos: int, rows: list[list[domain.CellValue]]):
         raise NotImplemented
 
     @abstractmethod
-    async def delete_row_from_position(self, sheet_id: UUID, from_pos: int):
+    async def delete_rows_from_position(self, sheet_id: UUID, from_pos: int, count: int):
         raise NotImplemented
+
+
+class Finrep:
+    def __init__(self, wire_df: pd.DataFrame, ccols: list[domain.Ccol], interval: domain.Interval):
+        self._wire_df = wire_df.copy()
+        self._ccols = ccols
+        self._interval = interval
+
+        self._report_df = None
+
+    def create_report_df(self) -> Self:
+        wires = self._wire_df.copy()
+        wires['interval'] = pd.cut(wires['date'], self._interval.to_date_range(), right=True)
+
+        needed_cols = ['interval'] + self._ccols + ['amount']
+        wires = (
+            wires[needed_cols]
+            .dropna(axis=0, how='any')
+            .groupby(needed_cols[:-1])
+            .sum()
+            .reset_index()
+            .set_index(self._ccols)
+        )
+
+        self._report_df = self._split_df_by_intervals(wires)
+        return self
+
+    def drop_zero_rows(self) -> Self:
+        self._report_df = self._report_df.replace(0, np.nan)
+        self._report_df = self._report_df.dropna(axis=0, how='all')
+        self._report_df = self._report_df.replace(np.nan, 0)
+        return self
+
+    def drop_zero_cols(self) -> Self:
+        self._report_df = self._report_df.replace(0, np.nan)
+        self._report_df = self._report_df.dropna(axis=1, how='all')
+        self._report_df = self._report_df.replace(np.nan, 0)
+        return self
+
+    def round(self, x=2) -> Self:
+        self._report_df = self._report_df.round(x)
+        return self
+
+    def get_report_df(self) -> pd.DataFrame:
+        if self._report_df is None:
+            raise Exception('report is None; Did you forgot create_report_df() function?')
+        return self._report_df
+
+    def get_as_table(self):
+        if self._report_df is None:
+            raise Exception('report is None; Did you forgot create_report_df() function?')
+        return self._report_df.values
+
+    @staticmethod
+    def _split_df_by_intervals(df: pd.DataFrame) -> pd.DataFrame:
+        if 'interval' not in df.columns:
+            raise ValueError('"interval" not in df.columns')
+        if len(df.columns) > 2:
+            raise ValueError(f'function expected df with to columns only (and the first column must be "interval")'
+                             f'real columns are: {df.columns}')
+
+        splited = []
+        columns = []
+
+        for interval in df['interval'].unique():
+            series = df.loc[df['interval'] == interval].drop('interval', axis=1)
+            splited.append(series)
+            columns.append(interval.right.date())
+        splited = pd.concat(splited, axis=1).fillna(0)
+        splited.columns = columns
+        return splited
 
 
 async def calculate_profit_cell(wires: pd.DataFrame, ccols: list[domain.Ccol], mappers: list[domain.CellValue],
@@ -127,9 +202,29 @@ class ReportPublisher(subscriber.SourceSubscriber):
         self._repo = repo
 
     async def follow_source(self, source: domain.Source):
-        wires = [x.model_dump() for x in source.wires]
+        self._entity.plan_items = domain.PlanItems(ccols=self._entity.plan_items.ccols)
+        wires = [x.model_dump(exclude={'source_info'}) for x in source.wires]
         wires = pd.DataFrame.from_records(wires)
-        print(wires)
+        wires = wires.loc[
+            (wires['date'] >= self._entity.interval.start_date)
+            & (wires['date'] <= self._entity.interval.end_date)
+            ]
+        wires['key'] = ''
+        for ccol in self._entity.plan_items.ccols:
+            wires['key'] += wires[ccol].astype(str)
+        pl = wires.groupby('key')['id'].count().to_dict()
+        self._entity.plan_items.uniques = pl
+        self._entity.plan_items.order = SortedList(pl.keys())
+
+        table = (
+            Finrep(wires, self._entity.plan_items.ccols, self._entity.interval)
+            .create_report_df()
+            .drop_zero_rows()
+            .round()
+            .get_as_table()
+        )
+        await self._sheet_gw.insert_rows_from_position(self._entity.sheet_info.id, from_pos=1, rows=table)
+
         await self._broker.subscribe([source.source_info], self._entity)
 
     async def on_wires_appended(self, wires: list[domain.Wire]):
@@ -147,7 +242,7 @@ class ReportPublisher(subscriber.SourceSubscriber):
             row_pos = self._entity.find_row_pos(key) + 1
             del self._entity.plan_items.uniques[key]
             self._entity.plan_items.order.remove(key)
-            await self._sheet_gw.delete_row_from_position(self._entity.sheet_id, row_pos)
+            await self._sheet_gw.delete_rows_from_position(self._entity.sheet_id, row_pos, count=1)
         else:
             row_pos = self._entity.find_row_pos(key)
             col_pos = self._entity.find_col_pos(wire.date)

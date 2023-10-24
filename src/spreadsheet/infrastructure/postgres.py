@@ -299,6 +299,5 @@ class SheetPostgresRepo(SheetRepository):
             if row.position == 0:
                 cols.append(col)
             cells.append(cell)
-        print(len(cols))
         sheet = Sheet(sf=rows[0].sf, rows=rows, cols=cols, cells=cells)
         return sheet

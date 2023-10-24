@@ -1,5 +1,6 @@
 from typing import Literal, Union
 
+import numpy as np
 import pandas as pd
 from typing_extensions import TypedDict
 from uuid import UUID, uuid4
@@ -94,11 +95,11 @@ class Interval(BaseModel):
 
     def to_intervals(self) -> list[pd.Interval]:
         periods = pd.date_range(self.start_date, self.end_date, freq=self.freq)
-        intervals = [
-            pd.Interval(start, end)
-            for start, end in zip(periods[0:-1], periods[1:])
-        ]
+        intervals = [pd.Interval(start, end) for start, end in zip(periods[0:-1], periods[1:])]
         return intervals
+
+    def to_date_range(self) -> pd.DatetimeIndex:
+        return pd.date_range(np.datetime64(self.start_date), np.datetime64(self.end_date), freq=self.freq)
 
 
 class SheetInfo(BaseModel):

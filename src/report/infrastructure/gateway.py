@@ -20,9 +20,9 @@ class SheetGatewayAPI(SheetGateway):
     async def update_cell(self, cell: domain.Cell):
         await self._sheet_service.update_cells([cell])
 
-    async def insert_row_from_position(self, sheet_id: UUID, from_pos: int, row: list[domain.CellValue]):
-        await self._sheet_service.insert_sindexes_from_position(sheet_id, [row], from_pos, axis=0)
+    async def insert_rows_from_position(self, sheet_id: UUID, from_pos: int, rows: list[list[domain.CellValue]]):
+        await self._sheet_service.insert_sindexes_from_position(sheet_id, rows, from_pos, axis=0)
 
-    async def delete_row_from_position(self, sheet_id: UUID, from_pos: int):
-        await self._sheet_service.delete_sindexes_from_position(sheet_id, from_pos, count=1, axis=0)
+    async def delete_rows_from_position(self, sheet_id: UUID, from_pos: int, count: int):
+        await self._sheet_service.delete_sindexes_from_position(sheet_id, from_pos, count, axis=0)
 

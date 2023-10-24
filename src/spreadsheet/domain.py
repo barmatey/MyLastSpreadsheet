@@ -89,7 +89,8 @@ class Sheet(BaseModel):
 
     def __init__(self, **data):
         super().__init__(**data)
-        assert len(self.rows) == self.sf.size[0]
+        if len(self.rows) != self.sf.size[0]:
+            raise Exception(f"{len(self.rows)} != {self.sf.size[0]}")
         assert len(self.cols) == self.sf.size[1]
         assert len(self.cells) == self.sf.size[0] * self.sf.size[1]
 
