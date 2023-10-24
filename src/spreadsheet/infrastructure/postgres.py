@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Type
 from uuid import UUID
 
-from sqlalchemy import select, Integer, ForeignKey, String
+from sqlalchemy import select, Integer, ForeignKey, String, Boolean
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -37,10 +37,15 @@ class RowSindexModel(Base):
     __tablename__ = "row_sindex"
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     sheet_id: Mapped[UUID] = mapped_column(ForeignKey("sheet.id"))
+    scroll: Mapped[int] = mapped_column(Integer, nullable=False)
+    size: Mapped[int] = mapped_column(Integer, nullable=False)
+    is_readonly: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    is_freeze: Mapped[bool] = mapped_column(Boolean, nullable=False)
     cells = relationship('CellModel')
 
     def to_entity(self, sheet: SheetInfo) -> RowSindex:
-        return RowSindex(id=self.id, sf=sheet, position=self.position)
+        return RowSindex(id=self.id, sf=sheet, position=self.position, scroll=self.scroll,
+                         is_readonly=self.is_readonly, is_freeze=self.is_freeze, size=self.size)
 
     @classmethod
     def from_entity(cls, entity: RowSindex):
@@ -48,6 +53,10 @@ class RowSindexModel(Base):
             position=entity.position,
             id=entity.id,
             sheet_id=entity.sf.id,
+            scroll=entity.scroll,
+            is_readonly=entity.is_readonly,
+            is_freeze=entity.is_freeze,
+            size=entity.size,
         )
 
 
@@ -55,17 +64,26 @@ class ColSindexModel(Base):
     __tablename__ = "col_sindex"
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     sheet_id: Mapped[UUID] = mapped_column(ForeignKey("sheet.id"))
+    scroll: Mapped[int] = mapped_column(Integer, nullable=False)
+    size: Mapped[int] = mapped_column(Integer, nullable=False)
+    is_readonly: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    is_freeze: Mapped[bool] = mapped_column(Boolean, nullable=False)
     cells = relationship('CellModel')
 
     def to_entity(self, sheet: SheetInfo) -> ColSindex:
-        return ColSindex(id=self.id, sf=sheet, position=self.position)
+        return ColSindex(id=self.id, sf=sheet, position=self.position, scroll=self.scroll,
+                         is_readonly=self.is_readonly, is_freeze=self.is_freeze, size=self.size)
 
     @classmethod
-    def from_entity(cls, entity: RowSindex):
+    def from_entity(cls, entity: ColSindex):
         return cls(
             position=entity.position,
             id=entity.id,
             sheet_id=entity.sf.id,
+            scroll=entity.scroll,
+            is_readonly=entity.is_readonly,
+            is_freeze=entity.is_freeze,
+            size=entity.size,
         )
 
 
@@ -108,10 +126,6 @@ class CellModel(Base):
         if isinstance(value, bool):
             return "bool"
         raise TypeError
-
-    def to_entity(self, sheet_info: SheetInfo, row: RowSindex, col: ColSindex):
-        return Cell(sf=sheet_info, row=row, col=col, value=self.__get_value(self.value, self.dtype),
-                    id=self.id)
 
     @staticmethod
     def to_entity_from_tuple_of_models(data):
@@ -272,15 +286,19 @@ class SheetPostgresRepo(SheetRepository):
                 raise LookupError
             return Sheet(sf=SheetInfo(size=(0, 0), id=uuid), rows=[], cols=[], cells=[])
 
-        sheet_info: SheetInfo = result[0][0].to_entity()
-        rows = [result[x][1].to_entity(sheet_info)
-                for x in range(0, sheet_info.size[0] * sheet_info.size[1], sheet_info.size[1])]
-        cols = [result[x][2].to_entity(sheet_info) for x in range(0, sheet_info.size[1])]
+        rows = []
+        cols = []
         cells = []
-        for i, row in enumerate(rows):
-            for j, col in enumerate(cols):
-                index = i * sheet_info.size[1] + j
-                cells.append(result[index][3].to_entity(sheet_info, row, col))
-
-        sheet = Sheet(sf=sheet_info, rows=rows, cols=cols, cells=cells)
+        for i, x in enumerate(result):
+            sf = x[0].to_entity()
+            row = x[1].to_entity(sheet=sf)
+            col = x[2].to_entity(sheet=sf)
+            cell = Cell(row=row, col=col, sf=sf, id=x[3].id, value=x[3].value)
+            if i == row.position:
+                rows.append(row)
+            if row.position == 0:
+                cols.append(col)
+            cells.append(cell)
+        print(len(cols))
+        sheet = Sheet(sf=rows[0].sf, rows=rows, cols=cols, cells=cells)
         return sheet

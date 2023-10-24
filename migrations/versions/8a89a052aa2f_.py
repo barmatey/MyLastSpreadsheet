@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: a9732fc583f7
+Revision ID: 8a89a052aa2f
 Revises: 
-Create Date: 2023-10-23 15:19:55.895733
+Create Date: 2023-10-24 12:15:23.750271
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'a9732fc583f7'
+revision: str = '8a89a052aa2f'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -36,16 +36,20 @@ def upgrade() -> None:
     op.create_table('col_sindex',
     sa.Column('position', sa.Integer(), nullable=False),
     sa.Column('sheet_id', sa.Uuid(), nullable=False),
+    sa.Column('scroll', sa.Integer(), nullable=False),
+    sa.Column('size', sa.Integer(), nullable=False),
+    sa.Column('is_readonly', sa.Boolean(), nullable=False),
+    sa.Column('is_freeze', sa.Boolean(), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('updated_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.ForeignKeyConstraint(['sheet_id'], ['sheet.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('report',
+    sa.Column('title', sa.String(length=64), nullable=False),
     sa.Column('start_date', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('end_date', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('periods', sa.Integer(), nullable=False),
-    sa.Column('freq', sa.String(length=2), nullable=False),
+    sa.Column('freq', sa.String(length=16), nullable=False),
     sa.Column('plan_items', sa.JSON(), nullable=False),
     sa.Column('sheet_id', sa.String(length=64), nullable=False),
     sa.Column('source_id', sa.Uuid(), nullable=False),
@@ -57,6 +61,10 @@ def upgrade() -> None:
     op.create_table('row_sindex',
     sa.Column('position', sa.Integer(), nullable=False),
     sa.Column('sheet_id', sa.Uuid(), nullable=False),
+    sa.Column('scroll', sa.Integer(), nullable=False),
+    sa.Column('size', sa.Integer(), nullable=False),
+    sa.Column('is_readonly', sa.Boolean(), nullable=False),
+    sa.Column('is_freeze', sa.Boolean(), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('updated_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.ForeignKeyConstraint(['sheet_id'], ['sheet.id'], ),

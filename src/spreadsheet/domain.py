@@ -26,6 +26,10 @@ class SheetInfo(entity.Entity):
 class Sindex(entity.Entity):
     sf: SheetInfo
     position: int
+    scroll: int
+    size: int
+    is_readonly: bool = False
+    is_freeze: bool = False
     id: UUID = Field(default_factory=uuid4)
 
     def __str__(self):
@@ -33,13 +37,6 @@ class Sindex(entity.Entity):
 
     def __repr__(self):
         return f"{self.__class__.__name__}(position={self.position})"
-
-    def __eq__(self, other: 'Sindex'):
-        return all([
-            self.sf == other.sf,
-            self.position == other.position,
-            self.id == other.id,
-        ])
 
 
 class RowSindex(Sindex):
@@ -62,6 +59,7 @@ class Cell(entity.Entity):
     row: RowSindex
     col: ColSindex
     sf: SheetInfo
+    background: str = 'white'
     id: UUID = Field(default_factory=uuid4)
 
     def __str__(self):
@@ -88,6 +86,12 @@ class Sheet(BaseModel):
     rows: list[RowSindex]
     cols: list[ColSindex]
     cells: list[Cell]
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        assert len(self.rows) == self.sf.size[0]
+        assert len(self.cols) == self.sf.size[1]
+        assert len(self.cells) == self.sf.size[0] * self.sf.size[1]
 
     def __eq__(self, other: 'Sheet'):
         if self.sf != other.sf:

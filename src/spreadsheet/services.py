@@ -58,8 +58,13 @@ class SheetService:
         size = (len(table), len(table[0])) if len(table) else (0, 0)
         sf = domain.SheetInfo(size=size)
 
-        row_sindexes = [domain.RowSindex(sf=sf, position=i) for i in range(0, size[0])]
-        col_sindexes = [domain.ColSindex(sf=sf, position=j) for j in range(0, size[1])]
+        row_sindexes = [
+            domain.RowSindex(sf=sf, position=i, size=30, scroll=30*i)
+            for i in range(0, size[0])]
+
+        col_sindexes = [
+            domain.ColSindex(sf=sf, position=j, size=120, scroll=120*j)
+            for j in range(0, size[1])]
 
         cells = []
         for i, row in enumerate(table):
@@ -250,5 +255,5 @@ class ExpandCellFollowers:
                     raise Exception
                 parent_row_pos, parent_col_pos = pub.row.position + 1, pub.col.position
 
-                parent_cell = await self._repo.get_sliced_cells(pub.sf.id, (parent_row_pos,), (parent_col_pos,))
+                parent_cell = await self._repo.get_sliced_cells(pub.sf.id, parent_row_pos, parent_col_pos)
                 await self._subfac.create_cell_subscriber(cell).follow_cells(parent_cell)

@@ -201,6 +201,7 @@ class ReportService:
             sheet_info=domain.SheetInfo(id=sheet_id),
             interval=interval,
             plan_items=plan_items,
+            category="PROFIT",
         )
         await self._subfac.create_source_subscriber(report).follow_source(source)
         await self._repo.add_many([report])
