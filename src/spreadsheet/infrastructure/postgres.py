@@ -151,6 +151,12 @@ class SheetInfoPostgresRepo(PostgresRepo):
     def __init__(self, session: AsyncSession, model: Type[Base] = SheetInfoModel):
         super().__init__(session, model)
 
+    async def get_one_by_id(self, uuid: UUID) -> SheetInfo:
+        raise NotImplemented
+
+    async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[SheetInfo]:
+        raise NotImplemented
+
 
 class SindexPostgresRepo(PostgresRepo):
     async def get_many(self, filter_by: dict = None, order_by: OrderBy = None,
@@ -289,15 +295,19 @@ class SheetPostgresRepo(SheetRepository):
         rows = []
         cols = []
         cells = []
+        sf = SheetInfo(id=uuid, size=(0, 0))
+
+        last_row_pos = None
         for i, x in enumerate(result):
-            sf = x[0].to_entity()
             row = x[1].to_entity(sheet=sf)
             col = x[2].to_entity(sheet=sf)
             cell = Cell(row=row, col=col, sf=sf, id=x[3].id, value=x[3].value)
-            if i == row.position:
+            if row.position != last_row_pos:
                 rows.append(row)
+                last_row_pos = row.position
             if row.position == 0:
                 cols.append(col)
             cells.append(cell)
-        sheet = Sheet(sf=rows[0].sf, rows=rows, cols=cols, cells=cells)
+        sf.size = (len(rows), len(cols))
+        sheet = Sheet(sf=sf, rows=rows, cols=cols, cells=cells)
         return sheet

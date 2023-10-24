@@ -103,7 +103,7 @@ class SheetService:
         return domain.Sheet(sf=sf, rows=new_rows, cols=new_cols, cells=new_cells)
 
     async def insert_sindexes_from_position(self, sheet_id: UUID, table: domain.Table, from_pos: int, axis: int):
-        sf = (await self._repo.sheet_info_repo.get_many({"id": sheet_id})).pop()
+        sf = await self._repo.sheet_info_repo.get_one_by_id(sheet_id)
         if sf.size == (0, 0):
             raise Exception
 
