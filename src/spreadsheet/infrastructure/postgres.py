@@ -263,7 +263,7 @@ class SheetPostgresRepo(SheetRepository):
         stmt = select(count()).select_from(RowSindexModel).where(RowSindexModel.sheet_id == sheet_uuid)
         row_result = await self._session.scalar(stmt)
 
-        stmt = select(count()).select_from(ColSindexModel).where(RowSindexModel.sheet_id == sheet_uuid)
+        stmt = select(count()).select_from(ColSindexModel).where(ColSindexModel.sheet_id == sheet_uuid)
         col_result = await self._session.scalar(stmt)
 
         return row_result, col_result
