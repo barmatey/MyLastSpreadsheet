@@ -107,6 +107,34 @@ class SheetService:
 
         return domain.Sheet(sf=sf, rows=new_rows, cols=new_cols, cells=new_cells)
 
+    async def insert_rows_from_position(self, sheet_id: UUID, table: domain.Table, from_pos: int):
+        size = await self._repo.get_sheet_size(sheet_id)
+
+        if size != (0, 0):
+            filter_by = {"sheet_id": sheet_id, "position.__gte": from_pos}
+            rows_after = await self._repo.row_repo.get_many(filter_by=filter_by, order_by=OrderBy("position", asc=True))
+            if rows_after:
+                for sindex in rows_after:
+                    sindex.position = sindex.position + len(table)
+                await self._repo.row_repo.update_many(rows_after)
+
+        sf = domain.SheetInfo(id=sheet_id)
+        new_rows = [domain.RowSindex(position=from_pos + i, sf=sf, size=30, scroll=(from_pos + i) * 30)
+                    for i in range(0, len(table))]
+        await self._repo.row_repo.add_many(new_rows)
+
+        if size[1] != 0:
+            cols = await self._repo.col_repo.get_many({"sheet_id": sheet_id}, order_by=OrderBy("position", True))
+        else:
+            cols = [domain.ColSindex(position=j, sf=sf, size=120, scroll=j*120) for j in range(0, len(table[0]))]
+            await self._repo.col_repo.add_many(cols)
+
+        cells = []
+        for i, row in enumerate(new_rows):
+            for j, col in enumerate(cols):
+                cells.append(domain.Cell(sf=sf, row=row, col=col, value=table[i][j]))
+        await self._repo.cell_repo.add_many(cells)
+
     async def insert_sindexes_from_position(self, sheet_id: UUID, table: domain.Table, from_pos: int, axis: int):
         size = await self._repo.get_sheet_size(sheet_id)
         if size == (0, 0):

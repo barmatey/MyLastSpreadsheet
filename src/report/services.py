@@ -149,6 +149,11 @@ class Finrep:
         self._report_df = self._report_df.replace(np.nan, 0)
         return self
 
+    def reset_indexes(self) -> Self:
+        df = self._report_df
+        self._report_df = df.reset_index().transpose().reset_index().transpose()
+        return self
+
     def round(self, x=2) -> Self:
         self._report_df = self._report_df.round(x)
         return self
@@ -180,6 +185,7 @@ class Finrep:
             columns.append(interval.right.date())
         splited = pd.concat(splited, axis=1).fillna(0)
         splited.columns = columns
+        print(splited)
         return splited
 
 
@@ -220,10 +226,12 @@ class ReportPublisher(subscriber.SourceSubscriber):
             Finrep(wires, self._entity.plan_items.ccols, self._entity.interval)
             .create_report_df()
             .drop_zero_rows()
+            .drop_zero_cols()
             .round()
+            .reset_indexes()
             .get_as_table()
         )
-        await self._sheet_gw.insert_rows_from_position(self._entity.sheet_info.id, from_pos=1, rows=table)
+        await self._sheet_gw.insert_rows_from_position(self._entity.sheet_info.id, from_pos=0, rows=table)
 
         await self._broker.subscribe([source.source_info], self._entity)
 
@@ -288,8 +296,7 @@ class ReportService:
                      source: domain.Source,
                      plan_items: domain.PlanItems,
                      interval: domain.Interval) -> domain.Report:
-        first_row = [None] * len(plan_items.ccols) + [x.right for x in interval.to_intervals()]
-        sheet_id = await self._gateway.create_sheet([first_row])
+        sheet_id = await self._gateway.create_sheet()
         report = domain.Report(
             title=title,
             source_info=source.source_info,
