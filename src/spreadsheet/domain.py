@@ -96,6 +96,34 @@ class Sheet(BaseModel):
         if len(self.cells) != self.size[0] * self.size[1]:
             raise Exception(f'{len(self.cells)} != {self.size[0] * self.size[1]}')
 
+    @classmethod
+    def from_table(cls, table: Table):
+        rows = []
+        cols = []
+        cells = []
+        size = (len(table), len(table[0]))
+        sf = SheetInfo()
+
+        for j in range(0, size[1]):
+            col_sindex = ColSindex(sf=SheetInfo(), position=j, size=120, scroll=j * 120)
+            cols.append(col_sindex)
+
+        for i, row in enumerate(table):
+            if len(row) != size[1]:
+                raise Exception
+            row_sindex = RowSindex(sf=sf, position=i, size=30, scroll=i * 30)
+            rows.append(row_sindex)
+            for j, cell in enumerate(row):
+                cells.append(Cell(value=cell, sf=sf, row=row_sindex, col=cols[j]))
+
+        return cls(
+            sf=sf,
+            size=size,
+            rows=rows,
+            cols=cols,
+            cells=cells,
+        )
+
     def __eq__(self, other: 'Sheet'):
         if self.sf != other.sf:
             return False
@@ -118,10 +146,10 @@ class Sheet(BaseModel):
 
     def as_table(self) -> list[list[CellValue]]:
         table = []
-        for i in range(0, self.sf.size[0]):
+        for i in range(0, self.size[0]):
             row = []
-            for j in range(0, self.sf.size[1]):
-                row.append(self.cells[i * self.sf.size[1] + j].value)
+            for j in range(0, self.size[1]):
+                row.append(self.cells[i * self.size[1] + j].value)
             table.append(row)
         return table
 

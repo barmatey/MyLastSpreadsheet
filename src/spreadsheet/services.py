@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
+import pandas as pd
+
 from src.core import OrderBy
 from src.base import eventbus, broker
 from src.base.repo import repository
@@ -126,7 +128,7 @@ class SheetService:
         if size[1] != 0:
             cols = await self._repo.col_repo.get_many({"sheet_id": sheet_id}, order_by=OrderBy("position", True))
         else:
-            cols = [domain.ColSindex(position=j, sf=sf, size=120, scroll=j*120) for j in range(0, len(table[0]))]
+            cols = [domain.ColSindex(position=j, sf=sf, size=120, scroll=j * 120) for j in range(0, len(table[0]))]
             await self._repo.col_repo.add_many(cols)
 
         cells = []
@@ -239,34 +241,57 @@ class SheetService:
         raise NotImplemented
 
 
-class Handler:
-    def __init__(self, sub_factory: subscriber.SubscriberFactory, broker_service: broker.BrokerService):
-        self._sub_factory = sub_factory
-        self._broker = broker_service
+async def create_rows(sf, start_position: int, count: int) -> list[domain.RowSindex]:
+    rows = [domain.RowSindex(position=start_position + i, sf=sf, size=30, scroll=(start_position + i) * 30)
+            for i in range(0, count)]
+    return rows
 
 
-class CellHandler(Handler):
-    async def handle_cell_updated(self, event: eventbus.Updated[domain.Cell]):
-        subs = [self._sub_factory.create_cell_subscriber(x) for x in await self._broker.get_subs(event.actual_entity)]
-        for sub in subs:
-            await sub.on_cell_updated(old=event.old_entity, actual=event.actual_entity)
-
-    async def handle_cell_deleted(self, event: eventbus.Deleted[domain.Cell]):
-        subs = [self._sub_factory.create_cell_subscriber(x) for x in await self._broker.get_subs(event.entity)]
-        for sub in subs:
-            await sub.on_cell_deleted(pub=event.entity)
+async def create_cols(sf, start_position: int, count: int) -> list[domain.ColSindex]:
+    cols = [domain.ColSindex(position=j, sf=sf, size=120, scroll=j * 120)
+            for j in range(start_position, start_position + count)]
+    return cols
 
 
-class SindexHandler(Handler):
-    async def handle_sindex_updated(self, event: eventbus.Updated[domain.Sindex]):
-        subs = [self._sub_factory.create_sindex_subscriber(x) for x in await self._broker.get_subs(event.actual_entity)]
-        for sub in subs:
-            await sub.on_sindex_updated(event.old_entity, event.actual_entity)
+async def create_cells_from_table(sf, rows, cols, table) -> list[domain.Cell]:
+    cells = []
+    for i, row in enumerate(rows):
+        for j, col in enumerate(cols):
+            cells.append(domain.Cell(sf=sf, row=row, col=col, value=table[i][j]))
+    return cells
 
-    async def handle_sindex_deleted(self, event: eventbus.Deleted[domain.Sindex]):
-        subs = [self._sub_factory.create_sindex_subscriber(x) for x in await self._broker.get_subs(event.entity)]
-        for sub in subs:
-            await sub.on_sindex_deleted(pub=event.entity)
+
+class NewSheetService:
+    def __init__(self, repo: SheetRepository):
+        self._repo = repo
+
+    async def append_rows_from_table(self, sheet_id: UUID, table: domain.Table):
+        sf = domain.SheetInfo(id=sheet_id)
+        size = await self._repo.get_sheet_size(sheet_id)
+        for row in table:
+            if len(row) != size[1] and size[1] != 0:
+                raise Exception
+        rows = await create_rows(sf, start_position=size[0], count=len(table))
+        await self._repo.row_repo.add_many(rows)
+
+        if size[1] != 0:
+            cols = self._repo.col_repo.get_many({"sheet_id": sheet_id}, OrderBy("position", True))
+        else:
+            cols = await create_cols(sf, start_position=0, count=len(table[0]))
+            await self._repo.col_repo.add_many(cols)
+        cells = await create_cells_from_table(sf, rows, cols, table)
+        await self._repo.cell_repo.add_many(cells)
+
+    async def group_new_data_with_sheet(self, sheet_id: UUID, table: domain.Table, on: list[int]):
+        target = await self._repo.get_sheet_by_id(sheet_id)
+
+        lhs = pd.DataFrame(target.as_table())
+        rhs = pd.DataFrame(table)
+
+        new_rows = pd.merge(lhs[on], rhs, how="right", indicator=True)
+        new_rows: pd.DataFrame = new_rows.loc[new_rows["_merge"] == "right_only"]
+
+        await self.append_rows_from_table(sheet_id, new_rows.values)
 
 
 class ExpandCellFollowers:

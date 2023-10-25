@@ -121,7 +121,7 @@ class Finrep:
         self._report_df = None
 
     def create_report_df(self) -> Self:
-        wires = self._wire_df.copy()
+        wires: pd.DataFrame = self._wire_df.copy()
         wires['interval'] = pd.cut(wires['date'], self._interval.to_date_range(), right=True)
 
         needed_cols = ['interval'] + self._ccols + ['amount']
@@ -185,7 +185,6 @@ class Finrep:
             columns.append(interval.right.date())
         splited = pd.concat(splited, axis=1).fillna(0)
         splited.columns = columns
-        print(splited)
         return splited
 
 
@@ -232,7 +231,6 @@ class ReportPublisher(subscriber.SourceSubscriber):
             .get_as_table()
         )
         await self._sheet_gw.insert_rows_from_position(self._entity.sheet_info.id, from_pos=0, rows=table)
-
         await self._broker.subscribe([source.source_info], self._entity)
 
     async def on_wires_appended(self, wires: list[domain.Wire]):
@@ -317,3 +315,5 @@ class ReportService:
 
     async def delete_many(self, filter_by: dict) -> None:
         await self._repo.remove_many(filter_by)
+
+
