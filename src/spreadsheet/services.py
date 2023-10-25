@@ -4,6 +4,7 @@ from uuid import UUID
 from src.core import OrderBy
 from src.base import eventbus, broker
 from src.base.repo import repository
+
 from . import domain
 from . import subscriber
 
@@ -46,6 +47,10 @@ class SheetRepository(ABC):
     async def get_sheet_by_id(self, uuid: UUID) -> domain.Sheet:
         raise NotImplemented
 
+    @abstractmethod
+    async def get_sheet_size(self, shet_uuid: UUID) -> tuple[int, int]:
+        raise NotImplemented
+
 
 class SheetService:
     def __init__(self, repo: SheetRepository, queue: eventbus.Queue):
@@ -56,14 +61,14 @@ class SheetService:
         if table is None:
             table = []
         size = (len(table), len(table[0])) if len(table) else (0, 0)
-        sf = domain.SheetInfo(size=size)
+        sf = domain.SheetInfo()
 
         row_sindexes = [
-            domain.RowSindex(sf=sf, position=i, size=30, scroll=30*i)
+            domain.RowSindex(sf=sf, position=i, size=30, scroll=30 * i)
             for i in range(0, size[0])]
 
         col_sindexes = [
-            domain.ColSindex(sf=sf, position=j, size=120, scroll=120*j)
+            domain.ColSindex(sf=sf, position=j, size=120, scroll=120 * j)
             for j in range(0, size[1])]
 
         cells = []
@@ -73,7 +78,7 @@ class SheetService:
             for j, cell_value in enumerate(row):
                 cells.append(domain.Cell(sf=sf, row=row_sindexes[i], col=col_sindexes[j], value=cell_value))
 
-        sheet = domain.Sheet(sf=sf, rows=row_sindexes, cols=col_sindexes, cells=cells)
+        sheet = domain.Sheet(sf=sf, rows=row_sindexes, cols=col_sindexes, cells=cells, size=size)
         await self._repo.add_sheet(sheet)
         return sheet
 
@@ -103,21 +108,18 @@ class SheetService:
         return domain.Sheet(sf=sf, rows=new_rows, cols=new_cols, cells=new_cells)
 
     async def insert_sindexes_from_position(self, sheet_id: UUID, table: domain.Table, from_pos: int, axis: int):
-        sf = await self._repo.sheet_info_repo.get_one_by_id(sheet_id)
-        if sf.size == (0, 0):
+        size = await self._repo.get_sheet_size(sheet_id)
+        if size == (0, 0):
             raise Exception
 
         if axis == 0:
-            sf.size = (sf.size[0] + len(table), sf.size[1])
             primary_repo = self._repo.row_repo
             secondary_repo = self._repo.col_repo
             sindex_class = domain.RowSindex
         else:
-            sf.size = (sf.size[0], sf.size[1] + len(table))
             primary_repo = self._repo.col_repo
             secondary_repo = self._repo.row_repo
             sindex_class = domain.ColSindex
-        await self._repo.sheet_info_repo.update_one(sf)
 
         filter_by = {"sheet_id": sheet_id, "position.__gte": from_pos}
         sindexes_after = await primary_repo.get_many(filter_by=filter_by, order_by=OrderBy("position", asc=True))
@@ -126,7 +128,8 @@ class SheetService:
                 sindex.position = sindex.position + len(table)
             await primary_repo.update_many(sindexes_after)
 
-        primary_sindexes = [sindex_class(position=from_pos + i, sf=sf, size=30, scroll=(from_pos+i)*30)
+        sf = domain.SheetInfo(id=sheet_id)
+        primary_sindexes = [sindex_class(position=from_pos + i, sf=sf, size=30, scroll=(from_pos + i) * 30)
                             for i in range(0, len(table))]
         await primary_repo.add_many(primary_sindexes)
         secondary_sindexes = await secondary_repo.get_many({"sheet_id": sheet_id}, order_by=OrderBy("position", True))

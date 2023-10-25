@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import select, Integer, ForeignKey, String, Boolean
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.sql.functions import count
 
 from src.core import OrderBy
 from ..domain import SheetInfo, RowSindex, ColSindex, Cell, CellValue, CellDtype, Sheet
@@ -15,20 +16,16 @@ from ...base.repo.postgres import Base, PostgresRepo
 
 class SheetInfoModel(Base):
     __tablename__ = "sheet"
-    row_size: Mapped[int] = mapped_column(Integer, nullable=False)
-    col_size: Mapped[int] = mapped_column(Integer, nullable=False)
     row_sindexes = relationship('RowSindexModel')
     col_sindexes = relationship('ColSindexModel')
     cells = relationship('CellModel')
 
     def to_entity(self) -> SheetInfo:
-        return SheetInfo(id=self.id, size=(self.row_size, self.col_size))
+        return SheetInfo(id=self.id)
 
     @classmethod
     def from_entity(cls, entity: SheetInfo):
         return cls(
-            row_size=entity.size[0],
-            col_size=entity.size[1],
             id=entity.id,
         )
 
@@ -151,12 +148,6 @@ class SheetInfoPostgresRepo(PostgresRepo):
     def __init__(self, session: AsyncSession, model: Type[Base] = SheetInfoModel):
         super().__init__(session, model)
 
-    async def get_one_by_id(self, uuid: UUID) -> SheetInfo:
-        raise NotImplemented
-
-    async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[SheetInfo]:
-        raise NotImplemented
-
 
 class SindexPostgresRepo(PostgresRepo):
     async def get_many(self, filter_by: dict = None, order_by: OrderBy = None,
@@ -268,6 +259,15 @@ class SheetPostgresRepo(SheetRepository):
     def sheet_info_repo(self) -> Repository[SheetInfo]:
         return self._sf_repo
 
+    async def get_sheet_size(self, sheet_uuid: UUID) -> tuple[int, int]:
+        stmt = select(count()).select_from(RowSindexModel).where(RowSindexModel.sheet_id == sheet_uuid)
+        row_result = await self._session.scalar(stmt)
+
+        stmt = select(count()).select_from(ColSindexModel).where(RowSindexModel.sheet_id == sheet_uuid)
+        col_result = await self._session.scalar(stmt)
+
+        return row_result, col_result
+
     async def add_sheet(self, sheet: Sheet):
         await self._sf_repo.add_many([sheet.sf])
         if len(sheet.rows) and len(sheet.cols) and len(sheet.cells):
@@ -290,12 +290,12 @@ class SheetPostgresRepo(SheetRepository):
             result = list(await self._session.execute(stmt))
             if len(result) != 1:
                 raise LookupError
-            return Sheet(sf=SheetInfo(size=(0, 0), id=uuid), rows=[], cols=[], cells=[])
+            return Sheet(sf=SheetInfo(id=uuid), rows=[], cols=[], cells=[], )
 
         rows = []
         cols = []
         cells = []
-        sf = SheetInfo(id=uuid, size=(0, 0))
+        sf = SheetInfo(id=uuid)
 
         last_row_pos = None
         for i, x in enumerate(result):
@@ -308,6 +308,6 @@ class SheetPostgresRepo(SheetRepository):
             if row.position == 0:
                 cols.append(col)
             cells.append(cell)
-        sf.size = (len(rows), len(cols))
-        sheet = Sheet(sf=sf, rows=rows, cols=cols, cells=cells)
+
+        sheet = Sheet(sf=sf, rows=rows, cols=cols, cells=cells, size=(len(rows), len(cols)))
         return sheet

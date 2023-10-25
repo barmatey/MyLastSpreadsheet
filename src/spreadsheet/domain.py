@@ -8,7 +8,6 @@ from src.base import eventbus, entity
 
 class SheetInfo(entity.Entity):
     id: UUID = Field(default_factory=uuid4)
-    size: tuple[int, int]
 
     def __str__(self):
         return f"{self.size}"
@@ -83,18 +82,19 @@ class Cell(entity.Entity):
 
 class Sheet(BaseModel):
     sf: SheetInfo
+    size: tuple[int, int]
     rows: list[RowSindex]
     cols: list[ColSindex]
     cells: list[Cell]
 
     def __init__(self, **data):
         super().__init__(**data)
-        if len(self.rows) != self.sf.size[0]:
-            raise Exception(f"{len(self.rows)} != {self.sf.size[0]}")
-        if len(self.cols) != self.sf.size[1]:
-            raise Exception(f"{len(self.cols)} != {self.sf.size[1]}")
-        if len(self.cells) != self.sf.size[0] * self.sf.size[1]:
-            raise Exception(f'{len(self.cells)} != {self.sf.size[0] * self.sf.size[1]}')
+        if len(self.rows) != self.size[0]:
+            raise Exception(f"{len(self.rows)} != {self.size[0]}")
+        if len(self.cols) != self.size[1]:
+            raise Exception(f"{len(self.cols)} != {self.size[1]}")
+        if len(self.cells) != self.size[0] * self.size[1]:
+            raise Exception(f'{len(self.cells)} != {self.size[0] * self.size[1]}')
 
     def __eq__(self, other: 'Sheet'):
         if self.sf != other.sf:

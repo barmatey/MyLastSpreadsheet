@@ -128,7 +128,7 @@ class Finrep:
         wires = (
             wires[needed_cols]
             .dropna(axis=0, how='any')
-            .groupby(needed_cols[:-1])
+            .groupby(needed_cols[:-1], observed=False)
             .sum()
             .reset_index()
             .set_index(self._ccols)
