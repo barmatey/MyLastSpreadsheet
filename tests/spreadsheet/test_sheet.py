@@ -113,7 +113,7 @@ async def test_insert_rows():
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
         sheet = await commands.GetSheetByUuid(uuid=sheet1.sf.id, receiver=boot.get_sheet_service()).execute()
-        assert sheet.sf.size == (3, 3)
+        assert sheet.size == (3, 3)
         for i, row in enumerate(sheet.rows):
             assert row.position == i
         assert sheet.cells[0].value == 123

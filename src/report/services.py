@@ -111,6 +111,10 @@ class SheetGateway(ABC):
     async def delete_rows_from_position(self, sheet_id: UUID, from_pos: int, count: int):
         raise NotImplemented
 
+    @abstractmethod
+    async def group_new_row_data_with_sheet(self, sheet_id: UUID, table: domain.Table, on: list[int]):
+        raise NotImplemented
+
 
 class Finrep:
     def __init__(self, wire_df: pd.DataFrame, ccols: list[domain.Ccol], interval: domain.Interval):
@@ -234,7 +238,18 @@ class ReportPublisher(subscriber.SourceSubscriber):
         await self._broker.subscribe([source.source_info], self._entity)
 
     async def on_wires_appended(self, wires: list[domain.Wire]):
-        raise NotImplemented
+        wires = pd.DataFrame([x.model_dump(exclude={'source_info'}) for x in wires])
+        table = (
+            Finrep(wires, self._entity.plan_items.ccols, self._entity.interval)
+            .create_report_df()
+            .drop_zero_rows()
+            .drop_zero_cols()
+            .round()
+            .reset_indexes()
+            .get_as_table()
+        )[1:]
+        group_col_indexes = list(range(0, len(self._entity.plan_items.ccols)))
+        await self._sheet_gw.group_new_row_data_with_sheet(self._entity.sheet_info.id, table, on=group_col_indexes)
 
     async def on_wires_deleted(self, wires: list[domain.Wire]):
         for wire in wires:

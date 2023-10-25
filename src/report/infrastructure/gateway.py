@@ -2,12 +2,13 @@ from uuid import UUID
 
 from src.report import domain
 from src.report.services import SheetGateway
-from src.spreadsheet.services import SheetService
+from src.spreadsheet.services import SheetService, NewSheetService
 
 
 class SheetGatewayAPI(SheetGateway):
-    def __init__(self, sheet_service: SheetService):
+    def __init__(self, sheet_service: SheetService, new_service: NewSheetService):
         self._sheet_service = sheet_service
+        self._new_service = new_service
 
     async def create_sheet(self, table: domain.Table = None) -> UUID:
         sheet = await self._sheet_service.create_sheet(table)
@@ -25,4 +26,7 @@ class SheetGatewayAPI(SheetGateway):
 
     async def delete_rows_from_position(self, sheet_id: UUID, from_pos: int, count: int):
         await self._sheet_service.delete_sindexes_from_position(sheet_id, from_pos, count, axis=0)
+
+    async def group_new_row_data_with_sheet(self, sheet_id: UUID, table: domain.Table, on: list[int]):
+        await self._new_service.group_new_data_with_sheet(sheet_id, table, on)
 

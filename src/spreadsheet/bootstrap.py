@@ -11,6 +11,7 @@ class Bootstrap:
         self._sheet_repo: services.SheetRepository = postgres.SheetPostgresRepo(session)
 
         self._sheet_service = services.SheetService(self._sheet_repo, self._queue)
+        self._new_shet_service = services.NewSheetService(self._sheet_repo)
 
         self._broker = BrokerService()
         self._subfac = subfactory.SubFactory(self._sheet_service, self._broker)
@@ -30,6 +31,9 @@ class Bootstrap:
 
     def get_sheet_service(self) -> services.SheetService:
         return self._sheet_service
+
+    def get_new_sheet_service(self) -> services.NewSheetService:
+        return self._new_shet_service
 
     def get_subfac(self) -> subfactory.SubFactory:
         return self._subfac

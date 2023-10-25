@@ -270,7 +270,7 @@ class NewSheetService:
         size = await self._repo.get_sheet_size(sheet_id)
         for row in table:
             if len(row) != size[1] and size[1] != 0:
-                raise Exception
+                raise Exception(f"{len(row)} != {size[1]}")
         rows = await create_rows(sf, start_position=size[0], count=len(table))
         await self._repo.row_repo.add_many(rows)
 

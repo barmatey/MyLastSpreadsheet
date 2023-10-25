@@ -13,7 +13,7 @@ class Bootstrap(SheetBootstrap):
         super().__init__(session)
         self._source_repo: services.SourceRepo = postgres.SourceFullRepo(session)
         self._report_repo: Repository[domain.Report] = postgres.ReportRepo(session)
-        self._gw = SheetGatewayAPI(sheet_service=self.get_sheet_service())
+        self._gw = SheetGatewayAPI(sheet_service=self.get_sheet_service(), new_service=self.get_new_sheet_service())
 
         self._subfac = subfactory.ReportSubfac(broker=self.get_broker(),
                                                queue=self._queue,
@@ -26,7 +26,7 @@ class Bootstrap(SheetBootstrap):
 
     def get_report_service(self) -> services.ReportService:
         sheet_service = self.get_sheet_service()
-        gw = SheetGatewayAPI(sheet_service=sheet_service)
+        gw = SheetGatewayAPI(sheet_service=sheet_service, new_service=self.get_new_sheet_service())
         return services.ReportService(self._report_repo, gw, self._subfac)
 
     def get_event_bus(self) -> eventbus.EventBus:
