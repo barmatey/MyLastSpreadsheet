@@ -282,19 +282,18 @@ class NewSheetService:
         cells = await create_cells_from_table(sf, rows, cols, table)
         await self._repo.cell_repo.add_many(cells)
 
-    async def group_new_data_with_sheet(self, sheet_id: UUID, table: domain.Table, on: list[int]):
+    async def group_new_data_with_sheet(self, sheet_id: UUID, table: domain.Table, index: list[int]):
         target_sheet = (await self._repo.get_sheet_by_id(sheet_id))
 
         target_table = target_sheet.as_table()
         merge_on = []
-        for j in on:
+        for j in index:
             if target_table[0][j] != table[0][j]:
                 raise ValueError
             merge_on.append(target_table[0][j])
 
         lhs = pd.DataFrame(target_table[1:], columns=target_table[0])
         rhs = pd.DataFrame(table[1:], columns=table[0])
-
         new_table = pd.concat([lhs, rhs]).fillna(0).groupby(merge_on, sort=False).sum().reset_index()
 
         new_rows = new_table.iloc[len(lhs.index):, :]
