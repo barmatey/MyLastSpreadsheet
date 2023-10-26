@@ -4,6 +4,7 @@ from uuid import UUID
 
 import numpy as np
 import pandas as pd
+from loguru import logger
 from sortedcontainers import SortedList
 
 from ..base import eventbus
@@ -124,6 +125,11 @@ class Finrep:
 
         self._report_df = None
 
+    def validate(self) -> Self:
+        if self._wire_df.isna().sum().sum() != 0:
+            raise ValueError(f"wire_df contains {self._wire_df.isna().sum().sum()} NaNs")
+        return self
+
     def create_report_df(self) -> Self:
         wires: pd.DataFrame = self._wire_df.copy()
         wires['interval'] = pd.cut(wires['date'], self._interval.to_date_range(), right=True)
@@ -131,7 +137,6 @@ class Finrep:
         needed_cols = ['interval'] + self._ccols + ['amount']
         wires = (
             wires[needed_cols]
-            .dropna(axis=0, how='any')
             .groupby(needed_cols[:-1], observed=False)
             .sum()
             .reset_index()
@@ -227,6 +232,7 @@ class ReportPublisher(subscriber.SourceSubscriber):
 
         table = (
             Finrep(wires, self._entity.plan_items.ccols, self._entity.interval)
+            .validate()
             .create_report_df()
             .drop_zero_rows()
             .drop_zero_cols()
@@ -241,6 +247,7 @@ class ReportPublisher(subscriber.SourceSubscriber):
         wires = pd.DataFrame([x.model_dump(exclude={'source_info'}) for x in wires])
         table = (
             Finrep(wires, self._entity.plan_items.ccols, self._entity.interval)
+            .validate()
             .create_report_df()
             .drop_zero_rows()
             .drop_zero_cols()
@@ -330,5 +337,3 @@ class ReportService:
 
     async def delete_many(self, filter_by: dict) -> None:
         await self._repo.remove_many(filter_by)
-
-

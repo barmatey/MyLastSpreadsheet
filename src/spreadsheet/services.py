@@ -275,7 +275,7 @@ class NewSheetService:
         await self._repo.row_repo.add_many(rows)
 
         if size[1] != 0:
-            cols = self._repo.col_repo.get_many({"sheet_id": sheet_id}, OrderBy("position", True))
+            cols = await self._repo.col_repo.get_many({"sheet_id": sheet_id}, OrderBy("position", True))
         else:
             cols = await create_cols(sf, start_position=0, count=len(table[0]))
             await self._repo.col_repo.add_many(cols)
@@ -297,22 +297,22 @@ class NewSheetService:
 
         new_table = pd.concat([lhs, rhs]).fillna(0).groupby(merge_on, sort=False).sum().reset_index()
 
-        tmp = lhs.compare(new_table.iloc[0:len(lhs.index), 0:len(lhs.columns)])
+        new_rows = new_table.iloc[len(lhs.index):, :]
+        if not new_rows.empty:
+            await self.append_rows_from_table(sheet_id, new_rows.values)
 
-        print()
+        new_cols = new_table.iloc[:, len(lhs.columns):]
+        if not new_cols.empty:
+            raise NotImplemented
+
+
+        # print()
         # print(lhs)
         # print(rhs)
         # print(lhs.to_string())
-        print(new_table.to_string())
+        # print(new_table.to_string())
+        # print(new_rows)
         # print(tmp.to_string())
-
-
-        pd.DataFrame().groupby()
-
-
-        new_rows = pd.merge(lhs[on], rhs, how="right", indicator=True)
-        new_rows: pd.DataFrame = new_rows.loc[new_rows["_merge"] == "right_only"]
-        await self.append_rows_from_table(sheet_id, new_rows.values)
 
 
 class ExpandCellFollowers:

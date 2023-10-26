@@ -102,7 +102,7 @@ async def test_report_sheet_reacts_on_wire_appended():
         domain.Period(from_date=datetime(2021, x, 1, tzinfo=pytz.UTC), to_date=datetime(2021, x, 28, tzinfo=pytz.UTC))
         for x in range(1, 6)
     ]
-    interval = domain.Interval(start_date=datetime(2021, 1, 1, tzinfo=pytz.UTC),
+    interval = domain.Interval(start_date=datetime(2020, 12, 31, tzinfo=pytz.UTC),
                                end_date=datetime(2021, 5, 31, tzinfo=pytz.UTC),
                                freq="1M")
     report = await create_report(source, interval)
@@ -111,7 +111,7 @@ async def test_report_sheet_reacts_on_wire_appended():
         sender=1,
         receiver=1,
         amount=333,
-        sub1="AppendedWire1",
+        sub1="AppendedWire1 WTF?",
         sub2="no_info",
         date=datetime(2021, 1, 16,  0, 0, 0, tzinfo=pytz.UTC),
         source_info=source.source_info,
@@ -129,7 +129,7 @@ async def test_report_sheet_reacts_on_wire_appended():
         sender=2,
         receiver=10,
         sub1="first",
-        amount=67_627,
+        amount=222,
         date=datetime(2021, 3, 15, 0, 0, 0, tzinfo=pytz.UTC),
         source_info=source.source_info,
     )
@@ -155,5 +155,6 @@ async def test_report_sheet_reacts_on_wire_appended():
 
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
-        sheet = await sheet_commands.GetSheetByUuid(uuid=report.sheet_id, receiver=boot.get_sheet_service()).execute()
-        print("\n", pd.DataFrame(sheet.as_table()).to_string())
+        sheet = await sheet_commands.GetSheetByUuid(uuid=report.sheet_info.id,
+                                                    receiver=boot.get_sheet_service()).execute()
+        # print("\n", pd.DataFrame(sheet.as_table()).to_string())
