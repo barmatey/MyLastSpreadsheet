@@ -283,16 +283,16 @@ class NewSheetService:
         await self._repo.cell_repo.add_many(cells)
 
     async def group_new_data_with_sheet(self, sheet_id: UUID, table: domain.Table, on: list[int]):
-        target = (await self._repo.get_sheet_by_id(sheet_id))
+        target_sheet = (await self._repo.get_sheet_by_id(sheet_id))
 
-        target = target.as_table()
+        target_table = target_sheet.as_table()
         merge_on = []
         for j in on:
-            if target[0][j] != table[0][j]:
+            if target_table[0][j] != table[0][j]:
                 raise ValueError
-            merge_on.append(target[0][j])
+            merge_on.append(target_table[0][j])
 
-        lhs = pd.DataFrame(target[1:], columns=target[0])
+        lhs = pd.DataFrame(target_table[1:], columns=target_table[0])
         rhs = pd.DataFrame(table[1:], columns=table[0])
 
         new_table = pd.concat([lhs, rhs]).fillna(0).groupby(merge_on, sort=False).sum().reset_index()
@@ -305,14 +305,18 @@ class NewSheetService:
         if not new_cols.empty:
             raise NotImplemented
 
-
-        # print()
-        # print(lhs)
-        # print(rhs)
-        # print(lhs.to_string())
-        # print(new_table.to_string())
-        # print(new_rows)
-        # print(tmp.to_string())
+        updated_df = lhs.compare(new_table.iloc[0:len(lhs.index), 0:len(lhs.columns)], align_axis=0)
+        cells_to_update: list[domain.Cell] = []
+        for col in updated_df.columns:
+            temp = updated_df[col].dropna()
+            col_pos = target_table[0].index(col)
+            for i in range(0, len(temp.index), 2):
+                row_pos = temp.index[i][0] + 1  # Add 1 because first row of table is index_col
+                old_cell = target_sheet.cells[row_pos * target_sheet.size[1] + col_pos]
+                new_cell = old_cell.model_copy(deep=True)
+                new_cell.value = temp.iloc[i+1]
+                cells_to_update.append(new_cell)
+        await self._repo.cell_repo.update_many(cells_to_update)
 
 
 class ExpandCellFollowers:
