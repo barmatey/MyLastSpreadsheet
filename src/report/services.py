@@ -259,49 +259,7 @@ class ReportPublisher(subscriber.SourceSubscriber):
         await self._sheet_gw.group_new_row_data_with_sheet(self._entity.sheet_info.id, table, on=group_col_indexes)
 
     async def on_wires_deleted(self, wires: list[domain.Wire]):
-        for wire in wires:
-            await self.__delete_wire(wire)
-
-    async def __delete_wire(self, wire: domain.Wire):
-        cells = [wire.__getattribute__(ccol) for ccol in self._entity.plan_items.ccols]
-        key = str(cells)
-        self._entity.plan_items.uniques[key] -= 1
-        if self._entity.plan_items.uniques[key] == 0:
-            row_pos = self._entity.find_row_pos(key) + 1
-            del self._entity.plan_items.uniques[key]
-            self._entity.plan_items.order.remove(key)
-            await self._sheet_gw.delete_rows_from_position(self._entity.sheet_id, row_pos, count=1)
-        else:
-            row_pos = self._entity.find_row_pos(key)
-            col_pos = self._entity.find_col_pos(wire.date)
-            cell = await self._sheet_gw.get_cell(self._entity.sheet_id, row_pos, col_pos)
-            cell.value -= wire.amount
-            await self._sheet_gw.update_cell(cell)
-        await self._repo.update_one(self._entity)
-
-    async def __append_wire(self, wire: domain.Wire):
-        cells = [wire.__getattribute__(ccol) for ccol in self._entity.plan_items.ccols]
-        key = str(cells)
-        if self._entity.plan_items.uniques.get(key) is None:
-            self._entity.plan_items.uniques[key] = 0
-            self._entity.plan_items.order.add(key)
-
-            row: list[domain.CellValue] = [wire.__getattribute__(c)
-                                           for c in self._entity.plan_items.ccols] + [0] * len(self._entity.periods)
-            row[self._entity.find_col_pos(wire.date)] = wire.amount
-            # await self._sheet_gw.insert_row_from_position(
-            #     sheet_id=self._entity.sheet_id,
-            #     from_pos=self._entity.plan_items.order.bisect_left(key) + 1,
-            #     row=row,
-            # )
-        else:
-            row_pos = self._entity.plan_items.order.bisect_left(key)
-            col_pos = self._entity.find_col_pos(wire.date)
-            # cell = await self._sheet_gw.get_cell(self._entity.sheet_id, row_pos, col_pos)
-            # cell.value += wire.amount
-            # await self._sheet_gw.update_cell(cell)
-
-        self._entity.plan_items.uniques[key] += 1
+        raise NotImplemented
 
 
 class ReportService:

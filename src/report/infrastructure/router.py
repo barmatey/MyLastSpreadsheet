@@ -83,18 +83,24 @@ async def create_many_from_csv(source_id: UUID, file: UploadFile, get_asession=D
         df['date'] = pd.to_datetime(df['date'], utc=True)
         df['amount'] = df['debit'] - df['credit']
         df = df[['sender', 'receiver', 'sub1', 'sub2', 'date', 'amount']]
-        wires = [domain.Wire(**x, source_info=source_info) for x in df.to_dict(orient='records')]
+        wires = [domain.Wire(**x, source_id=source_info.id) for x in df.to_dict(orient='records')]
         cmd = commands.AppendWires(wires=wires, source_info=source_info, receiver=boot.get_source_service())
         await cmd.execute()
+        await boot.get_event_bus().run()
         await session.commit()
         return 1
 
 
-@router_wire.post("/")
-async def create(wires: list[domain.Wire], get_asession=Depends(db.get_async_session)) -> list[domain.Wire]:
+@router_wire.post("/{source_id}")
+async def create(source_id: UUID, wires: list[domain.Wire], get_asession=Depends(db.get_async_session)) -> int:
     async with get_asession as session:
         boot = bootstrap.Bootstrap(session)
-        raise NotImplemented
+        source_info = await commands.GetSourceInfoById(id=source_id, receiver=boot.get_source_service()).execute()
+        cmd = commands.AppendWires(wires=wires, source_info=source_info, receiver=boot.get_source_service())
+        await cmd.execute()
+        await boot.get_event_bus().run()
+        await session.commit()
+        return 1
 
 
 @router_wire.get("/")

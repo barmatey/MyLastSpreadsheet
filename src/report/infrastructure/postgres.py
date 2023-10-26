@@ -2,7 +2,7 @@ from typing import Type
 from uuid import UUID
 
 from sortedcontainers import SortedList
-from sqlalchemy import String, Integer, TIMESTAMP, func, Float, ForeignKey, select, JSON
+from sqlalchemy import String, TIMESTAMP, func, Float, ForeignKey, select, JSON
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -49,7 +49,7 @@ class WireModel(Base):
             sub1=self.sub1,
             sub2=self.sub2,
             date=self.date,
-            source_info=source_info
+            source_id=self.source_id,
         )
 
     @classmethod
@@ -62,7 +62,7 @@ class WireModel(Base):
             sub1=entity.sub1,
             sub2=entity.sub2,
             date=entity.date,
-            source_id=entity.source_info.id,
+            source_id=entity.source_id,
         )
 
 

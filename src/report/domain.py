@@ -56,7 +56,7 @@ class Wire(BaseModel):
     amount: float
     sub1: str = ""
     sub2: str = ""
-    source_info: SourceInfo
+    source_id: UUID
     id: UUID = Field(default_factory=uuid4)
 
 
