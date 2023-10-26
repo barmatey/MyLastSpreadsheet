@@ -126,11 +126,21 @@ class CellModel(Base):
 
     @staticmethod
     def to_entity_from_tuple_of_models(data):
-        sheet_info = data[0].to_entity()
-        row = data[1].to_entity(sheet=sheet_info)
-        col = data[2].to_entity(sheet=sheet_info)
-        cell = data[3].to_entity(sheet_info=sheet_info, row=row, col=col)
-        return cell
+        # sheet_info = data[0].to_entity()
+        # row = data[1].to_entity(sheet=sheet_info)
+        # col = data[2].to_entity(sheet=sheet_info)
+        # cell = data[3].to_entity(sheet_info=sheet_info, row=row, col=col)
+        # return cell
+        raise NotImplemented
+
+    def to_entity(self, row: RowSindex, col: ColSindex, sf: SheetInfo):
+        return Cell(
+            id=self.id,
+            sf=sf,
+            row=row,
+            col=col,
+            value=self.__get_value(self.value, self.dtype),
+        )
 
     @classmethod
     def from_entity(cls, entity: Cell):
@@ -301,7 +311,7 @@ class SheetPostgresRepo(SheetRepository):
         for i, x in enumerate(result):
             row = x[1].to_entity(sheet=sf)
             col = x[2].to_entity(sheet=sf)
-            cell = Cell(row=row, col=col, sf=sf, id=x[3].id, value=x[3].value)
+            cell = x[3].to_entity(row=row, col=col, sf=sf)
             if row.position != last_row_pos:
                 rows.append(row)
                 last_row_pos = row.position

@@ -284,8 +284,6 @@ class NewSheetService:
 
     async def group_new_data_with_sheet(self, sheet_id: UUID, table: domain.Table, on: list[int]):
         target = (await self._repo.get_sheet_by_id(sheet_id))
-        for x in target.cells:
-            print(x.value, type(x.value))
 
         target = target.as_table()
         merge_on = []
