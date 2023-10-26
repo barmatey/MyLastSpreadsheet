@@ -90,6 +90,13 @@ async def create_many_from_csv(source_id: UUID, file: UploadFile, get_asession=D
         return 1
 
 
+@router_wire.post("/")
+async def create(wires: list[domain.Wire], get_asession=Depends(db.get_async_session)) -> list[domain.Wire]:
+    async with get_asession as session:
+        boot = bootstrap.Bootstrap(session)
+        raise NotImplemented
+
+
 @router_wire.get("/")
 async def get_many(source_id: UUID,
                    date: datetime = None,
@@ -176,4 +183,3 @@ async def delete_report(report_id: UUID, get_asession=Depends(db.get_async_sessi
         await bus.run()
         await session.commit()
         return 1
-
