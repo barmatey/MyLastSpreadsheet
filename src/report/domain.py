@@ -93,13 +93,10 @@ class Interval(BaseModel):
     end_date: datetime
     freq: str
 
-    def to_intervals(self) -> list[pd.Interval]:
-        periods = pd.date_range(self.start_date, self.end_date, freq=self.freq)
-        intervals = [pd.Interval(start, end) for start, end in zip(periods[0:-1], periods[1:])]
-        return intervals
-
-    def to_date_range(self) -> pd.DatetimeIndex:
-        return pd.date_range(np.datetime64(self.start_date), np.datetime64(self.end_date), freq=self.freq)
+    def to_date_range(self) -> list[datetime]:
+        result = pd.date_range(self.start_date, self.end_date, freq=self.freq)
+        result = [datetime.fromisoformat(str(x)) for x in result]
+        return result
 
 
 class SheetInfo(BaseModel):

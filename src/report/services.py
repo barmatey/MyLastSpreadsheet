@@ -186,7 +186,7 @@ class Finrep:
         for interval in df['interval'].unique():
             series = df.loc[df['interval'] == interval].drop('interval', axis=1)
             splited.append(series)
-            columns.append(interval.right.date())
+            columns.append(interval.right)
         splited = pd.concat(splited, axis=1).fillna(0)
         splited.columns = columns
         return splited

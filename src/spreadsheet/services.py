@@ -295,9 +295,16 @@ class NewSheetService:
         lhs = pd.DataFrame(target[1:], columns=target[0])
         rhs = pd.DataFrame(table[1:], columns=table[0])
 
-        temp = pd.concat([lhs, rhs]).fillna(0).groupby(merge_on, sort=False).sum().reset_index()
+        new_table = pd.concat([lhs, rhs]).fillna(0).groupby(merge_on, sort=False).sum().reset_index()
+
+        tmp = lhs.compare(new_table.iloc[0:len(lhs.index), 0:len(lhs.columns)])
+
         print()
-        print(temp.to_string())
+        # print(lhs)
+        # print(rhs)
+        # print(lhs.to_string())
+        print(new_table.to_string())
+        # print(tmp.to_string())
 
 
         pd.DataFrame().groupby()
