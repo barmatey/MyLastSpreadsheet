@@ -247,7 +247,7 @@ class ReportPublisher(subscriber.SourceSubscriber):
             .round()
             .reset_indexes()
             .get_as_table()
-        )[1:]
+        )
         group_col_indexes = list(range(0, len(self._entity.plan_items.ccols)))
         await self._sheet_gw.group_new_row_data_with_sheet(self._entity.sheet_info.id, table, on=group_col_indexes)
 

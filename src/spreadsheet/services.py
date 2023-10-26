@@ -283,14 +283,30 @@ class NewSheetService:
         await self._repo.cell_repo.add_many(cells)
 
     async def group_new_data_with_sheet(self, sheet_id: UUID, table: domain.Table, on: list[int]):
-        target = await self._repo.get_sheet_by_id(sheet_id)
+        target = (await self._repo.get_sheet_by_id(sheet_id))
+        for x in target.cells:
+            print(x.value, type(x.value))
 
-        lhs = pd.DataFrame(target.as_table())
-        rhs = pd.DataFrame(table)
+        target = target.as_table()
+        merge_on = []
+        for j in on:
+            if target[0][j] != table[0][j]:
+                raise ValueError
+            merge_on.append(target[0][j])
+
+        lhs = pd.DataFrame(target[1:], columns=target[0])
+        rhs = pd.DataFrame(table[1:], columns=table[0])
+
+        temp = pd.concat([lhs, rhs]).fillna(0).groupby(merge_on, sort=False).sum().reset_index()
+        print()
+        print(temp.to_string())
+
+
+        pd.DataFrame().groupby()
+
 
         new_rows = pd.merge(lhs[on], rhs, how="right", indicator=True)
         new_rows: pd.DataFrame = new_rows.loc[new_rows["_merge"] == "right_only"]
-
         await self.append_rows_from_table(sheet_id, new_rows.values)
 
 
