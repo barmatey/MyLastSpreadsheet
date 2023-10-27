@@ -210,7 +210,7 @@ class ReportRepo(PostgresRepo):
         return report
 
     async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[domain.Report]:
-        raise NotImplemented
+        return await self.get_many({"id.__in": ids}, order_by)
 
     async def get_many(self, filter_by: dict = None, order_by: OrderBy = None,
                        slice_from=None, slice_to=None) -> list[domain.Report]:

@@ -1,7 +1,7 @@
 import src.spreadsheet.handlers
 from src.base.broker import Broker, BrokerRepoPostgres
 from ..base import eventbus
-from . import services
+from . import services, domain
 from .infrastructure import postgres, subfactory
 
 

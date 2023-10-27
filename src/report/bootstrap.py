@@ -6,6 +6,7 @@ from .infrastructure import postgres, subfactory
 from src.spreadsheet.bootstrap import Bootstrap as SheetBootstrap
 from .infrastructure.gateway import SheetGatewayAPI
 from ..base import eventbus
+from ..base.broker import Broker
 
 
 class Bootstrap(SheetBootstrap):
@@ -38,3 +39,8 @@ class Bootstrap(SheetBootstrap):
         bus.register('WiresAppended', handler.handle_wires_appended)
         bus.register('WiresDeleted', handler.handle_wires_deleted)
         return bus
+
+    def get_broker(self) -> Broker:
+        broker = super().get_broker()
+        broker.register(domain.Report, self._report_repo.get_many_by_id)
+        return broker
