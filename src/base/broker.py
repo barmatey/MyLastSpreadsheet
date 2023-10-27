@@ -39,7 +39,7 @@ association_table = Table(
 
 class PublisherModel(Base):
     __tablename__ = "publisher"
-    key: Mapped[str] = mapped_column(String(256), unique=True)
+    key: Mapped[str] = mapped_column(String(256))
     subs: Mapped[list['SubscriberModel']] = relationship(
         secondary=association_table, back_populates="pubs"
     )
@@ -47,7 +47,7 @@ class PublisherModel(Base):
 
 class SubscriberModel(Base):
     __tablename__ = "subscriber"
-    key: Mapped[str] = mapped_column(String(256), unique=True)
+    key: Mapped[str] = mapped_column(String(256))
     pubs: Mapped[list[PublisherModel]] = relationship(
         secondary=association_table, back_populates="subs"
     )
