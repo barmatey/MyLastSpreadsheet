@@ -2,13 +2,12 @@ from typing import Iterable, Callable, Type
 from uuid import UUID
 
 from pydantic import BaseModel
-from sqlalchemy import ForeignKey, Column, String
+from sqlalchemy import ForeignKey, Column, String, Table
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Mapper, mapped_column, Mapped, relationship
+from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from src.base.repo.postgres import Base
 from src.helpers.decorators import singleton
-from src.report.domain import Table
 
 
 class IBrokerService:
@@ -40,30 +39,41 @@ association_table = Table(
 
 class PublisherModel(Base):
     __tablename__ = "publisher"
-    key: Mapped[str] = mapped_column(String(32))
-    children: Mapped[list['SubscriberModel']] = relationship(
+    key: Mapped[str] = mapped_column(String(256), unique=True)
+    subs: Mapped[list['SubscriberModel']] = relationship(
         secondary=association_table, back_populates="pubs"
     )
 
 
 class SubscriberModel(Base):
     __tablename__ = "subscriber"
-    key: Mapped[str] = mapped_column(String(32))
-    parents: Mapped[list[PublisherModel]] = relationship(
+    key: Mapped[str] = mapped_column(String(256), unique=True)
+    pubs: Mapped[list[PublisherModel]] = relationship(
         secondary=association_table, back_populates="subs"
     )
 
 
-class BrokerRepo:
+class BrokerRepoPostgres:
     def __init__(self, session: AsyncSession):
         self._session = session
 
-
+    async def add_pubs(self, pubs: Iterable[Entity], sub: Entity):
+        pub_models = [PublisherModel(
+            id=x.id,
+            key=x.key,
+        ) for x in pubs]
+        sub_model = SubscriberModel(
+            id=sub.id,
+            key=sub.key,
+            pubs=pub_models,
+        )
+        pub_models.append(sub_model)
+        self._session.add_all(pub_models)
 
 
 class BrokerPostgres:
 
-    def __init__(self, repo):
+    def __init__(self, repo: BrokerRepoPostgres):
         self._repo = repo
         self._getter = {}
 
@@ -72,9 +82,10 @@ class BrokerPostgres:
         self._getter[key] = getter
 
     async def subscribe(self, pubs: Iterable[BaseModel], sub: BaseModel):
-        key = str(type(sub))
-        entity = Entity(id=sub.id, key=key)
-        await self._repo.add(entity)
+        print(str(type(sub)))
+        sub = Entity(id=sub.id, key=str(type(sub)))
+        pubs = [Entity(id=x.id, key=str(type(x))) for x in pubs]
+        await self._repo.add_pubs(pubs, sub)
 
     async def get_subs(self, pub: BaseModel) -> set[BaseModel]:
         subs: list[Entity] = await self._repo.get_subs(pub.id)
