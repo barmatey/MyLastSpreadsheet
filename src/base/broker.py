@@ -2,7 +2,7 @@ from typing import Iterable, Callable, Type
 from uuid import UUID
 
 from pydantic import BaseModel
-from sqlalchemy import ForeignKey, Column, String, Table
+from sqlalchemy import ForeignKey, Column, String, Table, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
@@ -40,7 +40,7 @@ association_table = Table(
 class PublisherModel(Base):
     __tablename__ = "publisher"
     key: Mapped[str] = mapped_column(String(256))
-    subs: Mapped[list['SubscriberModel']] = relationship(
+    subs: Mapped[set['SubscriberModel']] = relationship(
         secondary=association_table, back_populates="pubs"
     )
 
@@ -48,7 +48,7 @@ class PublisherModel(Base):
 class SubscriberModel(Base):
     __tablename__ = "subscriber"
     key: Mapped[str] = mapped_column(String(256))
-    pubs: Mapped[list[PublisherModel]] = relationship(
+    pubs: Mapped[set[PublisherModel]] = relationship(
         secondary=association_table, back_populates="subs"
     )
 
@@ -57,18 +57,37 @@ class BrokerRepoPostgres:
     def __init__(self, session: AsyncSession):
         self._session = session
 
-    async def add_pubs(self, pubs: Iterable[Entity], sub: Entity):
-        pub_models = [PublisherModel(
-            id=x.id,
-            key=x.key,
-        ) for x in pubs]
-        sub_model = SubscriberModel(
-            id=sub.id,
-            key=sub.key,
-            pubs=pub_models,
-        )
-        pub_models.append(sub_model)
-        self._session.add_all(pub_models)
+    async def subscribe(self, pubs: Iterable[BaseModel], sub: BaseModel) -> None:
+        # Get already exist pubs
+        pub_ids = set(x.id for x in pubs)
+        pub_models = []
+        exist_pub_models_ids = set()
+        for x in await self._session.scalars(select(PublisherModel).where(PublisherModel.id.in_(pub_ids))):
+            pub_models.append(x)
+            exist_pub_models_ids.add(x.id)
+
+        # Create new pubs if {pub_models gotten from db} < {pubs}
+        to_create = []
+        for pub in pubs:
+            if pub.id not in exist_pub_models_ids:
+                model = PublisherModel(id=pub.id, key=str(type(pub)), )
+                to_create.append(model)
+                pub_models.append(model)
+
+        # Get subscriber if exists one or create if not
+        sub_model = await self._session.scalar(select(SubscriberModel).where(SubscriberModel.id == sub.id))
+        if sub_model is None:
+            sub_model = SubscriberModel(id=sub.id, key=str(type(sub)))
+            to_create.append(sub_model)
+        sub_model.pubs = sub_model.pubs.union(pub_models)
+
+        self._session.add_all(to_create)
+
+    async def get_subs(self, pub: BaseModel) -> list[dict]:
+        stmt = select(PublisherModel).where(PublisherModel.id == pub.id)
+        model = await self._session.scalar(stmt)
+        result = [{"id": x.id, "key": x.key} for x in model.subs]
+        return result
 
 
 class BrokerPostgres:
@@ -82,24 +101,21 @@ class BrokerPostgres:
         self._getter[key] = getter
 
     async def subscribe(self, pubs: Iterable[BaseModel], sub: BaseModel):
-        print(str(type(sub)))
-        sub = Entity(id=sub.id, key=str(type(sub)))
-        pubs = [Entity(id=x.id, key=str(type(x))) for x in pubs]
-        await self._repo.add_pubs(pubs, sub)
+        await self._repo.subscribe(pubs, sub)
 
-    async def get_subs(self, pub: BaseModel) -> set[BaseModel]:
-        subs: list[Entity] = await self._repo.get_subs(pub.id)
+    async def get_subs(self, pub: BaseModel) -> list[BaseModel]:
+        subs = await self._repo.get_subs(pub)
         temp = {}
         for s in subs:
-            if temp.get(s.key) is None:
-                temp[s.key] = set()
-            temp[s.key].add(s.id)
+            if temp.get(s["key"]) is None:
+                temp[s["key"]] = set()
+            temp[s["key"]].add(s["id"])
 
-        result: set[BaseModel] = set()
+        result: list[BaseModel] = []
         for key, ids in temp.items():
             getter = self._getter[key]
-            entities = await getter(ids)
-            result.add(entities)
+            entities: Iterable[BaseModel] = await getter(ids)
+            result.extend(entities)
 
         return result
 

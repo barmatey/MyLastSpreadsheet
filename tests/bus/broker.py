@@ -20,16 +20,19 @@ class SubOne(BaseModel):
     id: UUID
 
 
-def pub_one_getter(uuid: UUID):
-    return PubOne(id=uuid)
+async def pub_one_getter(uuids: list[UUID]):
+    result = [PubOne(id=x) for x in uuids]
+    return result
 
 
-def pub_two_getter(uuid: UUID):
-    return PubTwo(id=uuid)
+async def pub_two_getter(uuids: list[UUID]):
+    result = [PubTwo(id=x) for x in uuids]
+    return result
 
 
-def sub_one_getter(uuid: UUID):
-    return SubOne(id=uuid)
+async def sub_one_getter(uuids: list[UUID]):
+    result = [SubOne(id=x) for x in uuids]
+    return result
 
 
 @pytest.mark.asyncio
@@ -38,6 +41,7 @@ async def test_temp():
         pub1 = PubOne(id=uuid4())
         pub2 = PubTwo(id=uuid4())
         sub1 = SubOne(id=uuid4())
+        sub2 = SubOne(id=uuid4())
 
         broker_repo = broker.BrokerRepoPostgres(session)
         broker_service = broker.BrokerPostgres(broker_repo)
@@ -47,5 +51,9 @@ async def test_temp():
         broker_service.register(SubOne, sub_one_getter)
 
         await broker_service.subscribe([pub1, pub2], sub1)
+        await broker_service.subscribe([pub1, pub2], sub2)
+
+        subs = await broker_service.get_subs(pub1)
+        print(subs)
 
         await session.commit()
