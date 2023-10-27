@@ -1,5 +1,5 @@
 import src.spreadsheet.handlers
-from src.base.broker import BrokerService
+from src.base.broker import Broker, BrokerRepoPostgres
 from ..base import eventbus
 from . import services
 from .infrastructure import postgres, subfactory
@@ -13,7 +13,7 @@ class Bootstrap:
         self._sheet_service = services.SheetService(self._sheet_repo, self._queue)
         self._new_shet_service = services.NewSheetService(self._sheet_repo)
 
-        self._broker = BrokerService()
+        self._broker = Broker(BrokerRepoPostgres(session))
         self._subfac = subfactory.SubFactory(self._sheet_service, self._broker)
 
     def get_event_bus(self) -> eventbus.EventBus:
@@ -38,7 +38,7 @@ class Bootstrap:
     def get_subfac(self) -> subfactory.SubFactory:
         return self._subfac
 
-    def get_broker(self) -> BrokerService:
+    def get_broker(self) -> Broker:
         return self._broker
 
     def get_expand_cell_followers(self) -> services.ExpandCellFollowers:

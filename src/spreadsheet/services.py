@@ -319,7 +319,7 @@ class NewSheetService:
 
 
 class ExpandCellFollowers:
-    def __init__(self, repo: CellRepository, broker_service: broker.BrokerService,
+    def __init__(self, repo: CellRepository, broker_service: broker.Broker,
                  subfac: subscriber.SubscriberFactory):
         self._repo = repo
         self._broker = broker_service

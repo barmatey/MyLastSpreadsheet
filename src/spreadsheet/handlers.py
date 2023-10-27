@@ -3,7 +3,7 @@ from . import subscriber, domain
 
 
 class Handler:
-    def __init__(self, sub_factory: subscriber.SubscriberFactory, broker_service: broker.BrokerService):
+    def __init__(self, sub_factory: subscriber.SubscriberFactory, broker_service: broker.Broker):
         self._sub_factory = sub_factory
         self._broker = broker_service
 

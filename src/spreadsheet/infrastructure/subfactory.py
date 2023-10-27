@@ -3,11 +3,11 @@ from loguru import logger
 from .. import domain
 from .. import subscriber
 from .. import services
-from src.base.broker import BrokerService
+from src.base.broker import Broker
 
 
 class CellSelfSubscriber(subscriber.CellSubscriber):
-    def __init__(self, entity: domain.Cell, sheet_service: services.SheetService, broker_service: BrokerService):
+    def __init__(self, entity: domain.Cell, sheet_service: services.SheetService, broker_service: Broker):
         self._sheet_service = sheet_service
         self._broker_service = broker_service
         self._entity = entity
@@ -34,7 +34,7 @@ class CellSelfSubscriber(subscriber.CellSubscriber):
 
 
 class SindexSelfSubscriber(subscriber.SindexSubscriber):
-    def __init__(self, entity: domain.Sindex, sheet_service: services.SheetService, broker_service: BrokerService):
+    def __init__(self, entity: domain.Sindex, sheet_service: services.SheetService, broker_service: Broker):
         self._entity = entity
         self._sheet_service = sheet_service
         self._broker_service = broker_service
@@ -53,7 +53,7 @@ class SindexSelfSubscriber(subscriber.SindexSubscriber):
 
 
 class SheetSelfSubscriber(subscriber.SheetSubscriber):
-    def __init__(self, entity: domain.Sheet, sheet_service: services.SheetService, broker_service: BrokerService):
+    def __init__(self, entity: domain.Sheet, sheet_service: services.SheetService, broker_service: Broker):
         self._entity = entity
         self._sheet_service = sheet_service
         self._broker_service = broker_service
@@ -78,7 +78,7 @@ class SheetSelfSubscriber(subscriber.SheetSubscriber):
 
 
 class SubFactory(subscriber.SubscriberFactory):
-    def __init__(self, sheet_service: services.SheetService, broker_service: BrokerService):
+    def __init__(self, sheet_service: services.SheetService, broker_service: Broker):
         self._sheet_service = sheet_service
         self._broker_service = broker_service
 

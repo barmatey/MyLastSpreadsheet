@@ -1,5 +1,5 @@
+from abc import abstractmethod
 from typing import Iterable, Callable, Type
-from uuid import UUID
 
 from pydantic import BaseModel
 from sqlalchemy import ForeignKey, Column, String, Table, select
@@ -7,26 +7,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from src.base.repo.postgres import Base
-from src.helpers.decorators import singleton
 
 
 class IBrokerService:
+    @abstractmethod
     async def subscribe(self, pubs: Iterable[BaseModel], sub: BaseModel):
         raise NotImplemented
 
+    @abstractmethod
     async def unsubscribe(self, pubs: Iterable[BaseModel], sub: BaseModel):
         raise NotImplemented
 
+    @abstractmethod
     async def get_subs(self, pub: BaseModel) -> set[BaseModel]:
         raise NotImplemented
 
+    @abstractmethod
     async def get_pubs(self, sub: BaseModel) -> set[BaseModel]:
         raise NotImplemented
-
-
-class Entity(BaseModel):
-    id: UUID
-    key: str
 
 
 association_table = Table(
@@ -89,8 +87,14 @@ class BrokerRepoPostgres:
         result = [{"id": x.id, "key": x.key} for x in model.subs]
         return result
 
+    async def get_pubs(self, sub: BaseModel) -> list[dict]:
+        stmt = select(SubscriberModel).where(SubscriberModel.id == sub.id)
+        model = await self._session.scalar(stmt)
+        result = [{"id": x.id, "key": x.key} for x in model.pubs]
+        return result
 
-class BrokerPostgres:
+
+class Broker(IBrokerService):
 
     def __init__(self, repo: BrokerRepoPostgres):
         self._repo = repo
@@ -103,42 +107,51 @@ class BrokerPostgres:
     async def subscribe(self, pubs: Iterable[BaseModel], sub: BaseModel):
         await self._repo.subscribe(pubs, sub)
 
+    async def unsubscribe(self, pubs: Iterable[BaseModel], sub: BaseModel):
+        raise NotImplemented
+
     async def get_subs(self, pub: BaseModel) -> list[BaseModel]:
         subs = await self._repo.get_subs(pub)
+        return await self.__get_models(subs)
+
+    async def get_pubs(self, sub: BaseModel) -> list[BaseModel]:
+        pubs = await self._repo.get_pubs(sub)
+        return await self.__get_models(pubs)
+
+    async def __get_models(self, ids: Iterable[dict]) -> list[BaseModel]:
         temp = {}
-        for s in subs:
-            if temp.get(s["key"]) is None:
-                temp[s["key"]] = set()
-            temp[s["key"]].add(s["id"])
+        for x in ids:
+            if temp.get(x["key"]) is None:
+                temp[x["key"]] = set()
+            temp[x["key"]].add(x["id"])
 
         result: list[BaseModel] = []
         for key, ids in temp.items():
             getter = self._getter[key]
             entities: Iterable[BaseModel] = await getter(ids)
             result.extend(entities)
-
         return result
 
 
-@singleton
-class BrokerService(IBrokerService):
-    def __init__(self):
-        self._data: dict[BaseModel, set[BaseModel]] = {}
-
-    async def subscribe(self, pubs: Iterable[BaseModel], sub: BaseModel):
-        for pub in pubs:
-            if self._data.get(pub) is None:
-                self._data[pub] = set()
-            self._data[pub].add(sub)
-
-    async def unsubscribe(self, pubs: Iterable[BaseModel], sub: BaseModel):
-        raise NotImplemented
-
-    async def get_subs(self, pub: BaseModel) -> set[BaseModel]:
-        if self._data.get(pub) is None:
-            return set()
-        return self._data[pub]
-
-    async def get_pubs(self, sub: BaseModel) -> set[BaseModel]:
-        result = set(key for key, value in self._data.items() if sub in value)
-        return result
+# @singleton
+# class BrokerService(IBrokerService):
+#     def __init__(self):
+#         self._data: dict[BaseModel, set[BaseModel]] = {}
+#
+#     async def subscribe(self, pubs: Iterable[BaseModel], sub: BaseModel):
+#         for pub in pubs:
+#             if self._data.get(pub) is None:
+#                 self._data[pub] = set()
+#             self._data[pub].add(sub)
+#
+#     async def unsubscribe(self, pubs: Iterable[BaseModel], sub: BaseModel):
+#         raise NotImplemented
+#
+#     async def get_subs(self, pub: BaseModel) -> set[BaseModel]:
+#         if self._data.get(pub) is None:
+#             return set()
+#         return self._data[pub]
+#
+#     async def get_pubs(self, sub: BaseModel) -> set[BaseModel]:
+#         result = set(key for key, value in self._data.items() if sub in value)
+#         return result

@@ -4,11 +4,10 @@ from uuid import UUID
 
 import numpy as np
 import pandas as pd
-from loguru import logger
 from sortedcontainers import SortedList
 
 from ..base import eventbus
-from ..base.broker import BrokerService
+from ..base.broker import Broker
 from ..base.repo.repository import Repository
 
 from . import domain, subscriber, events
@@ -76,7 +75,7 @@ class SourceService:
 
 
 class SourceHandler:
-    def __init__(self, subfac: subscriber.SubscriberFactory, broker: BrokerService):
+    def __init__(self, subfac: subscriber.SubscriberFactory, broker: Broker):
         self._subfac = subfac
         self._broker = broker
 
@@ -209,7 +208,7 @@ async def calculate_profit_cell(wires: pd.DataFrame, ccols: list[domain.Ccol], m
 
 class ReportPublisher(subscriber.SourceSubscriber):
     def __init__(self, entity: domain.Report, repo: Repository[domain.Report],
-                 sheet_gw: SheetGateway, broker: BrokerService):
+                 sheet_gw: SheetGateway, broker: Broker):
         self._entity = entity
         self._broker = broker
         self._sheet_gw = sheet_gw
