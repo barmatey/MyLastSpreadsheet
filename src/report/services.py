@@ -6,12 +6,13 @@ import numpy as np
 import pandas as pd
 from sortedcontainers import SortedList
 
-from ..base import eventbus
-from ..base.broker import Broker
-from ..base.repo.repository import Repository
+from src.base import eventbus
+from src.base.broker import Broker
+from src.base.repo.repository import Repository
+from src.core import OrderBy, Table
 
+from src.spreadsheet import domain as sheet_domain
 from . import domain, subscriber, events
-from ..core import OrderBy, Table
 
 
 class SourceRepo(ABC):
@@ -104,6 +105,10 @@ class SheetGateway(ABC):
         raise NotImplemented
 
     @abstractmethod
+    async def append_rows_from_other_sheet(self, target_sheet_id: UUID, data: sheet_domain.Sheet) -> None:
+        raise NotImplemented
+
+    @abstractmethod
     async def append_rows_from_table(self, sheet_id: UUID, table: Table[domain.Cell]):
         raise NotImplemented
 
@@ -172,9 +177,27 @@ class Finrep:
         return self._report_df
 
     def get_as_table(self) -> Table[domain.Cell]:
+        raise Exception
+
+    def to_sheet(self) -> sheet_domain.Sheet:
         if self._report_df is None:
-            raise Exception('report is None; Did you forgot create_report_df() function?')
-        return self._report_df.values
+            raise Exception('report is None. Did you forgot create_report_df() function?')
+
+        sf = sheet_domain.SheetInfo()
+        size = (len(self._report_df.index), len(self._report_df.columns))
+        rows = [sheet_domain.RowSindex(sf=sf, position=i, size=30, scroll=30 * i) for i in range(0, size[0])]
+        cols = [sheet_domain.ColSindex(sf=sf, position=j, size=120, scroll=120 * j) for j in range(0, size[1])]
+
+        cells = []
+        for i in range(0, size[0]):
+            for j in range(0, size[1]):
+                cells.append(sheet_domain.Cell(
+                    row=rows[i],
+                    col=cols[j],
+                    sf=sf,
+                    value=self._report_df.iloc[i, j],
+                ))
+        return sheet_domain.Sheet(rows=rows, cols=cols, cells=cells, size=size, sf=sf)
 
     @staticmethod
     def _split_df_by_intervals(df: pd.DataFrame) -> pd.DataFrame:
@@ -219,7 +242,7 @@ class ReportPublisher(subscriber.SourceSubscriber):
         self._entity.plan_items.uniques = pl
         self._entity.plan_items.order = SortedList(pl.keys())
 
-        table = (
+        sheet = (
             Finrep(wires, self._entity.plan_items.ccols, self._entity.interval)
             .validate()
             .create_report_df()
@@ -227,9 +250,9 @@ class ReportPublisher(subscriber.SourceSubscriber):
             .drop_zero_cols()
             .round()
             .reset_indexes()
-            .get_as_table()
+            .to_sheet()
         )
-        await self._sheet_gw.append_rows_from_table(self._entity.sheet_info.id, table=table)
+        await self._sheet_gw.append_rows_from_other_sheet(self._entity.sheet_info.id, data=sheet)
         await self._broker.subscribe([source.source_info], self._entity)
 
     async def on_wires_appended(self, wires: list[domain.Wire]):

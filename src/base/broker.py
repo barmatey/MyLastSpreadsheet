@@ -41,7 +41,7 @@ class BrokerRepoPostgres:
         pub_ids = set(x.id for x in pubs)
         pub_models = []
         exist_pub_models_ids = set()
-        for x in await self._session.scalars(select(PublisherModel).where(PublisherModel.id.in_(pub_ids))):
+        for x in (await self._session.scalars(select(PublisherModel).where(PublisherModel.id.in_(pub_ids)))).unique():
             pub_models.append(x)
             exist_pub_models_ids.add(x.id)
 

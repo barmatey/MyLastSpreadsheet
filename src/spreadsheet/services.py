@@ -289,8 +289,16 @@ class NewSheetService:
     async def append_rows_from_sheet(self, target_sheet_id: UUID, sheet: domain.Sheet):
         target_size = await self._repo.get_sheet_size(target_sheet_id)
         target_sf = domain.SheetInfo(id=target_sheet_id)
-        if target_size[1] != sheet.size[1]:
+
+        if target_size[1] != sheet.size[1] and target_size != (0, 0):
             raise Exception
+
+        if target_size[1] != 0:
+            cols = await self._repo.col_repo.get_many({"sheet_id": target_sheet_id}, OrderBy("position", True))
+        else:
+            cols = await create_cols(target_sf, start_position=0, count=sheet.size[1])
+            await self._repo.col_repo.add_many(cols)
+
         new_rows = []
         new_cells = []
         for i, row in enumerate(sheet.rows):
@@ -298,9 +306,11 @@ class NewSheetService:
             row.position = i + target_size[0]
             row.sf = target_sf
             new_rows.append(row)
-            for j in range(i * sheet.size[1], i * sheet.size[1] + sheet.size[1]):
-                cell = sheet.cells[j]
+            for j, col in enumerate(cols):
+                index = i * sheet.size[1] + j
+                cell = sheet.cells[index].model_copy()
                 cell.row = row
+                cell.col = col
                 cell.sf = target_sf
                 new_cells.append(cell)
         await self._repo.row_repo.add_many(new_rows)

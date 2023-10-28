@@ -4,6 +4,7 @@ from src.core import Table
 from src.report import domain
 from src.report.services import SheetGateway
 from src.spreadsheet.services import SheetService, NewSheetService
+from src.spreadsheet import domain as sheet_domain
 
 
 class SheetGatewayAPI(SheetGateway):
@@ -21,6 +22,9 @@ class SheetGatewayAPI(SheetGateway):
 
     async def update_cell(self, cell: domain.Cell):
         await self._sheet_service.update_cells([cell])
+
+    async def append_rows_from_other_sheet(self, target_sheet_id:  UUID, data: sheet_domain.Sheet) -> None:
+        await self._new_service.append_rows_from_sheet(target_sheet_id, data)
 
     async def append_rows_from_table(self, sheet_id: UUID, table: Table[domain.Cell]):
         await self._new_service.append_rows_from_table(sheet_id, table)
