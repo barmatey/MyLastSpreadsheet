@@ -11,7 +11,7 @@ from ..base.broker import Broker
 from ..base.repo.repository import Repository
 
 from . import domain, subscriber, events
-from ..core import OrderBy
+from ..core import OrderBy, Table
 
 
 class SourceRepo(ABC):
@@ -92,7 +92,7 @@ class SourceHandler:
 
 class SheetGateway(ABC):
     @abstractmethod
-    async def create_sheet(self, table: domain.Table = None) -> UUID:
+    async def create_sheet(self, table: Table[domain.CellValue] = None) -> UUID:
         raise NotImplemented
 
     @abstractmethod
@@ -104,7 +104,7 @@ class SheetGateway(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def insert_rows_from_position(self, sheet_id: UUID, from_pos: int, table: domain.Table[domain.Cell]):
+    async def append_rows_from_table(self, sheet_id: UUID, table: Table[domain.Cell]):
         raise NotImplemented
 
     @abstractmethod
@@ -112,7 +112,7 @@ class SheetGateway(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def group_new_row_data_with_sheet(self, sheet_id: UUID, table: domain.Table[domain.Cell], on: list[int]):
+    async def group_new_row_data_with_sheet(self, sheet_id: UUID, table: Table[domain.Cell], on: list[int]):
         raise NotImplemented
 
 
@@ -171,7 +171,7 @@ class Finrep:
             raise Exception('report is None; Did you forgot create_report_df() function?')
         return self._report_df
 
-    def get_as_table(self) -> domain.Table[domain.Cell]:
+    def get_as_table(self) -> Table[domain.Cell]:
         if self._report_df is None:
             raise Exception('report is None; Did you forgot create_report_df() function?')
         return self._report_df.values
@@ -229,7 +229,7 @@ class ReportPublisher(subscriber.SourceSubscriber):
             .reset_indexes()
             .get_as_table()
         )
-        await self._sheet_gw.insert_rows_from_position(self._entity.sheet_info.id, from_pos=0, table=table)
+        await self._sheet_gw.append_rows_from_table(self._entity.sheet_info.id, table=table)
         await self._broker.subscribe([source.source_info], self._entity)
 
     async def on_wires_appended(self, wires: list[domain.Wire]):

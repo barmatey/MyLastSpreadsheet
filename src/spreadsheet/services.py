@@ -3,7 +3,7 @@ from uuid import UUID
 
 import pandas as pd
 
-from src.core import OrderBy
+from src.core import OrderBy, Table
 from src.base import eventbus, broker
 from src.base.repo import repository
 
@@ -269,7 +269,7 @@ async def create_cols(sf, start_position: int, count: int, readonly=False, freez
     return cols
 
 
-async def create_cells_from_table(sf, rows, cols, table) -> list[domain.Cell]:
+async def create_cells_from_table(sf, rows, cols, cell_data: Table[dict]) -> list[domain.Cell]:
     cells = []
     for i, row in enumerate(rows):
         for j, col in enumerate(cols):
@@ -277,7 +277,7 @@ async def create_cells_from_table(sf, rows, cols, table) -> list[domain.Cell]:
                 sf=sf,
                 row=row,
                 col=col,
-                value=table[i][j])
+                **cell_data[i][j])
             )
     return cells
 
@@ -286,24 +286,44 @@ class NewSheetService:
     def __init__(self, repo: SheetRepository):
         self._repo = repo
 
-    async def append_rows_from_table(self, sheet_id: UUID, table: domain.Table):
+    async def append_rows_from_sheet(self, target_sheet_id: UUID, sheet: domain.Sheet):
+        target_size = await self._repo.get_sheet_size(target_sheet_id)
+        target_sf = domain.SheetInfo(id=target_sheet_id)
+        if target_size[1] != sheet.size[1]:
+            raise Exception
+        new_rows = []
+        new_cells = []
+        for i, row in enumerate(sheet.rows):
+            row = row.model_copy()
+            row.position = i + target_size[0]
+            row.sf = target_sf
+            new_rows.append(row)
+            for j in range(i * sheet.size[1], i * sheet.size[1] + sheet.size[1]):
+                cell = sheet.cells[j]
+                cell.row = row
+                cell.sf = target_sf
+                new_cells.append(cell)
+        await self._repo.row_repo.add_many(new_rows)
+        await self._repo.cell_repo.add_many(new_cells)
+
+    async def append_rows_from_table(self, sheet_id: UUID, cell_data: Table[dict]):
         sf = domain.SheetInfo(id=sheet_id)
         size = await self._repo.get_sheet_size(sheet_id)
-        for row in table:
+        for row in cell_data:
             if len(row) != size[1] and size[1] != 0:
                 raise Exception(f"{len(row)} != {size[1]}")
-        rows = await create_rows(sf, start_position=size[0], count=len(table))
+        rows = await create_rows(sf, start_position=size[0], count=len(cell_data))
         await self._repo.row_repo.add_many(rows)
 
         if size[1] != 0:
             cols = await self._repo.col_repo.get_many({"sheet_id": sheet_id}, OrderBy("position", True))
         else:
-            cols = await create_cols(sf, start_position=0, count=len(table[0]))
+            cols = await create_cols(sf, start_position=0, count=len(cell_data[0]))
             await self._repo.col_repo.add_many(cols)
-        cells = await create_cells_from_table(sf, rows, cols, table)
+        cells = await create_cells_from_table(sf, rows, cols, cell_data)
         await self._repo.cell_repo.add_many(cells)
 
-    async def group_new_data_with_sheet(self, sheet_id: UUID, table: domain.Table[dict], index: list[int]):
+    async def group_new_data_with_sheet(self, sheet_id: UUID, table: Table[domain.CellValue], index: list[int]):
         target_sheet = (await self._repo.get_sheet_by_id(sheet_id))
 
         target_table = target_sheet.as_table()
