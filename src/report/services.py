@@ -70,7 +70,7 @@ class SourceService:
         self._queue.append(events.WiresAppended(key='WiresAppended', wires=wires, source_info=source_info))
 
     async def delete_wires(self, source_info: domain.SourceInfo, wires: list[domain.Wire]):
-        await self._repo.wire_repo.remove_many(wires)
+        await self._repo.wire_repo.remove_many(filter_by={"id.__in": [x.id for x in wires]})
         self._queue.append(events.WiresDeleted(key="WiresDeleted", wires=wires, source_info=source_info))
 
 
@@ -258,7 +258,20 @@ class ReportPublisher(subscriber.SourceSubscriber):
         await self._sheet_gw.group_new_row_data_with_sheet(self._entity.sheet_info.id, table, on=group_col_indexes)
 
     async def on_wires_deleted(self, wires: list[domain.Wire]):
-        raise NotImplemented
+        wires = pd.DataFrame([x.model_dump(exclude={'source_info'}) for x in wires])
+        wires["amount"] = -wires["amount"]
+        table = (
+            Finrep(wires, self._entity.plan_items.ccols, self._entity.interval)
+            .validate()
+            .create_report_df()
+            .drop_zero_cols()
+            .drop_zero_rows()
+            .round()
+            .reset_indexes()
+            .get_as_table()
+        )
+        group_col_indexes = list(range(0, len(self._entity.plan_items.ccols)))
+        await self._sheet_gw.group_new_row_data_with_sheet(self._entity.sheet_info.id, table, on=group_col_indexes)
 
 
 class ReportService:

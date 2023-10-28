@@ -74,7 +74,7 @@ router_wire = APIRouter(
 
 
 @router_wire.post("/{source_id}/csv")
-async def create_many_from_csv(source_id: UUID, file: UploadFile, get_asession=Depends(db.get_async_session)) -> int:
+async def create_wires_from_csv(source_id: UUID, file: UploadFile, get_asession=Depends(db.get_async_session)) -> int:
     async with get_asession as session:
         boot = bootstrap.Bootstrap(session)
         source_info = await commands.GetSourceInfoById(id=source_id, receiver=boot.get_source_service()).execute()
@@ -92,12 +92,37 @@ async def create_many_from_csv(source_id: UUID, file: UploadFile, get_asession=D
 
 
 @router_wire.post("/{source_id}")
-async def create(source_id: UUID, wires: list[domain.Wire], get_asession=Depends(db.get_async_session)) -> int:
+async def create_wires(source_id: UUID, wires: list[domain.Wire], get_asession=Depends(db.get_async_session)) -> int:
     async with get_asession as session:
         boot = bootstrap.Bootstrap(session)
         source_info = await commands.GetSourceInfoById(id=source_id, receiver=boot.get_source_service()).execute()
         cmd = commands.AppendWires(wires=wires, source_info=source_info, receiver=boot.get_source_service())
         await cmd.execute()
+        await boot.get_event_bus().run()
+        await session.commit()
+        return 1
+
+
+@router_wire.put("/{wire_id}")
+async def update_wire(wire_id: UUID, data: domain.Wire, get_asession=Depends(db.get_async_session)) -> domain.Wire:
+    async with get_asession as session:
+        boot = bootstrap.Bootstrap(session)
+        sf = await commands.GetSourceInfoById(id=data.source_id, receiver=boot.get_source_service()).execute()
+        old_data = await commands.GetWires(filter_by={"id": wire_id}, receiver=boot.get_source_service()).execute()
+        await commands.DeleteWires(wires=old_data, source_info=sf, receiver=boot.get_source_service()).execute()
+        await commands.AppendWires(source_info=sf, wires=[data], receiver=boot.get_source_service()).execute()
+        await boot.get_event_bus().run()
+        await session.commit()
+        return data
+
+
+@router_wire.delete("/{wire_id}")
+async def delete_wire(wire_id: UUID, get_asession=Depends(db.get_async_session)) -> int:
+    async with get_asession as session:
+        boot = bootstrap.Bootstrap(session)
+        wires = await commands.GetWires(filter_by={"id": wire_id}, receiver=boot.get_source_service()).execute()
+        sf = await commands.GetSourceInfoById(id=wires[0].source_id, receiver=boot.get_source_service()).execute()
+        await commands.DeleteWires(wires=wires, source_info=sf, receiver=boot.get_source_service()).execute()
         await boot.get_event_bus().run()
         await session.commit()
         return 1

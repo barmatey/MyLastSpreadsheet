@@ -64,10 +64,10 @@ class GetUniqueWires(BaseModel):
 
 class GetWires(BaseModel):
     filter_by: dict
-    order_by: OrderBy
-    slice_from: int | None
-    slice_to: int | None
     receiver: services.SourceService
+    order_by: OrderBy | None = None
+    slice_from: int | None = None
+    slice_to: int | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def execute(self) -> list[domain.Wire]:
