@@ -1,4 +1,4 @@
-from typing import Literal, Union
+from typing import Literal, Union, TypeVar
 
 import numpy as np
 import pandas as pd
@@ -10,7 +10,6 @@ from sortedcontainers import SortedList
 
 Ccol = Literal['currency', 'sender', 'receiver', 'sub1', 'sub2']
 CellValue = Union[int, float, str, bool, None, datetime]
-Table = list[list[CellValue]]
 CellDtype = Literal["int", "float", "string", "bool", "datetime"]
 
 

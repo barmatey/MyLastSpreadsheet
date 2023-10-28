@@ -1,5 +1,5 @@
 from collections import namedtuple
-from typing import Union, NamedTuple
+from typing import Union, NamedTuple, TypeVar
 
 from pydantic import BaseModel, ConfigDict
 
@@ -11,3 +11,7 @@ class OrderBy(NamedTuple):
 
 class PydanticModel(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+T = TypeVar("T")
+Table = list[list[T]]

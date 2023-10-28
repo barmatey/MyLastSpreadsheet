@@ -104,7 +104,7 @@ class SheetGateway(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def insert_rows_from_position(self, sheet_id: UUID, from_pos: int, rows: list[list[domain.CellValue]]):
+    async def insert_rows_from_position(self, sheet_id: UUID, from_pos: int, table: domain.Table[domain.Cell]):
         raise NotImplemented
 
     @abstractmethod
@@ -112,7 +112,7 @@ class SheetGateway(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def group_new_row_data_with_sheet(self, sheet_id: UUID, table: domain.Table, on: list[int]):
+    async def group_new_row_data_with_sheet(self, sheet_id: UUID, table: domain.Table[domain.Cell], on: list[int]):
         raise NotImplemented
 
 
@@ -171,7 +171,7 @@ class Finrep:
             raise Exception('report is None; Did you forgot create_report_df() function?')
         return self._report_df
 
-    def get_as_table(self):
+    def get_as_table(self) -> domain.Table[domain.Cell]:
         if self._report_df is None:
             raise Exception('report is None; Did you forgot create_report_df() function?')
         return self._report_df.values
@@ -194,16 +194,6 @@ class Finrep:
         splited = pd.concat(splited, axis=1).fillna(0)
         splited.columns = columns
         return splited
-
-
-async def calculate_profit_cell(wires: pd.DataFrame, ccols: list[domain.Ccol], mappers: list[domain.CellValue],
-                                period: domain.Period) -> float:
-    conditions = (wires['date'] >= period.from_date) & (wires['date'] <= period.to_date)
-    for ccol, x in zip(ccols, mappers):
-        conditions = conditions & (wires[ccol] == x)
-
-    amount = wires.loc[conditions]['amount'].sum()
-    return amount
 
 
 class ReportPublisher(subscriber.SourceSubscriber):
@@ -239,7 +229,7 @@ class ReportPublisher(subscriber.SourceSubscriber):
             .reset_indexes()
             .get_as_table()
         )
-        await self._sheet_gw.insert_rows_from_position(self._entity.sheet_info.id, from_pos=0, rows=table)
+        await self._sheet_gw.insert_rows_from_position(self._entity.sheet_info.id, from_pos=0, table=table)
         await self._broker.subscribe([source.source_info], self._entity)
 
     async def on_wires_appended(self, wires: list[domain.Wire]):

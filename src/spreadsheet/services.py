@@ -241,15 +241,31 @@ class SheetService:
         raise NotImplemented
 
 
-async def create_rows(sf, start_position: int, count: int) -> list[domain.RowSindex]:
-    rows = [domain.RowSindex(position=start_position + i, sf=sf, size=30, scroll=(start_position + i) * 30)
-            for i in range(0, count)]
+async def create_rows(sf, start_position: int, count: int, readonly=False, freeze=False) -> list[domain.RowSindex]:
+    rows = [
+        domain.RowSindex(
+            position=start_position + i,
+            sf=sf,
+            size=30,
+            scroll=(start_position + i) * 30,
+            is_readonly=readonly,
+            is_freeze=freeze,
+        )
+        for i in range(0, count)]
     return rows
 
 
-async def create_cols(sf, start_position: int, count: int) -> list[domain.ColSindex]:
-    cols = [domain.ColSindex(position=j, sf=sf, size=120, scroll=j * 120)
-            for j in range(start_position, start_position + count)]
+async def create_cols(sf, start_position: int, count: int, readonly=False, freeze=False) -> list[domain.ColSindex]:
+    cols = [
+        domain.ColSindex(
+            position=j,
+            sf=sf,
+            size=120,
+            scroll=j * 120,
+            is_readonly=readonly,
+            is_freeze=freeze,
+        )
+        for j in range(start_position, start_position + count)]
     return cols
 
 
@@ -257,7 +273,12 @@ async def create_cells_from_table(sf, rows, cols, table) -> list[domain.Cell]:
     cells = []
     for i, row in enumerate(rows):
         for j, col in enumerate(cols):
-            cells.append(domain.Cell(sf=sf, row=row, col=col, value=table[i][j]))
+            cells.append(domain.Cell(
+                sf=sf,
+                row=row,
+                col=col,
+                value=table[i][j])
+            )
     return cells
 
 
@@ -282,7 +303,7 @@ class NewSheetService:
         cells = await create_cells_from_table(sf, rows, cols, table)
         await self._repo.cell_repo.add_many(cells)
 
-    async def group_new_data_with_sheet(self, sheet_id: UUID, table: domain.Table, index: list[int]):
+    async def group_new_data_with_sheet(self, sheet_id: UUID, table: domain.Table[dict], index: list[int]):
         target_sheet = (await self._repo.get_sheet_by_id(sheet_id))
 
         target_table = target_sheet.as_table()
@@ -313,7 +334,7 @@ class NewSheetService:
                 row_pos = temp.index[i][0] + 1  # Add 1 because first row of table is index_col
                 old_cell = target_sheet.cells[row_pos * target_sheet.size[1] + col_pos]
                 new_cell = old_cell.model_copy(deep=True)
-                new_cell.value = temp.iloc[i+1]
+                new_cell.value = temp.iloc[i + 1]
                 cells_to_update.append(new_cell)
         await self._repo.cell_repo.update_many(cells_to_update)
 
