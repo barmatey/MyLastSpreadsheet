@@ -185,8 +185,13 @@ class Finrep:
 
         sf = sheet_domain.SheetInfo()
         size = (len(self._report_df.index), len(self._report_df.columns))
+
         rows = [sheet_domain.RowSindex(sf=sf, position=i, size=30, scroll=30 * i) for i in range(0, size[0])]
+        rows[0].is_freeze = True
+
         cols = [sheet_domain.ColSindex(sf=sf, position=j, size=120, scroll=120 * j) for j in range(0, size[1])]
+        for j in range(0, len(self._ccols)):
+            cols[j].is_freeze = True
 
         cells = []
         for i in range(0, size[0]):
@@ -196,6 +201,7 @@ class Finrep:
                     col=cols[j],
                     sf=sf,
                     value=self._report_df.iloc[i, j],
+                    background="#F8FAFDFF" if i == 0 or j < len(self._ccols) else "white"
                 ))
         return sheet_domain.Sheet(rows=rows, cols=cols, cells=cells, size=size, sf=sf)
 

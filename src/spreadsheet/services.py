@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pandas as pd
 
@@ -296,19 +296,28 @@ class NewSheetService:
         if target_size[1] != 0:
             cols = await self._repo.col_repo.get_many({"sheet_id": target_sheet_id}, OrderBy("position", True))
         else:
-            cols = await create_cols(target_sf, start_position=0, count=sheet.size[1])
+            cols = [domain.ColSindex(
+                sf=target_sf,
+                position=x.position,
+                size=x.size,
+                scroll=x.scroll,
+                is_freeze=x.is_freeze,
+                is_readonly=x.is_readonly
+            ) for x in sheet.cols]
             await self._repo.col_repo.add_many(cols)
 
         new_rows = []
         new_cells = []
         for i, row in enumerate(sheet.rows):
             row = row.model_copy()
+            row.id = uuid4()
             row.position = i + target_size[0]
             row.sf = target_sf
             new_rows.append(row)
             for j, col in enumerate(cols):
                 index = i * sheet.size[1] + j
                 cell = sheet.cells[index].model_copy()
+                cell.id = uuid4()
                 cell.row = row
                 cell.col = col
                 cell.sf = target_sf

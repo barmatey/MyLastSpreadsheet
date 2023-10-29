@@ -88,6 +88,7 @@ class CellModel(Base):
     __tablename__ = "cell"
     value: Mapped[str] = mapped_column(String(1024), nullable=True)
     dtype: Mapped[str] = mapped_column(String(8), nullable=False)
+    background: Mapped[str] = mapped_column(String(21), default='white')
     sheet_id: Mapped[UUID] = mapped_column(ForeignKey("sheet.id"))
     row_sindex_id: Mapped[UUID] = mapped_column(ForeignKey("row_sindex.id"))
     col_sindex_id: Mapped[UUID] = mapped_column(ForeignKey("col_sindex.id"))
@@ -140,6 +141,7 @@ class CellModel(Base):
             row=row,
             col=col,
             value=self.__get_value(self.value, self.dtype),
+            background=self.background,
         )
 
     @classmethod
@@ -148,6 +150,7 @@ class CellModel(Base):
             id=entity.id,
             value=str(entity.value),
             dtype=cls.__get_dtype(entity.value),
+            background=entity.background,
             sheet_id=entity.sf.id,
             row_sindex_id=entity.row.id,
             col_sindex_id=entity.col.id,
