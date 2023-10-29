@@ -65,12 +65,16 @@ class BrokerRepoPostgres:
     async def get_subs(self, pub: BaseModel) -> list[dict]:
         stmt = select(PublisherModel).where(PublisherModel.id == pub.id)
         model = await self._session.scalar(stmt)
+        if model is None:
+            return []
         result = [{"id": x.id, "key": x.key} for x in model.subs]
         return result
 
     async def get_pubs(self, sub: BaseModel) -> list[dict]:
         stmt = select(SubscriberModel).where(SubscriberModel.id == sub.id)
         model = await self._session.scalar(stmt)
+        if model is None:
+            return []
         result = [{"id": x.id, "key": x.key} for x in model.pubs]
         return result
 

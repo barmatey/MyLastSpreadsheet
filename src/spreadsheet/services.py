@@ -291,7 +291,7 @@ class NewSheetService:
         target_sf = domain.SheetInfo(id=target_sheet_id)
 
         if target_size[1] != sheet.size[1] and target_size != (0, 0):
-            raise Exception
+            raise Exception(f"{target_size[1]} != {sheet.size[1]}")
 
         if target_size[1] != 0:
             cols = await self._repo.col_repo.get_many({"sheet_id": target_sheet_id}, OrderBy("position", True))
@@ -343,11 +343,11 @@ class NewSheetService:
         from_frame.columns = from_frame.iloc[0]
         from_frame = from_frame.drop(from_frame.index[0]).reset_index(drop=True)
 
-        new_frame = pd.concat([target_frame, from_frame]).fillna(0).groupby(on, sort=False, as_index=False).sum()
-        new_rows = new_frame.iloc[len(target_frame.index):, :]
+        new_frame = pd.concat([target_frame, from_frame]).fillna(0).groupby(on, sort=False,).sum().reset_index()
+        new_rows = new_frame.iloc[len(target_frame.index):, len(target_frame.columns):]
 
         if not new_rows.empty:
-            sheet = domain.Sheet.from_table(new_frame.values)
+            sheet = domain.Sheet.from_table(new_rows.values)
             for j in range(0, len(merge_on)):
                 sheet.cols[j].is_freeze = True
             for x in range(0, len(sheet.cells)):
