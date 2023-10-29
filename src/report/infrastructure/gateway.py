@@ -26,6 +26,9 @@ class SheetGatewayAPI(SheetGateway):
     async def append_rows_from_other_sheet(self, target_sheet_id:  UUID, data: sheet_domain.Sheet) -> None:
         await self._new_service.append_rows_from_sheet(target_sheet_id, data)
 
+    async def merge_sheets(self, target_sheet_id: UUID, data: sheet_domain.Sheet, merge_on: list[int]) -> None:
+        await self._new_service.merge_sheets(target_sheet_id, data, merge_on)
+
     async def append_rows_from_table(self, sheet_id: UUID, table: Table[domain.Cell]):
         await self._new_service.append_rows_from_table(sheet_id, table)
 

@@ -1,6 +1,8 @@
 from typing import Union, Literal
 from uuid import UUID, uuid4
 from datetime import datetime
+
+import pandas as pd
 from pydantic import BaseModel, Field
 
 from src.base import eventbus, entity
@@ -144,7 +146,8 @@ class Sheet(BaseModel):
                 return False
         return True
 
-    def as_table(self) -> list[list[CellValue]]:
+
+    def to_table(self) -> list[list[CellValue]]:
         table = []
         for i in range(0, self.size[0]):
             row = []
@@ -152,6 +155,10 @@ class Sheet(BaseModel):
                 row.append(self.cells[i * self.size[1] + j].value)
             table.append(row)
         return table
+
+    def to_frame(self) -> pd.DataFrame:
+        table = self.to_table()
+        return pd.DataFrame(table)
 
 
 class TableInserted(eventbus.Event):

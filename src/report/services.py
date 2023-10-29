@@ -109,6 +109,10 @@ class SheetGateway(ABC):
         raise NotImplemented
 
     @abstractmethod
+    async def merge_sheets(self, target_sheet_id: UUID, data: sheet_domain.Sheet, merge_on: list[int]) -> None:
+        raise NotImplemented
+
+    @abstractmethod
     async def append_rows_from_table(self, sheet_id: UUID, table: Table[domain.Cell]):
         raise NotImplemented
 
@@ -263,7 +267,7 @@ class ReportPublisher(subscriber.SourceSubscriber):
 
     async def on_wires_appended(self, wires: list[domain.Wire]):
         wires = pd.DataFrame([x.model_dump(exclude={'source_info'}) for x in wires])
-        table = (
+        sheet = (
             Finrep(wires, self._entity.plan_items.ccols, self._entity.interval)
             .validate()
             .create_report_df()
@@ -271,10 +275,10 @@ class ReportPublisher(subscriber.SourceSubscriber):
             .drop_zero_cols()
             .round()
             .reset_indexes()
-            .get_as_table()
+            .to_sheet()
         )
         group_col_indexes = list(range(0, len(self._entity.plan_items.ccols)))
-        await self._sheet_gw.group_new_row_data_with_sheet(self._entity.sheet_info.id, table, on=group_col_indexes)
+        await self._sheet_gw.merge_sheets(self._entity.sheet_info.id, sheet, merge_on=group_col_indexes)
 
     async def on_wires_deleted(self, wires: list[domain.Wire]):
         wires = pd.DataFrame([x.model_dump(exclude={'source_info'}) for x in wires])
@@ -287,10 +291,10 @@ class ReportPublisher(subscriber.SourceSubscriber):
             .drop_zero_rows()
             .round()
             .reset_indexes()
-            .get_as_table()
+            .to_sheet()
         )
         group_col_indexes = list(range(0, len(self._entity.plan_items.ccols)))
-        await self._sheet_gw.group_new_row_data_with_sheet(self._entity.sheet_info.id, table, on=group_col_indexes)
+        await self._sheet_gw.merge_sheets(self._entity.sheet_info.id, table, merge_on=group_col_indexes)
 
 
 class ReportService:

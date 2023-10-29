@@ -325,6 +325,48 @@ class NewSheetService:
         await self._repo.row_repo.add_many(new_rows)
         await self._repo.cell_repo.add_many(new_cells)
 
+    async def merge_sheets(self, target_sheet_id: UUID, data: domain.Sheet, merge_on: list[int]) -> None:
+        target_sheet = await self._repo.get_sheet_by_id(target_sheet_id)
+        target_frame = target_sheet.to_frame()
+        from_frame = data.to_frame()
+
+        on = []
+        for j in merge_on:
+            if target_frame.iloc[0, j] != from_frame.iloc[0, j]:
+                raise ValueError
+            on.append(target_frame.iloc[0, j])
+
+        target_frame.columns = target_frame.iloc[0]
+        target_frame = target_frame.drop(target_frame.index[0]).reset_index(drop=True)
+
+        from_frame.columns = from_frame.iloc[0]
+        from_frame = from_frame.drop(from_frame.index[0]).reset_index(drop=True)
+
+        new_frame = pd.concat([target_frame, from_frame]).fillna(0).groupby(on, sort=False).sum().reset_index()
+        new_rows = new_frame.iloc[len(target_frame.index):, :]
+        if not new_rows.empty:
+            await self.append_rows_from_table(target_sheet_id, new_rows.values)
+        new_cols = new_frame.iloc[:, len(target_frame.columns):]
+        if not new_cols.empty:
+            raise NotImplemented
+
+        updated_df = target_frame.compare(
+            new_frame.iloc[0:len(target_frame.index), 0:len(target_frame.columns)], align_axis=0)
+
+        cells_to_update: list[domain.Cell] = []
+        columns = list(target_frame.columns)
+        for col in updated_df.columns:
+            temp = updated_df[col].dropna()
+            col_pos = columns.index(col)
+            for i in range(0, len(temp.index), 2):
+                row_pos = temp.index[i][0] + 1  # Add 1 because first row of table is index_col
+                old_cell = target_sheet.cells[row_pos * target_sheet.size[1] + col_pos]
+                new_cell = old_cell.model_copy(deep=True)
+                new_cell.value = temp.iloc[i + 1]
+                cells_to_update.append(new_cell)
+        await self._repo.cell_repo.update_many(cells_to_update)
+
+
     async def append_rows_from_table(self, sheet_id: UUID, cell_data: Table[dict]):
         sf = domain.SheetInfo(id=sheet_id)
         size = await self._repo.get_sheet_size(sheet_id)
@@ -342,40 +384,8 @@ class NewSheetService:
         cells = await create_cells_from_table(sf, rows, cols, cell_data)
         await self._repo.cell_repo.add_many(cells)
 
-    async def group_new_data_with_sheet(self, sheet_id: UUID, table: Table[domain.CellValue], index: list[int]):
-        target_sheet = (await self._repo.get_sheet_by_id(sheet_id))
 
-        target_table = target_sheet.as_table()
-        merge_on = []
-        for j in index:
-            if target_table[0][j] != table[0][j]:
-                raise ValueError
-            merge_on.append(target_table[0][j])
 
-        lhs = pd.DataFrame(target_table[1:], columns=target_table[0])
-        rhs = pd.DataFrame(table[1:], columns=table[0])
-        new_table = pd.concat([lhs, rhs]).fillna(0).groupby(merge_on, sort=False).sum().reset_index()
-
-        new_rows = new_table.iloc[len(lhs.index):, :]
-        if not new_rows.empty:
-            await self.append_rows_from_table(sheet_id, new_rows.values)
-
-        new_cols = new_table.iloc[:, len(lhs.columns):]
-        if not new_cols.empty:
-            raise NotImplemented
-
-        updated_df = lhs.compare(new_table.iloc[0:len(lhs.index), 0:len(lhs.columns)], align_axis=0)
-        cells_to_update: list[domain.Cell] = []
-        for col in updated_df.columns:
-            temp = updated_df[col].dropna()
-            col_pos = target_table[0].index(col)
-            for i in range(0, len(temp.index), 2):
-                row_pos = temp.index[i][0] + 1  # Add 1 because first row of table is index_col
-                old_cell = target_sheet.cells[row_pos * target_sheet.size[1] + col_pos]
-                new_cell = old_cell.model_copy(deep=True)
-                new_cell.value = temp.iloc[i + 1]
-                cells_to_update.append(new_cell)
-        await self._repo.cell_repo.update_many(cells_to_update)
 
 
 class ExpandCellFollowers:

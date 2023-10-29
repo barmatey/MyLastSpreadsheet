@@ -91,7 +91,7 @@ async def test_create_profit_report():
         sheet = await sheet_commands.GetSheetByUuid(uuid=report.sheet_id, receiver=boot.get_sheet_service()).execute()
 
         print()
-        df = pd.DataFrame(sheet.as_table())
+        df = pd.DataFrame(sheet.to_table())
         print(df.to_string())
 
 
