@@ -28,8 +28,8 @@ class SheetInfo(entity.Entity):
 class Sindex(entity.Entity):
     sf: SheetInfo
     position: int
-    scroll: int
     size: int
+    scroll: int | None = None
     is_readonly: bool = False
     is_freeze: bool = False
     id: UUID = Field(default_factory=uuid4)
@@ -42,11 +42,15 @@ class Sindex(entity.Entity):
 
 
 class RowSindex(Sindex):
+    size: int = 30
+
     def __hash__(self):
         return self.id.__hash__()
 
 
 class ColSindex(Sindex):
+    size: int = 120
+
     def __hash__(self):
         return self.id.__hash__()
 
@@ -107,13 +111,13 @@ class Sheet(BaseModel):
         sf = SheetInfo()
 
         for j in range(0, size[1]):
-            col_sindex = ColSindex(sf=SheetInfo(), position=j, size=120, scroll=j * 120)
+            col_sindex = ColSindex(sf=SheetInfo(), position=j)
             cols.append(col_sindex)
 
         for i, row in enumerate(table):
             if len(row) != size[1]:
                 raise Exception
-            row_sindex = RowSindex(sf=sf, position=i, size=30, scroll=i * 30)
+            row_sindex = RowSindex(sf=sf, position=i)
             rows.append(row_sindex)
             for j, cell in enumerate(row):
                 cells.append(Cell(value=cell, sf=sf, row=row_sindex, col=cols[j]))
@@ -145,7 +149,6 @@ class Sheet(BaseModel):
             if left != right:
                 return False
         return True
-
 
     def to_table(self) -> list[list[CellValue]]:
         table = []

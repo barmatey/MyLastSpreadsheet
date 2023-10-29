@@ -312,6 +312,7 @@ class NewSheetService:
             row = row.model_copy()
             row.id = uuid4()
             row.position = i + target_size[0]
+            row.scroll = None
             row.sf = target_sf
             new_rows.append(row)
             for j, col in enumerate(cols):
@@ -342,10 +343,18 @@ class NewSheetService:
         from_frame.columns = from_frame.iloc[0]
         from_frame = from_frame.drop(from_frame.index[0]).reset_index(drop=True)
 
-        new_frame = pd.concat([target_frame, from_frame]).fillna(0).groupby(on, sort=False).sum().reset_index()
+        new_frame = pd.concat([target_frame, from_frame]).fillna(0).groupby(on, sort=False, as_index=False).sum()
         new_rows = new_frame.iloc[len(target_frame.index):, :]
+
         if not new_rows.empty:
-            await self.append_rows_from_table(target_sheet_id, new_rows.values)
+            sheet = domain.Sheet.from_table(new_frame.values)
+            for j in range(0, len(merge_on)):
+                sheet.cols[j].is_freeze = True
+            for x in range(0, len(sheet.cells)):
+                if sheet.cells[x].row.is_freeze or sheet.cells[x].col.is_freeze:
+                    sheet.cells[x].background = "#F8FAFDFF"
+            await self.append_rows_from_sheet(target_sheet_id, sheet)
+
         new_cols = new_frame.iloc[:, len(target_frame.columns):]
         if not new_cols.empty:
             raise NotImplemented
@@ -365,27 +374,6 @@ class NewSheetService:
                 new_cell.value = temp.iloc[i + 1]
                 cells_to_update.append(new_cell)
         await self._repo.cell_repo.update_many(cells_to_update)
-
-
-    async def append_rows_from_table(self, sheet_id: UUID, cell_data: Table[dict]):
-        sf = domain.SheetInfo(id=sheet_id)
-        size = await self._repo.get_sheet_size(sheet_id)
-        for row in cell_data:
-            if len(row) != size[1] and size[1] != 0:
-                raise Exception(f"{len(row)} != {size[1]}")
-        rows = await create_rows(sf, start_position=size[0], count=len(cell_data))
-        await self._repo.row_repo.add_many(rows)
-
-        if size[1] != 0:
-            cols = await self._repo.col_repo.get_many({"sheet_id": sheet_id}, OrderBy("position", True))
-        else:
-            cols = await create_cols(sf, start_position=0, count=len(cell_data[0]))
-            await self._repo.col_repo.add_many(cols)
-        cells = await create_cells_from_table(sf, rows, cols, cell_data)
-        await self._repo.cell_repo.add_many(cells)
-
-
-
 
 
 class ExpandCellFollowers:

@@ -50,7 +50,7 @@ class RowSindexModel(Base):
             position=entity.position,
             id=entity.id,
             sheet_id=entity.sf.id,
-            scroll=entity.scroll,
+            scroll=-1,
             is_readonly=entity.is_readonly,
             is_freeze=entity.is_freeze,
             size=entity.size,
@@ -77,7 +77,7 @@ class ColSindexModel(Base):
             position=entity.position,
             id=entity.id,
             sheet_id=entity.sf.id,
-            scroll=entity.scroll,
+            scroll=-1,
             is_readonly=entity.is_readonly,
             is_freeze=entity.is_freeze,
             size=entity.size,
@@ -311,14 +311,20 @@ class SheetPostgresRepo(SheetRepository):
         sf = SheetInfo(id=uuid)
 
         last_row_pos = None
+        row_scroll = 0
+        col_scroll = 0
         for i, x in enumerate(result):
             row = x[1].to_entity(sheet=sf)
+            row.scroll = row_scroll
             col = x[2].to_entity(sheet=sf)
             cell = x[3].to_entity(row=row, col=col, sf=sf)
             if row.position != last_row_pos:
-                rows.append(row)
                 last_row_pos = row.position
+                row_scroll += row.size
+                rows.append(row)
             if row.position == 0:
+                col.scroll = col_scroll
+                col_scroll += col.size
                 cols.append(col)
             cells.append(cell)
 
