@@ -260,7 +260,7 @@ class NewSheetService:
                 position=x.position,
                 size=x.size,
                 is_freeze=x.is_freeze,
-                is_readonly=x.is_readonlyб
+                is_readonly=x.is_readonly,
             ) for x in sheet.cols]
             await self._repo.col_repo.add_many(cols)
 
@@ -284,7 +284,15 @@ class NewSheetService:
         await self._repo.row_repo.add_many(new_rows)
         await self._repo.cell_repo.add_many(new_cells)
 
-    async def merge_sheets(self, target_sheet_id: UUID, data: domain.Sheet, merge_on: list[int]) -> None:
+    async def merge_sheets(self, sheet1: domain.Sheet, sheet2: domain.Sheet, merge_on: list[domain.ColSindex]):
+        sheet1_df = sheet1.to_full_frame()
+        sheet2_df = sheet2.to_full_frame()
+        merged = pd.concat([sheet1_df, sheet2_df])
+        print()
+        print(merged.to_string())
+        raise NotImplemented
+
+    async def merge_sheets_old(self, target_sheet_id: UUID, data: domain.Sheet, merge_on: list[int]) -> None:
         target_sheet = await self._repo.get_sheet_by_id(target_sheet_id)
         target_frame = target_sheet.to_frame()
         from_frame = data.to_frame()
@@ -334,7 +342,7 @@ class NewSheetService:
         await self._repo.cell_repo.update_many(cells_to_update)
 
     async def sort_sheet(self, sheet: domain.Sheet, order: OrderBy):
-        """Sort sheet by rows inplace"""
+        """Sort sheet by cols inplace"""
         df = sheet.to_full_frame()
         df = df.sort_values(order.fields, ascending=order.asc, key=lambda x: x.apply(lambda y: y.value))
         rows_to_update = []

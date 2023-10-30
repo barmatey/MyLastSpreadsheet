@@ -93,6 +93,10 @@ class SourceHandler:
 
 class SheetGateway(ABC):
     @abstractmethod
+    async def get_sheet_by_id(self, sheet_id: UUID) -> sheet_domain.Sheet:
+        raise NotImplemented
+
+    @abstractmethod
     async def create_sheet(self, table: Table[domain.CellValue] = None) -> UUID:
         raise NotImplemented
 
@@ -109,7 +113,8 @@ class SheetGateway(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def merge_sheets(self, target_sheet_id: UUID, data: sheet_domain.Sheet, merge_on: list[int]) -> None:
+    async def merge_sheets(self, target: sheet_domain.Sheet, data: sheet_domain.Sheet,
+                           merge_on: list[sheet_domain.ColSindex]) -> None:
         raise NotImplemented
 
     @abstractmethod
@@ -277,8 +282,10 @@ class ReportPublisher(subscriber.SourceSubscriber):
             .reset_indexes()
             .to_sheet()
         )
-        group_col_indexes = list(range(0, len(self._entity.plan_items.ccols)))
-        await self._sheet_gw.merge_sheets(self._entity.sheet_info.id, sheet, merge_on=group_col_indexes)
+        target = await self._sheet_gw.get_sheet_by_id(self._entity.sheet_info.id)
+        group_col_indexes: list[sheet_domain.ColSindex] = [target.cols[x]
+                                                           for x in range(0, len(self._entity.plan_items.ccols))]
+        await self._sheet_gw.merge_sheets(target, sheet, merge_on=group_col_indexes)
 
     async def on_wires_deleted(self, wires: list[domain.Wire]):
         wires = pd.DataFrame([x.model_dump(exclude={'source_info'}) for x in wires])
@@ -294,7 +301,8 @@ class ReportPublisher(subscriber.SourceSubscriber):
             .to_sheet()
         )
         group_col_indexes = list(range(0, len(self._entity.plan_items.ccols)))
-        await self._sheet_gw.merge_sheets(self._entity.sheet_info.id, table, merge_on=group_col_indexes)
+        target = await self._sheet_gw.get_sheet_by_id(self._entity.sheet_info.id)
+        await self._sheet_gw.merge_sheets(target, table, merge_on=group_col_indexes)
 
 
 class ReportService:

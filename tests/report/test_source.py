@@ -98,10 +98,6 @@ async def test_create_profit_report():
 @pytest.mark.asyncio
 async def test_report_sheet_reacts_on_wire_appended():
     source = await append_wires(await create_source())
-    periods = [
-        domain.Period(from_date=datetime(2021, x, 1, tzinfo=pytz.UTC), to_date=datetime(2021, x, 28, tzinfo=pytz.UTC))
-        for x in range(1, 6)
-    ]
     interval = domain.Interval(start_date=datetime(2020, 12, 31, tzinfo=pytz.UTC),
                                end_date=datetime(2021, 5, 31, tzinfo=pytz.UTC),
                                freq="1M")
