@@ -3,14 +3,15 @@ from src.sheet.service import *
 
 
 def test_sum_two_sheets():
-    rows = [domain.RowSindex(position=0), domain.RowSindex(position=1)]
-    cols = [domain.ColSindex(position=0), domain.ColSindex(position=1)]
-    sheet1 = create_sheet_from_table([[0, 0, ], [0, 0]], rows, cols)
-    sheet2 = create_sheet_from_table([[1, 2], [3, 4]], rows, cols)
-    sheet3 = sheet1 + sheet2
+    sheet1 = domain.Sheet.from_table([[1, 1], [1, 1]])
+    actual = sheet1 + sheet1
 
-    expected = f"{[[1, 2], [3, 4]]}"
-    actual = f"{convert_to_simple_frame(sheet3).values.tolist()}"
+    expected = f"{[[2, 2], [2, 2]]}"
+    actual = f"{actual.to_table()}"
+    assert actual == expected
+
+    expected = f"{[[1, 1], [1, 1]]}"
+    actual = f"{sheet1.to_table()}"
     assert actual == expected
 
 

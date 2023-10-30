@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import datetime
 from typing import Literal, Union, Hashable, Sequence
 from uuid import UUID, uuid4
@@ -69,14 +70,15 @@ class Cell(BaseModel):
 class Sheet:
     def __init__(self, data: Table[Cell] = None, rows: list[RowSindex] = None, cols: list[ColSindex] = None,
                  dtype=None, copy=None):
-        index = []
         self._rows: dict[UUID, RowSindex] = {}
+        self._cols: dict[UUID, ColSindex] = {}
+
+        index = []
         for row in rows:
             index.append(row.id)
             self._rows[row.id] = row.model_copy(deep=True)
 
         columns = []
-        self._cols: dict[UUID, ColSindex] = {x.id: x for x in cols}
         for col in cols:
             columns.append(col.id)
             self._cols[col.id] = col.model_copy(deep=True)
@@ -103,6 +105,13 @@ class Sheet:
 
     def __repr__(self):
         raise NotImplemented
+
+    def __add__(self, other: 'Sheet'):
+        sheet = self.copy()
+        sheet._frame = sheet._frame + other._frame
+        sheet._rows = sheet._rows | other._rows
+        sheet._cols = sheet._cols | other._cols
+        return sheet
 
     @classmethod
     def from_table(cls, table: Table[CellValue]):
@@ -138,3 +147,12 @@ class Sheet:
         for j, col_id in enumerate(self._frame.columns):
             self._cols[col_id].position = j
         return self
+
+    def copy(self) -> 'Sheet':
+        return deepcopy(self)
+
+    def to_table(self) -> Table[CellValue]:
+        result = []
+        for row in self._frame.values:
+            result.append([x.value for x in row])
+        return result
