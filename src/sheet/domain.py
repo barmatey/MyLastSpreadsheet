@@ -57,5 +57,6 @@ class Cell(BaseModel):
         return self.value == other.value
 
     def __add__(self, other: 'Cell'):
-        self.value = self.value + other.value
-        return self
+        cell = Cell(row=self.row.model_copy(), col=self.col.model_copy(), background=self.background,
+                    value=self.value + other.value)
+        return cell
