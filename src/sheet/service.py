@@ -11,7 +11,7 @@ def convert_to_simple_frame(sheet: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(data, index=rows, columns=cols)
 
 
-def create_sheet_from_table(table: Table[domain.CellValue], rows=None, cols=None) -> pd.DataFrame:
+def create_sheet_from_table(table: Table[domain.CellValue], rows=None, cols=None) -> domain.Sheet:
     if rows is None:
         rows = [domain.RowSindex(position=i) for i in range(0, len(table))]
     else:
@@ -31,10 +31,18 @@ def create_sheet_from_table(table: Table[domain.CellValue], rows=None, cols=None
         raise Exception
     if len(cols) != len(values[0]):
         raise Exception
-    return pd.DataFrame(values, index=rows, columns=cols)
+
+    return domain.Sheet(values, index=rows, columns=cols)
 
 
 class UpdateDiff:
+
+    def __init__(self):
+        self.appended_rows = None
+        self.appended_cols = None
+        self.deleted_cols = None
+        self.deleted_rows = None
+        self.moved_rows = None
 
     def find_updated_cells(self, old_sheet: pd.DataFrame, new_sheet: pd.DataFrame) -> list[domain.Cell]:
         diff = old_sheet.compare(new_sheet, align_axis='index')
@@ -54,26 +62,29 @@ class UpdateDiff:
         return updated_cells
 
     def find_moved_rows(self, old_sheet: pd.DataFrame, new_sheet: pd.DataFrame) -> list[domain.RowSindex]:
-        if len(old_sheet.index) != len(new_sheet.index):
-            raise Exception
-        updated_rows = []
-        for x, y in zip(old_sheet.index, new_sheet.index):
-            if x.position != y.position:
-                row = domain.RowSindex(
-                    id=x.id,
-                    position=y.position,
-                    is_readonly=x.is_readonly,
-                    is_freeze=x.is_freeze,
-                    size=x.size,
-                )
-                updated_rows.append(row)
-        return updated_rows
+        old_rows = {x.id: x for x in old_sheet.index}
+        new_rows = {x.id: x for x in new_sheet.index}
+
+        moved = []
+        for row_id in new_rows:
+            new = new_rows[row_id]
+            old = old_rows.get(row_id)
+            if old is not None:
+                if new.position != old.position:
+                    moved.append(domain.RowSindex(
+                        id=old.id,
+                        is_freeze=old.is_freeze,
+                        is_readonly=old.is_readonly,
+                        position=new.position,
+                        size=old.size,
+                    ))
+        return moved
 
     def find_appended_rows(self, old_sheet: pd.DataFrame, new_sheet: pd.DataFrame) -> pd.DataFrame:
-        return new_sheet.iloc[len(old_sheet.index):, :len(old_sheet.columns)]
+        return self.find_deleted_rows(new_sheet, old_sheet)
 
     def find_appended_cols(self, old_sheet: pd.DataFrame, new_sheet: pd.DataFrame) -> pd.DataFrame:
-        return new_sheet.iloc[:, len(old_sheet.columns):]
+        return self.find_deleted_cols(new_sheet, old_sheet)
 
     def find_deleted_rows(self, old_sheet: pd.DataFrame, new_sheet: pd.DataFrame) -> pd.DataFrame:
         old = set(old_sheet.index)
@@ -88,3 +99,10 @@ class UpdateDiff:
         deleted_cols = old.difference(new)
         deleted_cols_and_cells = old_sheet.filter(deleted_cols, axis=1)
         return deleted_cols_and_cells
+
+    def find_updates(self, old_sheet: pd.DataFrame, new_sheet: pd.DataFrame):
+        self.moved_rows = self.find_moved_rows(old_sheet, new_sheet)
+        self.deleted_rows = self.find_deleted_rows(old_sheet, new_sheet)
+        self.deleted_cols = self.find_deleted_cols(old_sheet, new_sheet)
+        self.appended_rows = self.find_appended_rows(old_sheet, new_sheet)
+        self.appended_cols = self.find_appended_cols(old_sheet, new_sheet)
