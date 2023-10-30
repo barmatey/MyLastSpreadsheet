@@ -241,47 +241,6 @@ class SheetService:
         raise NotImplemented
 
 
-async def create_rows(sf, start_position: int, count: int, readonly=False, freeze=False) -> list[domain.RowSindex]:
-    rows = [
-        domain.RowSindex(
-            position=start_position + i,
-            sf=sf,
-            size=30,
-            scroll=(start_position + i) * 30,
-            is_readonly=readonly,
-            is_freeze=freeze,
-        )
-        for i in range(0, count)]
-    return rows
-
-
-async def create_cols(sf, start_position: int, count: int, readonly=False, freeze=False) -> list[domain.ColSindex]:
-    cols = [
-        domain.ColSindex(
-            position=j,
-            sf=sf,
-            size=120,
-            scroll=j * 120,
-            is_readonly=readonly,
-            is_freeze=freeze,
-        )
-        for j in range(start_position, start_position + count)]
-    return cols
-
-
-async def create_cells_from_table(sf, rows, cols, cell_data: Table[dict]) -> list[domain.Cell]:
-    cells = []
-    for i, row in enumerate(rows):
-        for j, col in enumerate(cols):
-            cells.append(domain.Cell(
-                sf=sf,
-                row=row,
-                col=col,
-                **cell_data[i][j])
-            )
-    return cells
-
-
 class NewSheetService:
     def __init__(self, repo: SheetRepository):
         self._repo = repo
@@ -300,9 +259,8 @@ class NewSheetService:
                 sf=target_sf,
                 position=x.position,
                 size=x.size,
-                scroll=x.scroll,
                 is_freeze=x.is_freeze,
-                is_readonly=x.is_readonly
+                is_readonly=x.is_readonlyб
             ) for x in sheet.cols]
             await self._repo.col_repo.add_many(cols)
 
@@ -343,8 +301,8 @@ class NewSheetService:
         from_frame.columns = from_frame.iloc[0]
         from_frame = from_frame.drop(from_frame.index[0]).reset_index(drop=True)
 
-        new_frame = pd.concat([target_frame, from_frame]).fillna(0).groupby(on, sort=False,).sum().reset_index()
-        new_rows = new_frame.iloc[len(target_frame.index):, len(target_frame.columns):]
+        new_frame = pd.concat([target_frame, from_frame]).fillna(0).groupby(on, sort=False, ).sum().reset_index()
+        new_rows = new_frame.iloc[len(target_frame.index):, :len(target_frame.columns)]
 
         if not new_rows.empty:
             sheet = domain.Sheet.from_table(new_rows.values)
@@ -374,6 +332,19 @@ class NewSheetService:
                 new_cell.value = temp.iloc[i + 1]
                 cells_to_update.append(new_cell)
         await self._repo.cell_repo.update_many(cells_to_update)
+
+    async def sort_sheet(self, sheet: domain.Sheet, order: OrderBy):
+        """Sort sheet by rows inplace"""
+        df = sheet.to_full_frame()
+        df = df.sort_values(order.fields, ascending=order.asc, key=lambda x: x.apply(lambda y: y.value))
+        rows_to_update = []
+        for i, row in enumerate(df.index):
+            if row.position != i:
+                row.position = i
+                rows_to_update.append(row)
+        sheet.rows = list(df.index)
+        sheet.cells = df.values.flatten()
+        await self._repo.row_repo.update_many(rows_to_update)
 
 
 class ExpandCellFollowers:

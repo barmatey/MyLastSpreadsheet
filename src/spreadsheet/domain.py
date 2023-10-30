@@ -12,18 +12,6 @@ from src.core import Table
 class SheetInfo(entity.Entity):
     id: UUID = Field(default_factory=uuid4)
 
-    def __str__(self):
-        return f"{self.size}"
-
-    def __repr__(self):
-        return f"{self.size}"
-
-    def __eq__(self, other):
-        return all([
-            self.size == other.size,
-            self.id == other.id,
-        ])
-
 
 class Sindex(entity.Entity):
     sf: SheetInfo
@@ -102,6 +90,14 @@ class Sheet(BaseModel):
         if len(self.cells) != self.size[0] * self.size[1]:
             raise Exception(f'{len(self.cells)} != {self.size[0] * self.size[1]}')
 
+    def __repr__(self):
+        return (f"\nrows: {self.rows}"
+                f"\ncols: {self.cols}"
+                f"\ncells: {self.cells}")
+
+    def __str__(self):
+        return self.__repr__()
+
     @classmethod
     def from_table(cls, table: Table):
         rows = []
@@ -150,7 +146,7 @@ class Sheet(BaseModel):
                 return False
         return True
 
-    def to_table(self) -> list[list[CellValue]]:
+    def to_table(self) -> Table[CellValue]:
         table = []
         for i in range(0, self.size[0]):
             row = []
@@ -162,6 +158,10 @@ class Sheet(BaseModel):
     def to_frame(self) -> pd.DataFrame:
         table = self.to_table()
         return pd.DataFrame(table)
+
+    def to_full_frame(self) -> pd.DataFrame:
+        table = [self.cells[j:j + self.size[1]] for j in range(0, len(self.cells), self.size[1])]
+        return pd.DataFrame(table, index=self.rows, columns=self.cols)
 
 
 class TableInserted(eventbus.Event):

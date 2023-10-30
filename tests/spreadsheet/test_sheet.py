@@ -2,6 +2,7 @@ import pytest
 from loguru import logger
 
 import db
+from src.core import OrderBy
 
 from src.spreadsheet import domain, commands, bootstrap, services
 from tests.spreadsheet.before import create_sheet
@@ -158,3 +159,18 @@ async def test_expand_rows():
         assert sheet2.cells[3].value == 22
         assert sheet2.cells[4].value == 111
         assert sheet2.cells[5].value == 222
+
+
+@pytest.mark.asyncio
+async def test_sort_sheet():
+    sheet = domain.Sheet.from_table(
+        [
+            [9, 8],
+            [1, 4],
+            [1, 2],
+        ]
+    )
+    async with db.get_async_session() as session:
+        boot = bootstrap.Bootstrap(session)
+        sheet_service = boot.get_new_sheet_service()
+        await sheet_service.sort_sheet(sheet, OrderBy(sheet.cols, asc=True))
