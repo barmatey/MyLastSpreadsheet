@@ -1,8 +1,9 @@
-from src.sheet.service import *
+from src.sheet.domain import *
+from datetime import datetime
 
 
 def test_sum_two_sheets():
-    sheet1 = domain.Sheet.from_table([[1, 1], [1, 1]])
+    sheet1 = Sheet.from_table([[1, 1], [1, 1]])
     actual = sheet1 + sheet1
 
     expected = f"{[[2, 2], [2, 2]]}"
@@ -15,7 +16,7 @@ def test_sum_two_sheets():
 
 
 def test_drop():
-    sheet = domain.Sheet.from_table([[1, 2], [3, 4], [5, 6]])
+    sheet = Sheet.from_table([[1, 2], [3, 4], [5, 6]])
     actual = sheet.drop(sheet.frame.index[1], axis=0).drop(sheet.frame.columns[0], axis=1)
     assert len(actual.frame.index) == 2
     assert len(actual.frame.columns) == 1
@@ -26,21 +27,21 @@ def test_drop():
 
 
 def test_update_diff():
-    sheet1 = domain.Sheet.from_table([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    sheet1 = Sheet.from_table([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     target = (
         sheet1
         .drop(sheet1.rows[1].id, axis=0)
         .drop(sheet1.cols[0].id, axis=1)
     )
-    new_rows = domain.Sheet.from_table([[77, 88]], cols=target.cols)
+    new_rows = Sheet.from_table([[77, 88]], cols=target.cols)
     target = target.concat(new_rows)
 
-    new_cols = domain.Sheet.from_table([[22], [22], [22]], rows=target.rows)
+    new_cols = Sheet.from_table([[22], [22], [22]], rows=target.rows)
     target = target.concat(new_cols, axis=1)
 
     target.frame.iloc[0, 0].value = 123_456
 
-    diff = UpdateDiff(sheet1, target)
+    diff = SheetDifference(sheet1, target)
     diff.find_updates()
 
     assert len(diff.deleted_rows) == 1
@@ -91,3 +92,38 @@ def test_update_diff():
         assert actual.value == 123_456
         assert actual.value == target.frame.loc[actual.row_id, actual.col_id].value
         assert sheet1.frame.loc[actual.row_id, actual.col_id].value == 2
+
+
+def test_resize_sheet():
+    sheet1 = Sheet.from_table([
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+    ])
+    actual = sheet1.resize_sheet(2, 2)
+    assert actual.frame.shape == (2, 2)
+    assert len(actual.row_dict) == 2
+    assert len(actual.col_dict) == 2
+
+    actual = sheet1.resize_sheet(5, 5)
+    assert actual.frame.shape == (5, 5)
+    assert len(actual.row_dict) == 5
+    assert len(actual.col_dict) == 5
+
+
+def test_replace():
+    sheet1 = Sheet.from_table([
+        [None, None, datetime(2021, 1, 1), datetime(2022, 1, 1), datetime(2023, 1, 1)],
+        [1, "first", 10, 10, 10],
+        [1, "second", 10, 10, 10]
+    ])
+    sheet2 = Sheet.from_table([
+        [None, None, datetime(2021, 1, 1), datetime(2023, 1, 1)],
+        [1, "first", 20, 20],
+        [4, "new_row", 20, 20],
+        [5, "Jack", 66, 66]
+    ])
+    actual = sheet1.replace_cells(sheet2)
+
+    # print()
+    # print(actual)

@@ -18,10 +18,10 @@ class Sindex(BaseModel):
     id: UUID = Field(default_factory=uuid4)
 
     def __str__(self):
-        return f"{self.__class__.__name__}({self.id}, position={self.position})"
+        return f"{self.__class__.__name__.split('Sindex')[0]}({self.position})"
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.id}, position={self.position})"
+        return f"{self.__class__.__name__.split('Sindex')[0]}({self.position})"
 
 
 class RowSindex(Sindex):
@@ -134,11 +134,12 @@ class Sheet:
              axis: Literal["index", "columns", "rows"] | int = 0,
              level: Hashable | None = None,
              errors: Literal["ignore", "raise"] = "raise",
-             reindex=True) -> 'Sheet':
+             reindex=True,
+             inplace=False) -> 'Sheet':
         if isinstance(labels, Hashable):
             labels = [labels]
 
-        target = self.copy()
+        target = self if inplace else self.copy()
         target._frame = target._frame.drop(labels, axis=axis, level=level, errors=errors)
         if axis == 0:
             for item in labels:
@@ -151,6 +152,50 @@ class Sheet:
             if reindex:
                 target.reindex_cols()
         return target
+
+    def complex_merge(self, other: 'Sheet', left_on: Sequence, right_on: Sequence) -> 'Sheet':
+        target = self.copy()
+        df = pd.concat([target._frame, other], )
+        print()
+        print(target._frame.to_string())
+        return target
+
+    def resize_sheet(self, row_count: int = None, col_count: int = None) -> 'Sheet':
+        target = self.copy()
+        if row_count is None:
+            row_count = len(target.frame.index)
+        if col_count is None:
+            col_count = len(target.frame.columns)
+
+        if len(target._frame.index) >= row_count:
+            rows_to_delete = target._frame.index[row_count:]
+            target.drop(rows_to_delete, axis=0, inplace=True, reindex=False)
+        else:
+            for i in range(len(target._frame.index), row_count):
+                row = RowSindex(position=i)
+                cells = [Cell(value=None, row_id=row.id, col_id=col_id) for col_id in target.frame.columns]
+                target._row_dict[row.id] = row
+                target._frame.loc[row.id] = cells
+
+        if len(target._frame.columns) >= col_count:
+            cols_to_delete = target._frame.columns[col_count:]
+            target.drop(cols_to_delete, axis=1, inplace=True, reindex=False)
+        else:
+            for j in range(len(target._frame.columns), col_count):
+                col = ColSindex(position=j)
+                cells = [Cell(value=None, row_id=row_id, col_id=col.id) for row_id in target._frame.index]
+                target._col_dict[col.id] = col
+                target._frame[col.id] = cells
+
+        return target
+
+    def replace_cells(self, other: 'Sheet') -> 'Sheet':
+        target = self.copy()
+        if len(target._frame.index) >= len(other._frame.index):
+            rows_to_drop = target._frame.index[len(other._frame.index):]
+
+        if len(target._frame.columns) >= len(other._frame.columns):
+            cols_to_drop = target._frame.columns[len(other._frame.columns):]
 
     def concat(self, other: 'Sheet', axis=0) -> 'Sheet':
         target = self.copy()
@@ -199,3 +244,100 @@ class Sheet:
         for row in self._frame.values:
             result.append([x.value for x in row])
         return result
+
+
+class SheetDifference:
+    def __init__(self, old_sheet: Sheet, new_sheet: Sheet):
+        self._old_sheet = old_sheet
+        self._new_sheet = new_sheet
+
+        self.appended_rows: set[RowSindex] = set()
+        self.deleted_rows: set[RowSindex] = set()
+        self.moved_rows: set[RowSindex] = set()
+
+        self.appended_cols: set[ColSindex] = set()
+        self.deleted_cols: set[ColSindex] = set()
+        self.moved_cols: set[ColSindex] = set()
+
+        self.deleted_cells: set[Cell] = set()
+        self.appended_cells: set[Cell] = set()
+        self.updated_cells: set[Cell] = set()
+
+    def find_updated_cells(self):
+        common_rows = list(set(self._old_sheet.row_dict.keys()).intersection(self._new_sheet.row_dict.keys()))
+        common_cols = list(set(self._old_sheet.col_dict.keys()).intersection(self._new_sheet.col_dict.keys()))
+        old = self._old_sheet.frame.loc[common_rows, common_cols]
+        new = self._new_sheet.frame.loc[common_rows, common_cols]
+        diff: pd.DataFrame = old.compare(new, align_axis=0)
+        for col in diff.columns:
+            temp = diff[col].dropna()
+            for i in range(0, len(temp), 2):
+                self.updated_cells.add(temp[i + 1])
+
+    def find_moved_rows(self):
+        for key, new_value in self._new_sheet.row_dict.items():
+            old_value = self._old_sheet.row_dict.get(key)
+            if old_value:
+                if old_value.position != new_value.position:
+                    self.moved_rows.add(new_value)
+
+    def find_moved_cols(self):
+        for key, new_value in self._new_sheet.col_dict.items():
+            old_value = self._old_sheet.col_dict.get(key)
+            if old_value:
+                if old_value.position != new_value.position:
+                    self.moved_cols.add(new_value)
+
+    def find_appended_rows(self):
+        appended = {
+            key: value
+            for key, value in self._new_sheet.row_dict.items()
+            if self._old_sheet.row_dict.get(key) is None
+        }
+        self.appended_rows = self.appended_rows.union(appended.values())
+        self.appended_cells = self.appended_cells.union(
+            self._new_sheet.frame.filter(appended.keys(), axis=0).values.flatten().tolist()
+        )
+
+    def find_appended_cols(self):
+        appended = {
+            key: value
+            for key, value in self._new_sheet.col_dict.items()
+            if self._old_sheet.col_dict.get(key) is None
+        }
+        self.appended_cols = self.appended_cols.union(appended.values())
+        self.appended_cells = self.appended_cells.union(
+            self._new_sheet.frame.filter(appended.keys(), axis=1).values.flatten().tolist()
+        )
+
+    def find_deleted_rows(self):
+        deleted = {
+            key: value
+            for key, value in self._old_sheet.row_dict.items()
+            if self._new_sheet.row_dict.get(key) is None
+        }
+        self.deleted_rows = self.deleted_rows.union(deleted.values())
+        self.deleted_cells = self.deleted_cells.union(
+            self._old_sheet.frame.filter(deleted.keys(), axis=0).values.flatten().tolist())
+
+    def find_deleted_cols(self):
+        deleted = {
+            key: value
+            for key, value in self._old_sheet.col_dict.items()
+            if self._new_sheet.col_dict.get(key) is None
+        }
+        self.deleted_cols = self.deleted_cols.union(deleted.values())
+        self.deleted_cells = self.deleted_cells.union(
+            self._old_sheet.frame.filter(deleted.keys(), axis=1).values.flatten().tolist()
+        )
+
+    def find_updates(self):
+        self.find_appended_rows()
+        self.find_deleted_rows()
+        self.find_moved_rows()
+
+        self.find_appended_cols()
+        self.find_deleted_cols()
+        self.find_moved_cols()
+
+        self.find_updated_cells()
