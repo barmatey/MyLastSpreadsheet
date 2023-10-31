@@ -25,14 +25,41 @@ class UpdateDiff:
     def find_updated_cells(self) -> list[domain.Cell]:
         raise NotImplemented
 
-    def find_moved_rows(self, old_sheet: domain.Sheet, new_sheet: domain.Sheet) -> list[domain.RowSindex]:
-        raise NotImplemented
+    def find_moved_rows(self):
+        for key, new_value in self._new_sheet.row_dict.items():
+            old_value = self._old_sheet.row_dict.get(key)
+            if old_value:
+                if old_value.position != new_value.position:
+                    self.moved_rows.add(new_value)
 
-    def find_appended_rows(self, old_sheet: domain.Sheet, new_sheet: domain.Sheet) -> pd.DataFrame:
-        raise NotImplemented
+    def find_moved_cols(self):
+        for key, new_value in self._new_sheet.col_dict.items():
+            old_value = self._old_sheet.col_dict.get(key)
+            if old_value:
+                if old_value.position != new_value.position:
+                    self.moved_cols.add(new_value)
 
-    def find_appended_cols(self, old_sheet: domain.Sheet, new_sheet: domain.Sheet) -> pd.DataFrame:
-        raise NotImplemented
+    def find_appended_rows(self):
+        appended = {
+            key: value
+            for key, value in self._new_sheet.row_dict.items()
+            if self._old_sheet.row_dict.get(key) is None
+        }
+        self.appended_rows = self.appended_rows.union(appended.values())
+        self.appended_cells = self.appended_cells.union(
+            self._new_sheet.frame.filter(appended.keys(), axis=0).values.flatten().tolist()
+        )
+
+    def find_appended_cols(self):
+        appended = {
+            key: value
+            for key, value in self._new_sheet.col_dict.items()
+            if self._old_sheet.col_dict.get(key) is None
+        }
+        self.appended_cols = self.appended_cols.union(appended.values())
+        self.appended_cells = self.appended_cells.union(
+            self._new_sheet.frame.filter(appended.keys(), axis=1).values.flatten().tolist()
+        )
 
     def find_deleted_rows(self):
         deleted = {
@@ -56,8 +83,4 @@ class UpdateDiff:
         )
 
     def find_updates(self, old_sheet: domain.Sheet, new_sheet: domain.Sheet):
-        self.moved_rows = self.find_moved_rows(old_sheet, new_sheet)
-        self.deleted_rows = self.find_deleted_rows(old_sheet, new_sheet)
-        self.deleted_cols = self.find_deleted_cols(old_sheet, new_sheet)
-        self.appended_rows = self.find_appended_rows(old_sheet, new_sheet)
-        self.appended_cols = self.find_appended_cols(old_sheet, new_sheet)
+        raise NotImplemented

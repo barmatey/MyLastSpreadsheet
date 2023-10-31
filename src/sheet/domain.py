@@ -70,18 +70,18 @@ class Cell(BaseModel):
 class Sheet:
     def __init__(self, data: Table[Cell] = None, rows: list[RowSindex] = None, cols: list[ColSindex] = None,
                  dtype=None, copy=None):
-        self._rows: dict[UUID, RowSindex] = {}
-        self._cols: dict[UUID, ColSindex] = {}
+        self._row_dict: dict[UUID, RowSindex] = {}
+        self._col_dict: dict[UUID, ColSindex] = {}
 
         index = []
         for row in rows:
             index.append(row.id)
-            self._rows[row.id] = row.model_copy(deep=True)
+            self._row_dict[row.id] = row.model_copy(deep=True)
 
         columns = []
         for col in cols:
             columns.append(col.id)
-            self._cols[col.id] = col.model_copy(deep=True)
+            self._col_dict[col.id] = col.model_copy(deep=True)
 
         self._frame = pd.DataFrame(data, index=index, columns=columns, dtype=dtype, copy=copy)
 
@@ -91,24 +91,22 @@ class Sheet:
 
     @property
     def row_dict(self):
-        return self._rows
+        return self._row_dict
 
     @property
     def col_dict(self):
-        return self._cols
+        return self._col_dict
 
     @property
     def rows(self):
-        return [self._rows[x] for x in self._frame.index]
+        return [self._row_dict[x] for x in self._frame.index]
 
     @property
     def cols(self):
-        return [self._cols[x] for x in self._frame.columns]
+        return [self._col_dict[x] for x in self._frame.columns]
 
     def __str__(self):
-        index = [self._rows[x] for x in self._frame.index]
-        columns = [self._cols[x] for x in self._frame.columns]
-        df = pd.DataFrame(self._frame.values, index=index, columns=columns)
+        df = pd.DataFrame(self._frame.values, index=self.rows, columns=self.cols)
         return str(df)
 
     def __repr__(self):
@@ -117,17 +115,19 @@ class Sheet:
     def __add__(self, other: 'Sheet'):
         sheet = self.copy()
         sheet._frame = sheet._frame + other._frame
-        sheet._rows = sheet._rows | other._rows
-        sheet._cols = sheet._cols | other._cols
+        sheet._row_dict = sheet._row_dict | other._row_dict
+        sheet._col_dict = sheet._col_dict | other._col_dict
         return sheet
 
     @classmethod
-    def from_table(cls, table: Table[CellValue]):
-        rows = [RowSindex(position=i) for i in range(0, len(table))]
-        cols = [ColSindex(position=j) for j in range(0, len(table[0]))]
+    def from_table(cls, table: Table[CellValue], rows: list[RowSindex] = None, cols: list[ColSindex] = None):
+        rows = [RowSindex(position=i) for i in range(0, len(table))] if rows is None else deepcopy(rows)
+        cols = [ColSindex(position=j) for j in range(0, len(table[0]))] if cols is None else deepcopy(cols)
         cells = []
         for i, row in enumerate(table):
             cells.append([Cell(value=value, row=rows[i], col=cols[j]) for j, value in enumerate(row)])
+        if len(rows) != len(table):
+            raise Exception
         return cls(cells, rows, cols)
 
     def drop(self,
@@ -138,28 +138,56 @@ class Sheet:
              reindex=True) -> 'Sheet':
         if isinstance(labels, Hashable):
             labels = [labels]
-        self._frame = self._frame.drop(labels, axis=axis, level=level, errors=errors)
+        
+        target = self.copy()
+        target._frame = target._frame.drop(labels, axis=axis, level=level, errors=errors)
         if axis == 0:
             for item in labels:
-                del self._rows[item]
+                del target._row_dict[item]
             if reindex:
-                self.reindex_rows()
+                target.reindex_rows()
         else:
             for item in labels:
-                del self._cols[item]
+                del target._col_dict[item]
             if reindex:
-                self.reindex_cols()
-        return self
+                target.reindex_cols()
+        return target
+
+    def concat(self, other: 'Sheet', axis=0) -> 'Sheet':
+        target = self.copy()
+        if axis == 0:
+            if target._frame.shape[1] != other._frame.shape[1]:
+                raise Exception
+            for lhs, rhs in zip(target._frame.columns, other._frame.columns):
+                if lhs != rhs:
+                    raise Exception
+            if len(target._row_dict | other._row_dict) != len(target.row_dict) + len(other._row_dict):
+                raise Exception
+            target._row_dict = target._row_dict | other.row_dict
+            target._frame = pd.concat([target._frame, other._frame])
+            target.reindex_rows()
+        elif axis == 1:
+            if target._frame.shape[0] != other._frame.shape[0]:
+                raise Exception
+            for lhs, rhs in zip(target._frame.index, other._frame.index):
+                if lhs != rhs:
+                    raise Exception
+            if len(target._col_dict | other._col_dict) != len(target._col_dict) + len(other._col_dict):
+                raise Exception
+            target._col_dict = target._col_dict | other._col_dict
+            target._frame = pd.concat([target._frame, other._frame], axis=1)
+            target.reindex_cols()
+        else:
+            raise ValueError
+        return target
 
     def reindex_rows(self):
         for i, row_id in enumerate(self._frame.index):
-            self._rows[row_id].position = i
-        return self
+            self._row_dict[row_id].position = i
 
     def reindex_cols(self):
         for j, col_id in enumerate(self._frame.columns):
-            self._cols[col_id].position = j
-        return self
+            self._col_dict[col_id].position = j
 
     def copy(self) -> 'Sheet':
         return deepcopy(self)
@@ -169,3 +197,4 @@ class Sheet:
         for row in self._frame.values:
             result.append([x.value for x in row])
         return result
+
