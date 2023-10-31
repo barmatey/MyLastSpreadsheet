@@ -90,6 +90,14 @@ class Sheet:
         return self._frame
 
     @property
+    def row_dict(self):
+        return self._rows
+
+    @property
+    def col_dict(self):
+        return self._cols
+
+    @property
     def rows(self):
         return [self._rows[x] for x in self._frame.index]
 
@@ -126,16 +134,21 @@ class Sheet:
              labels: Hashable | Sequence[Hashable] | None = None,
              axis: Literal["index", "columns", "rows"] | int = 0,
              level: Hashable | None = None,
-             errors: Literal["ignore", "raise"] = "raise") -> 'Sheet':
+             errors: Literal["ignore", "raise"] = "raise",
+             reindex=True) -> 'Sheet':
         if isinstance(labels, Hashable):
             labels = [labels]
         self._frame = self._frame.drop(labels, axis=axis, level=level, errors=errors)
         if axis == 0:
             for item in labels:
                 del self._rows[item]
+            if reindex:
+                self.reindex_rows()
         else:
             for item in labels:
                 del self._cols[item]
+            if reindex:
+                self.reindex_cols()
         return self
 
     def reindex_rows(self):

@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import pandas as pd
 from src.sheet.service import *
 
@@ -27,12 +29,15 @@ def test_drop():
 
 
 def test_update_diff():
-    cols = [domain.ColSindex(position=0), domain.ColSindex(position=1)]
-    rows = [domain.RowSindex(position=0), domain.RowSindex(position=1), domain.RowSindex(position=2)]
-    sheet1 = create_sheet_from_table([[1, 2], [3, 4], [5, 6]], rows, cols)
+    sheet1 = domain.Sheet.from_table([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    sheet2 = sheet1.copy().drop(sheet1.rows[1].id, axis=0).drop(sheet1.cols[0].id, axis=1)
+
+    diff = UpdateDiff(sheet1, sheet2)
+    diff.find_deleted_rows()
+    diff.find_deleted_cols()
 
     print()
-    print(sheet1.columns[0], type(sheet1.columns[0]))
-    print(cols[0], type(cols[0]))
-
-    sheet1.drop(cols[0], axis=1)
+    print("DELETED_ROWS: ", diff.deleted_rows)
+    print("DELETED COLS: ", diff.deleted_cols)
+    print("DELETED CELLS: ", diff.deleted_cells)
+    print("")
