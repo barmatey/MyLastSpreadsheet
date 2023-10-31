@@ -111,7 +111,28 @@ def test_resize_sheet():
     assert len(actual.col_dict) == 5
 
 
-def test_replace():
+def test_replace_cell_values():
+    sheet1 = Sheet.from_table([
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+    ])
+    actual = sheet1.replace_cell_values([
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+    ])
+    assert len(actual.row_dict) == len(sheet1.row_dict)
+    assert len(actual.col_dict) == len(sheet1.col_dict)
+    for lhs, rhs in zip(actual.frame.index, sheet1.frame.index):
+        assert lhs == rhs
+    for lhs, rhs in zip(actual.frame.columns, sheet1.frame.columns):
+        assert lhs == rhs
+    for lhs, rhs in zip(actual.frame.values.flatten(), sheet1.frame.values.flatten()):
+        assert lhs.id == rhs.id
+
+
+def test_complex_merge():
     sheet1 = Sheet.from_table([
         [None, None, datetime(2021, 1, 1), datetime(2022, 1, 1), datetime(2023, 1, 1)],
         [1, "first", 10, 10, 10],

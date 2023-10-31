@@ -189,13 +189,16 @@ class Sheet:
 
         return target
 
-    def replace_cells(self, other: 'Sheet') -> 'Sheet':
+    def replace_cell_values(self, table: Table[CellValue]) -> 'Sheet':
         target = self.copy()
-        if len(target._frame.index) >= len(other._frame.index):
-            rows_to_drop = target._frame.index[len(other._frame.index):]
-
-        if len(target._frame.columns) >= len(other._frame.columns):
-            cols_to_drop = target._frame.columns[len(other._frame.columns):]
+        if len(table) != target._frame.shape[0]:
+            raise Exception
+        for i, row in enumerate(table):
+            if len(row) != target._frame.shape[1]:
+                raise Exception
+            for j, cell_value in enumerate(row):
+                target._frame.iloc[i, j].value = cell_value
+        return target
 
     def concat(self, other: 'Sheet', axis=0) -> 'Sheet':
         target = self.copy()
