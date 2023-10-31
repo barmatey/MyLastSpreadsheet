@@ -38,23 +38,24 @@ def test_update_diff():
     new_rows = domain.Sheet.from_table([[77, 88]], cols=sheet2.cols)
     sheet2 = sheet2.concat(new_rows)
 
-    new_cols = domain.Sheet.from_table([[22, 22]], rows=sheet2.rows)
-    print()
-    print(new_cols)
+    new_cols = domain.Sheet.from_table([[22], [22], [22]], rows=sheet2.rows)
     sheet2 = sheet2.concat(new_cols, axis=1)
 
+    sheet2.frame.iloc[0, 0].value = 123_456
+    print()
+    print(sheet1)
+    print()
+    print(sheet2)
+    print()
+    print(id(sheet1.frame.iloc[0, 1]), id(sheet2.frame.iloc[0, 0]))
 
     diff = UpdateDiff(sheet1, sheet2)
-    diff.find_deleted_rows()
-    diff.find_deleted_cols()
-    diff.find_moved_rows()
-    diff.find_moved_cols()
-    diff.find_appended_rows()
-    diff.find_appended_cols()
+    diff.find_updates()
+
 
     print()
     print(f"DELETED_ROWS ({len(diff.deleted_rows)}): ", diff.deleted_rows)
-    print(f"DELETED COLS ({len(diff.moved_cols)}): ", diff.deleted_cols)
+    print(f"DELETED COLS ({len(diff.deleted_cols)}): ", diff.deleted_cols)
     print(f"DELETED CELLS ({len(diff.deleted_cells)}): ", diff.deleted_cells)
     print(f"MOVED ROWS ({len(diff.moved_rows)}): ", diff.moved_rows)
     print(f"MOVED COLS ({len(diff.moved_cols)}): ", diff.moved_cols)

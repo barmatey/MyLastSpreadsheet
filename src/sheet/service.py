@@ -22,8 +22,20 @@ class UpdateDiff:
         self.appended_cells: set[domain.Cell] = set()
         self.updated_cells: set[domain.Cell] = set()
 
-    def find_updated_cells(self) -> list[domain.Cell]:
-        raise NotImplemented
+    def find_updated_cells(self):
+        common_rows = list(set(self._old_sheet.row_dict.keys()).intersection(self._new_sheet.row_dict.keys()))
+        common_cols = list(set(self._old_sheet.col_dict.keys()).intersection(self._new_sheet.col_dict.keys()))
+        old = self._old_sheet.frame.loc[common_rows, common_cols]
+        new = self._new_sheet.frame.loc[common_rows, common_cols]
+        diff = old.compare(new, align_axis=0)
+
+        # print()
+        # print("OLD\n", old.to_string())
+        # print()
+        # print("NEW\n", new.to_string())
+        # print()
+        # print(diff.to_string())
+        # stop
 
     def find_moved_rows(self):
         for key, new_value in self._new_sheet.row_dict.items():
@@ -82,5 +94,13 @@ class UpdateDiff:
             self._old_sheet.frame.filter(deleted.keys(), axis=1).values.flatten().tolist()
         )
 
-    def find_updates(self, old_sheet: domain.Sheet, new_sheet: domain.Sheet):
-        raise NotImplemented
+    def find_updates(self):
+        self.find_appended_rows()
+        self.find_deleted_rows()
+        self.find_moved_rows()
+
+        self.find_appended_cols()
+        self.find_deleted_cols()
+        self.find_moved_cols()
+
+        self.find_updated_cells()

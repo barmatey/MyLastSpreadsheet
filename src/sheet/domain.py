@@ -44,16 +44,16 @@ CellDtype = Literal["int", "float", "string", "bool", "datetime"]
 
 class Cell(BaseModel):
     value: CellValue
-    row: RowSindex
-    col: ColSindex
+    row_id: UUID
+    col_id: UUID
     background: str = 'white'
     id: UUID = Field(default_factory=uuid4)
 
     def __str__(self):
-        return f"Cell(index=({self.row.position}, {self.col.position}), value={self.value})"
+        return f"Cell(value={self.value})"
 
     def __repr__(self):
-        return f"Cell(index=({self.row.position}, {self.col.position}), value={self.value})"
+        return f"Cell(value={self.value})"
 
     def __hash__(self):
         return self.id.__hash__()
@@ -62,8 +62,7 @@ class Cell(BaseModel):
         return self.value == other.value
 
     def __add__(self, other: 'Cell'):
-        cell = Cell(row=self.row.model_copy(), col=self.col.model_copy(), background=self.background,
-                    value=self.value + other.value)
+        cell = Cell(row_id=self.id, col_id=self.col_id, background=self.background, value=self.value + other.value)
         return cell
 
 
@@ -83,7 +82,7 @@ class Sheet:
             columns.append(col.id)
             self._col_dict[col.id] = col.model_copy(deep=True)
 
-        self._frame = pd.DataFrame(data, index=index, columns=columns, dtype=dtype, copy=copy)
+        self._frame = pd.DataFrame(deepcopy(data), index=index, columns=columns, dtype=dtype, copy=copy)
 
     @property
     def frame(self):
@@ -106,8 +105,8 @@ class Sheet:
         return [self._col_dict[x] for x in self._frame.columns]
 
     def __str__(self):
-        df = pd.DataFrame(self._frame.values, index=self.rows, columns=self.cols)
-        return str(df)
+        df = pd.DataFrame(self._frame.values, index=self.rows, columns=self.cols).to_string()
+        return df
 
     def __repr__(self):
         raise NotImplemented
@@ -121,11 +120,11 @@ class Sheet:
 
     @classmethod
     def from_table(cls, table: Table[CellValue], rows: list[RowSindex] = None, cols: list[ColSindex] = None):
-        rows = [RowSindex(position=i) for i in range(0, len(table))] if rows is None else deepcopy(rows)
-        cols = [ColSindex(position=j) for j in range(0, len(table[0]))] if cols is None else deepcopy(cols)
+        rows = [RowSindex(position=i) for i in range(0, len(table))] if rows is None else rows
+        cols = [ColSindex(position=j) for j in range(0, len(table[0]))] if cols is None else cols
         cells = []
         for i, row in enumerate(table):
-            cells.append([Cell(value=value, row=rows[i], col=cols[j]) for j, value in enumerate(row)])
+            cells.append([Cell(value=value, row_id=rows[i].id, col_id=cols[j].id) for j, value in enumerate(row)])
         if len(rows) != len(table):
             raise Exception
         return cls(cells, rows, cols)
@@ -138,7 +137,7 @@ class Sheet:
              reindex=True) -> 'Sheet':
         if isinstance(labels, Hashable):
             labels = [labels]
-        
+
         target = self.copy()
         target._frame = target._frame.drop(labels, axis=axis, level=level, errors=errors)
         if axis == 0:
@@ -190,11 +189,15 @@ class Sheet:
             self._col_dict[col_id].position = j
 
     def copy(self) -> 'Sheet':
-        return deepcopy(self)
+        cells = self._frame.values
+        rows = self.rows
+        cols = self.cols
+        return self.__class__(
+            cells, rows, cols
+        )
 
     def to_table(self) -> Table[CellValue]:
         result = []
         for row in self._frame.values:
             result.append([x.value for x in row])
         return result
-
