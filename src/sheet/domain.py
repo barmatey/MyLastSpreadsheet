@@ -18,10 +18,10 @@ class Sindex(BaseModel):
     id: UUID = Field(default_factory=uuid4)
 
     def __str__(self):
-        return f"{self.__class__.__name__}(position={self.position})"
+        return f"{self.__class__.__name__}({self.id}, position={self.position})"
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(position={self.position})"
+        return f"{self.__class__.__name__}({self.id}, position={self.position})"
 
 
 class RowSindex(Sindex):
