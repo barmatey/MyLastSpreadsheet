@@ -16,7 +16,7 @@ def test_sum_two_sheets():
 
 def test_drop():
     sheet = domain.Sheet.from_table([[1, 2], [3, 4], [5, 6]])
-    actual = sheet.drop(sheet.frame.index[1], axis=0).reindex_rows().drop(sheet.frame.columns[0], axis=1).reindex_cols()
+    actual = sheet.drop(sheet.frame.index[1], axis=0).drop(sheet.frame.columns[0], axis=1)
     assert len(actual.frame.index) == 2
     assert len(actual.frame.columns) == 1
     for i, row in enumerate(actual.rows):
