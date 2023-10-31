@@ -192,9 +192,7 @@ class Sheet:
         cells = self._frame.values
         rows = self.rows
         cols = self.cols
-        return self.__class__(
-            cells, rows, cols
-        )
+        return self.__class__(cells, rows, cols)
 
     def to_table(self) -> Table[CellValue]:
         result = []

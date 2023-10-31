@@ -1,6 +1,3 @@
-from uuid import uuid4
-
-import pandas as pd
 from src.sheet.service import *
 
 
@@ -42,23 +39,34 @@ def test_update_diff():
     sheet2 = sheet2.concat(new_cols, axis=1)
 
     sheet2.frame.iloc[0, 0].value = 123_456
-    print()
-    print(sheet1)
-    print()
-    print(sheet2)
-    print()
-    print(id(sheet1.frame.iloc[0, 1]), id(sheet2.frame.iloc[0, 0]))
 
     diff = UpdateDiff(sheet1, sheet2)
     diff.find_updates()
 
+    assert len(diff.deleted_rows) == 1
+    assert len(diff.deleted_cols) == 1
+    assert len(diff.deleted_cells) == 5
+
+    actual_deleted_row = diff.deleted_rows.pop()
+    assert actual_deleted_row.id == sheet1.rows[1].id
+    assert actual_deleted_row.position == 1
+
+    actual_deleted_col = diff.deleted_cols.pop()
+    assert actual_deleted_col.id == sheet1.cols[0].id
+    assert actual_deleted_col.position == 0
+
+    for actual in diff.deleted_cells:
+        expected = sheet1.frame.loc[actual.row_id, actual.col_id]
+        assert actual.value == expected.value
+        assert actual.row_id == expected.row_id
+        assert actual.col_id == expected.col_id
+
+
 
     print()
-    print(f"DELETED_ROWS ({len(diff.deleted_rows)}): ", diff.deleted_rows)
-    print(f"DELETED COLS ({len(diff.deleted_cols)}): ", diff.deleted_cols)
-    print(f"DELETED CELLS ({len(diff.deleted_cells)}): ", diff.deleted_cells)
     print(f"MOVED ROWS ({len(diff.moved_rows)}): ", diff.moved_rows)
     print(f"MOVED COLS ({len(diff.moved_cols)}): ", diff.moved_cols)
     print(f"APPENDED ROWS ({len(diff.appended_rows)}): ", diff.appended_rows)
     print(f"APPENDED COLS ({len(diff.appended_cols)}): ", diff.appended_cols)
     print(f"APPENDED CELLS ({len(diff.appended_cells)}): ", diff.appended_cells)
+    print(f"UPDATED CELLS ({len(diff.updated_cells)}): ", diff.updated_cells)

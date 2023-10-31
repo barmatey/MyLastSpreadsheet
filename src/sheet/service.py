@@ -27,15 +27,11 @@ class UpdateDiff:
         common_cols = list(set(self._old_sheet.col_dict.keys()).intersection(self._new_sheet.col_dict.keys()))
         old = self._old_sheet.frame.loc[common_rows, common_cols]
         new = self._new_sheet.frame.loc[common_rows, common_cols]
-        diff = old.compare(new, align_axis=0)
-
-        # print()
-        # print("OLD\n", old.to_string())
-        # print()
-        # print("NEW\n", new.to_string())
-        # print()
-        # print(diff.to_string())
-        # stop
+        diff: pd.DataFrame = old.compare(new, align_axis=0)
+        for col in diff.columns:
+            temp = diff[col].dropna()
+            for i in range(0, len(temp), 2):
+                self.updated_cells.add(temp[i+1])
 
     def find_moved_rows(self):
         for key, new_value in self._new_sheet.row_dict.items():
