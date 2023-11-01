@@ -14,4 +14,4 @@ class PydanticModel(BaseModel):
 
 
 T = TypeVar("T")
-Table = Sequence[Sequence[T]]
+Table = list[list[T]]
