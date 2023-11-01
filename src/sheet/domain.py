@@ -12,7 +12,6 @@ from src.core import Table
 class Sindex(BaseModel):
     position: int
     size: int
-    scroll: int | None = None
     is_readonly: bool = False
     is_freeze: bool = False
     id: UUID = Field(default_factory=uuid4)
@@ -68,7 +67,9 @@ class Cell(BaseModel):
 
 class Sheet:
     def __init__(self, data: Table[Cell] = None, rows: list[RowSindex] = None, cols: list[ColSindex] = None,
-                 dtype=None, copy=None):
+                 dtype=None, copy=None, sheet_id: UUID = None):
+        self.id = sheet_id if sheet_id is not None else uuid4()
+
         self._row_dict: dict[UUID, RowSindex] = {}
         self._col_dict: dict[UUID, ColSindex] = {}
 
@@ -350,7 +351,7 @@ class ComplexMerge:
         self._merged_df = None
 
     def merge(self, target_on, from_on) -> 'ComplexMerge':
-        names = [f"lvl{x+1}" for x in range(0, len(target_on))]
+        names = [f"lvl{x + 1}" for x in range(0, len(target_on))]
 
         target_df = self._target.to_simple_frame()
         target_df = target_df.set_index(target_on)
