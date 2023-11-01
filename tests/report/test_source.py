@@ -7,7 +7,7 @@ from loguru import logger
 
 import db
 from src.report import bootstrap, commands, domain
-from src.spreadsheet import commands as sheet_commands
+from src.sheet import commands as sheet_commands
 
 
 async def create_source():
@@ -76,10 +76,6 @@ async def test_append_wires():
 async def test_create_profit_report():
     source = await create_source()
     source = await append_wires(source)
-    periods = [
-        domain.Period(from_date=datetime(2021, x, 1, tzinfo=pytz.UTC), to_date=datetime(2021, x, 28, tzinfo=pytz.UTC))
-        for x in range(1, 6)
-    ]
     interval = domain.Interval(start_date=datetime(2021, 1, 1, tzinfo=pytz.UTC),
                                end_date=datetime(2021, 5, 31, tzinfo=pytz.UTC),
                                freq="1M")
@@ -88,10 +84,11 @@ async def test_create_profit_report():
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
         report = await commands.GetReportById(id=expected.id, receiver=boot.get_report_service()).execute()
-        sheet = await sheet_commands.GetSheetByUuid(uuid=report.sheet_id, receiver=boot.get_sheet_service()).execute()
+        sheet = await sheet_commands.GetSheetByUuid(uuid=report.sheet_info.id,
+                                                    receiver=boot.get_sheet_service()).execute()
 
         print()
-        df = pd.DataFrame(sheet.to_table())
+        df = pd.DataFrame(sheet.to_simple_frame())
         print(df.to_string())
 
 

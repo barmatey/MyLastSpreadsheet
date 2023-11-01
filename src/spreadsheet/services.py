@@ -10,48 +10,8 @@ from src.base.repo import repository
 from . import domain
 from . import subscriber
 
-Slice = tuple[int, int] | int
 
 
-class CellRepository(repository.Repository, ABC):
-    @abstractmethod
-    async def get_sliced_cells(self, sheet_id: UUID, slice_rows: Slice = None,
-                               slice_cols: Slice = None) -> list[domain.Cell]:
-        raise NotImplemented
-
-    @abstractmethod
-    async def update_cell_by_position(self, sheet_id: UUID, row_pos: int, col_pos: int, data: dict):
-        raise NotImplemented
-
-
-class SheetRepository(ABC):
-    @property
-    def sheet_info_repo(self) -> repository.Repository[domain.SheetInfo]:
-        raise NotImplemented
-
-    @property
-    def row_repo(self) -> repository.Repository[domain.RowSindex]:
-        raise NotImplemented
-
-    @property
-    def col_repo(self) -> repository.Repository[domain.ColSindex]:
-        raise NotImplemented
-
-    @property
-    def cell_repo(self) -> CellRepository:
-        raise NotImplemented
-
-    @abstractmethod
-    async def add_sheet(self, sheet: domain.Sheet):
-        raise NotImplemented
-
-    @abstractmethod
-    async def get_sheet_by_id(self, uuid: UUID) -> domain.Sheet:
-        raise NotImplemented
-
-    @abstractmethod
-    async def get_sheet_size(self, shet_uuid: UUID) -> tuple[int, int]:
-        raise NotImplemented
 
 
 class SheetService:

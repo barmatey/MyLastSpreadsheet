@@ -17,13 +17,7 @@ class CreateSheet(BaseModel):
         return sheet
 
 
-class GetSheetByUuid(BaseModel):
-    uuid: UUID
-    receiver: services.SheetService
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    async def execute(self) -> domain.Sheet:
-        return await self.receiver.get_sheet_by_uuid(self.uuid)
 
 
 class InsertRows(BaseModel):

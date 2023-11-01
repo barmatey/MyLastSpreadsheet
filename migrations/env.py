@@ -7,7 +7,7 @@ from alembic import context
 
 from src.base.repo.postgres import Base
 from src.report.infrastructure import postgres as report_postgres
-from src.spreadsheet.infrastructure import postgres as sheet_postgres
+from src.sheet.infrastructure import postgres as sheet_postgres
 from src.base import broker
 
 config = context.config
