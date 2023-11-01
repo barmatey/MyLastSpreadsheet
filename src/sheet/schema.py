@@ -6,6 +6,7 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from src.core import Table
+from src.helpers.arrays import flatten
 
 
 class Sindex(BaseModel):
@@ -79,7 +80,7 @@ class Sheet(BaseModel):
         row_ids = [x.id for x in target.rows]
         col_ids = [x.id for x in target.cols]
 
-        target.table = pd.DataFrame(target.table, index=row_ids, columns=col_ids).drop(ids, axis=axis).values
+        target.table = pd.DataFrame(target.table, index=row_ids, columns=col_ids).drop(ids, axis=axis).values.tolist()
         if axis == 0:
             target.rows = list(filter(lambda x: x.id not in ids, target.rows))
         elif axis == 1:
@@ -148,6 +149,12 @@ class Sheet(BaseModel):
         df = pd.DataFrame(data, index, columns)
         return df
 
+    def to_full_frame(self) -> pd.DataFrame:
+        index = [x.id for x in self.rows]
+        columns = [x.id for x in self.cols]
+        df = pd.DataFrame(self.table, index, columns)
+        return df
+
 
 def concat(lhs: Sheet, rhs: Sheet, axis=0, reindex=True) -> Sheet:
     lhs = lhs.model_copy(deep=True)
@@ -163,7 +170,7 @@ def concat(lhs: Sheet, rhs: Sheet, axis=0, reindex=True) -> Sheet:
         if len(lhs.rows) != len(rhs.rows):
             raise Exception
         target.cols.extend(rhs.cols)
-        target.table = pd.concat([pd.DataFrame(lhs.table), pd.DataFrame(rhs.table)], axis=1).values
+        target.table = pd.concat([pd.DataFrame(lhs.table), pd.DataFrame(rhs.table)], axis=1).values.tolist()
     else:
         raise Exception
     if reindex:
@@ -222,20 +229,29 @@ class SheetDifference(BaseModel):
         old_cols = {x.id: x for x in old.cols}
         actual_cols = {x.id: x for x in actual.cols}
 
-        data = {"rows_created": (cls.find_sindexes(old_rows, actual_rows))[0],
-                "rows_updated": (cls.find_sindexes(old_rows, actual_rows))[1],
-                "rows_deleted": (cls.find_sindexes(old_rows, actual_rows))[2],
-                "cols_created": (cls.find_sindexes(old_cols, actual_cols))[0],
-                "cols_updated": (cls.find_sindexes(old_cols, actual_cols))[1],
-                "cols_deleted": (cls.find_sindexes(old_cols, actual_cols))[2],
-                "cels_created": [], "cells_updated": [],
-                "cells_deleted": []}
+        old_cells = {x.id: x for x in flatten(old.table)}
+        actual_cells = {x.id: x for x in flatten(actual.table)}
+
+        rows_created, rows_updated, rows_deleted = cls.compare_data(old_rows, actual_rows)
+        cols_created, cols_updated, cols_deleted = cls.compare_data(old_cols, actual_cols)
+        cells_created, cells_updated, cells_deleted = cls.compare_data(old_cells, actual_cells)
+        data = {
+            "rows_created": rows_created,
+            "rows_updated": rows_updated,
+            "rows_deleted": rows_deleted,
+            "cols_created": cols_created,
+            "cols_updated": cols_updated,
+            "cols_deleted": cols_deleted,
+            "cells_created": cells_created,
+            "cells_updated": cells_updated,
+            "cells_deleted": cells_deleted,
+        }
 
         return cls(**data)
 
     @classmethod
-    def find_sindexes(cls, old: dict, actual: dict) -> tuple[list[Sindex], list[Sindex], list[Sindex]]:
-        print("\n, FIND_SINDEXES")
+    def compare_data(cls, old: dict, actual: dict) -> tuple[list[Sindex], list[Sindex], list[Sindex]]:
+        """Return created, updated, deleted"""
         created = []
         updated = []
         deleted = []
