@@ -105,19 +105,6 @@ class Sheet:
     def cols(self):
         return [self._col_dict[x] for x in self._frame.columns]
 
-    def __str__(self):
-        df = pd.DataFrame(self._frame.values, index=self.rows, columns=self.cols).to_string()
-        return df
-
-    def __repr__(self):
-        raise NotImplemented
-
-    def __add__(self, other: 'Sheet'):
-        sheet = self.copy()
-        sheet._frame = sheet._frame + other._frame
-        sheet._row_dict = sheet._row_dict | other._row_dict
-        sheet._col_dict = sheet._col_dict | other._col_dict
-        return sheet
 
 
     def concat(self, other: 'Sheet', axis=0, inplace=False) -> 'Sheet':

@@ -17,7 +17,6 @@ def test_sum_two_sheets():
 
 
 
-
 def test_update_diff():
     sheet1 = Sheet.from_table([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     target = (
@@ -90,8 +89,8 @@ def test_update_diff():
 
 
 
-
 def test_complex_merge():
+    print()
     sheet1 = Sheet.from_table([
         [None, None, datetime(2021, 1, 1), datetime(2022, 1, 1), datetime(2023, 1, 1)],
         [1, "first", 10, 10, 10],

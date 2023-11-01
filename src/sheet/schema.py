@@ -142,3 +142,29 @@ class Sheet(BaseModel):
         data = map(lambda row: map(lambda cell: cell.value, row), self.table)
         df = pd.DataFrame(data, index, columns)
         return df
+
+
+def concat(lhs: Sheet, rhs: Sheet, axis=0, reindex=True) -> Sheet:
+    lhs = lhs.model_copy(deep=True)
+    rhs = rhs.model_copy(deep=True)
+
+    target = lhs
+    if axis == 0:
+        if len(lhs.cols) != len(rhs.cols):
+            raise Exception
+        target.rows.extend(rhs.rows)
+        target.table.extend(rhs.table)
+    elif axis == 1:
+        if len(lhs.rows) != len(rhs.rows):
+            raise Exception
+        target.cols.extend(rhs.cols)
+        target.table = pd.concat([pd.DataFrame(lhs.table), pd.DataFrame(rhs.table)], axis=1).values
+    else:
+        raise Exception
+
+    if reindex:
+        target.reindex(axis, inplace=True)
+
+    return target
+
+
