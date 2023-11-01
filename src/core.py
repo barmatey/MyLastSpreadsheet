@@ -1,5 +1,5 @@
 from collections import namedtuple
-from typing import Union, NamedTuple, TypeVar
+from typing import Union, NamedTuple, TypeVar, Sequence
 
 from pydantic import BaseModel, ConfigDict
 
@@ -14,4 +14,4 @@ class PydanticModel(BaseModel):
 
 
 T = TypeVar("T")
-Table = list[list[T]]
+Table = Sequence[Sequence[T]]
