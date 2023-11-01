@@ -119,69 +119,7 @@ class Sheet:
         sheet._col_dict = sheet._col_dict | other._col_dict
         return sheet
 
-    @classmethod
-    def from_table(cls, table: Table[CellValue], rows: list[RowSindex] = None, cols: list[ColSindex] = None):
-        rows = [RowSindex(position=i) for i in range(0, len(table))] if rows is None else rows
-        cols = [ColSindex(position=j) for j in range(0, len(table[0]))] if cols is None else cols
-        cells = []
-        for i, row in enumerate(table):
-            cells.append([Cell(value=value, row_id=rows[i].id, col_id=cols[j].id) for j, value in enumerate(row)])
-        if len(rows) != len(table):
-            raise Exception
-        return cls(cells, rows, cols)
 
-    def drop(self,
-             labels: Hashable | Sequence[Hashable] | None = None,
-             axis: Literal["index", "columns", "rows"] | int = 0,
-             level: Hashable | None = None,
-             errors: Literal["ignore", "raise"] = "raise",
-             reindex=True,
-             inplace=False) -> 'Sheet':
-        if isinstance(labels, Hashable):
-            labels = [labels]
-
-        target = self if inplace else self.copy()
-        target._frame = target._frame.drop(labels, axis=axis, level=level, errors=errors)
-        if axis == 0:
-            for item in labels:
-                del target._row_dict[item]
-            if reindex:
-                target.reindex_rows()
-        else:
-            for item in labels:
-                del target._col_dict[item]
-            if reindex:
-                target.reindex_cols()
-        return target
-
-    def resize_sheet(self, row_count: int = None, col_count: int = None, inplace=False) -> 'Sheet':
-        target = self if inplace else self.copy()
-        if row_count is None:
-            row_count = len(target.frame.index)
-        if col_count is None:
-            col_count = len(target.frame.columns)
-
-        if len(target._frame.index) >= row_count:
-            rows_to_delete = target._frame.index[row_count:]
-            target.drop(rows_to_delete, axis=0, inplace=True, reindex=False)
-        else:
-            for i in range(len(target._frame.index), row_count):
-                row = RowSindex(position=i)
-                cells = [Cell(value=None, row_id=row.id, col_id=col_id) for col_id in target.frame.columns]
-                target._row_dict[row.id] = row
-                target._frame.loc[row.id] = cells
-
-        if len(target._frame.columns) >= col_count:
-            cols_to_delete = target._frame.columns[col_count:]
-            target.drop(cols_to_delete, axis=1, inplace=True, reindex=False)
-        else:
-            for j in range(len(target._frame.columns), col_count):
-                col = ColSindex(position=j)
-                cells = [Cell(value=None, row_id=row_id, col_id=col.id) for row_id in target._frame.index]
-                target._col_dict[col.id] = col
-                target._frame[col.id] = cells
-
-        return target
 
     def replace_cell_values(self, table: Table[CellValue], inplace=False) -> 'Sheet':
         target = self if inplace else self.copy()
@@ -221,30 +159,6 @@ class Sheet:
         else:
             raise ValueError
         return target
-
-    def reindex_rows(self):
-        for i, row_id in enumerate(self._frame.index):
-            self._row_dict[row_id].position = i
-
-    def reindex_cols(self):
-        for j, col_id in enumerate(self._frame.columns):
-            self._col_dict[col_id].position = j
-
-    def copy(self) -> 'Sheet':
-        cells = self._frame.values
-        rows = self.rows
-        cols = self.cols
-        return self.__class__(cells, rows, cols)
-
-    def to_table(self) -> Table[CellValue]:
-        result = []
-        for row in self._frame.values:
-            result.append([x.value for x in row])
-        return result
-
-    def to_simple_frame(self) -> pd.DataFrame:
-        df = self._frame.apply(lambda x: x.apply(lambda y: y.value))
-        return df
 
 
 class SheetDifference:

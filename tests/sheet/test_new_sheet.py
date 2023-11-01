@@ -12,6 +12,28 @@ def test_drop():
         assert col.position == j
 
 
+def test_resize_sheet():
+    sheet1 = schema.Sheet.from_table([
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+    ])
+    actual = sheet1.resize(2, 2)
+    assert len(actual.rows) == 2
+    assert len(actual.cols) == 2
+    assert len(actual.table) == 2
+    assert len(actual.table[0]) == len(actual.table[1]) == 2
+
+    actual = sheet1.resize(5, 5)
+    assert len(actual.rows) == 5
+    assert len(actual.cols) == 5
+    assert len(actual.table) == 5
+    for row in actual.table:
+        assert len(row) == 5
+
+
+
+
 def test_update_diff():
     sheet1 = schema.Sheet.from_table([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     target = (

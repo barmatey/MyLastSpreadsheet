@@ -51,8 +51,8 @@ class SheetInfo(BaseModel):
 
 class Sheet(BaseModel):
     sf: SheetInfo
-    rows: Sequence[RowSindex]
-    cols: Sequence[ColSindex]
+    rows: list[RowSindex]
+    cols: list[ColSindex]
     table: Table[Cell]
 
     @classmethod
@@ -74,18 +74,13 @@ class Sheet(BaseModel):
         row_ids = [x.id for x in target.rows]
         col_ids = [x.id for x in target.cols]
 
-        new_table = pd.DataFrame(target.table, index=row_ids, columns=col_ids).drop(ids, axis=axis).values
+        target.table = pd.DataFrame(target.table, index=row_ids, columns=col_ids).drop(ids, axis=axis).values
         if axis == 0:
-            new_rows = list(filter(lambda x: x.id not in ids, target.rows))
-            new_cols = target.cols
+            target.rows = list(filter(lambda x: x.id not in ids, target.rows))
         elif axis == 1:
-            new_rows = target.rows
-            new_cols = list(filter(lambda x: x.id not in ids, target.cols))
+            target.cols = list(filter(lambda x: x.id not in ids, target.cols))
         else:
             raise Exception
-        target.rows = new_rows
-        target.cols = new_cols
-        target.table = new_table
         if reindex:
             target.reindex(axis, inplace=True)
         return target
@@ -102,26 +97,33 @@ class Sheet(BaseModel):
             raise Exception
         return target
 
-    def drop_old(self, ids: Sequence[UUID], axis: int, reindex=True, inplace=False) -> 'Sheet':
+    def resize(self, row_size: int = None, col_size: int = None, inplace=False) -> 'Sheet':
         target = self if inplace else self.model_copy(deep=True)
-        ids = set(ids)
-        if axis == 0:
-            new_rows: list[RowSindex] = []
-            new_table: Table[Cell] = []
-            for i, row in enumerate(self.rows):
-                if row.id in ids:
-                    new_rows.append(row)
-                    new_table.append(self.table[i])
-            target.rows = new_rows
-            target.table = new_table
-        elif axis == 1:
-            new_cols: list[ColSindex] = []
-            new_table: Table[Cell] = [[] for _x in range(0, len(target.table))]
-            for j, col in enumerate(self.cols):
-                if col.id in ids:
-                    new_cols.append(col)
-                    for row in target.table:
-                        pass
+        if row_size is None:
+            row_size = len(target.frame.index)
+        if col_size is None:
+            col_size = len(target.frame.columns)
+
+        if len(target.rows) >= row_size:
+            rows_to_delete = [x.id for x in target.rows[row_size:]]
+            target.drop(rows_to_delete, axis=0, inplace=True, reindex=False)
+        else:
+            for i in range(len(target.rows), row_size):
+                row = RowSindex(position=i, sheet_id=target.sf.id)
+                cells = [Cell(value=None, row_id=row.id, col_id=col.id, sheet_id=target.sf.id) for col in target.cols]
+                target.rows.append(row)
+                target.table.append(cells)
+
+        if len(target.cols) >= col_size:
+            cols_to_delete = [x.id for x in target.cols[col_size:]]
+            target.drop(cols_to_delete, axis=1, inplace=True, reindex=False)
+        else:
+            for j in range(len(target.cols), col_size):
+                col = ColSindex(position=j, sheet_id=target.sf.id)
+                target.cols.append(col)
+                for i, row in enumerate(target.rows):
+                    target.table[i].append(Cell(value=None, row_id=row.id, col_id=col.id, sheet_id=target.sf.id))
+        return target
 
     def to_simple_frame(self) -> pd.DataFrame:
         index = [x.id for x in self.rows]
