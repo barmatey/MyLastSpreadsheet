@@ -1,11 +1,11 @@
 from datetime import datetime
 
-from src.sheet import schema, usecases
+from src.sheet import domain
 from src.helpers.arrays import flatten
 
 
 def test_drop():
-    sheet: schema.Sheet = schema.Sheet.from_table([[1, 2], [3, 4], [5, 6]])
+    sheet: domain.Sheet = domain.Sheet.from_table([[1, 2], [3, 4], [5, 6]])
     actual = sheet.drop(sheet.rows[1].id, axis=0).drop(sheet.cols[0].id, axis=1)
     assert len(actual.rows) == 2
     assert len(actual.cols) == 1
@@ -16,7 +16,7 @@ def test_drop():
 
 
 def test_resize_sheet():
-    sheet1 = schema.Sheet.from_table([
+    sheet1 = domain.Sheet.from_table([
         [1, 2, 3],
         [4, 5, 6],
         [7, 8, 9],
@@ -36,7 +36,7 @@ def test_resize_sheet():
 
 
 def test_replace_cell_values():
-    sheet1 = schema.Sheet.from_table([
+    sheet1 = domain.Sheet.from_table([
         [0, 0, 0],
         [0, 0, 0],
         [0, 0, 0],
@@ -59,19 +59,19 @@ def test_replace_cell_values():
 
 
 def test_concat():
-    sheet1 = schema.Sheet.from_table([
+    sheet1 = domain.Sheet.from_table([
         [1, 2, 3, ],
         [4, 5, 6],
     ])
-    sheet2 = schema.Sheet.from_table([
+    sheet2 = domain.Sheet.from_table([
         [7, 8, 9]
     ])
-    sheet3 = schema.Sheet.from_table([
+    sheet3 = domain.Sheet.from_table([
         [11],
         [22],
     ])
 
-    actual = schema.concat(sheet1, sheet2, axis=0)
+    actual = domain.concat(sheet1, sheet2, axis=0)
     assert len(actual.rows) == 3
     assert len(actual.cols) == 3
     for i, row in enumerate(actual.rows):
@@ -81,7 +81,7 @@ def test_concat():
     for i, cell in enumerate(flatten(actual.table), start=1):
         assert cell.value == i
 
-    actual = schema.concat(sheet1, sheet3, axis=1)
+    actual = domain.concat(sheet1, sheet3, axis=1)
     assert len(actual.rows) == 2
     assert len(actual.cols) == 4
     for i, row in enumerate(actual.rows):
@@ -95,12 +95,12 @@ def test_concat():
 
 def test_complex_merge():
     print()
-    sheet1 = schema.Sheet.from_table([
+    sheet1 = domain.Sheet.from_table([
         [None, None, datetime(2021, 1, 1), datetime(2022, 1, 1), datetime(2023, 1, 1)],
         [1, "first", 10, 10, 10],
         [1, "second", 10, 10, 10]
     ])
-    sheet2 = schema.Sheet.from_table([
+    sheet2 = domain.Sheet.from_table([
         [None, None, datetime(2021, 1, 1), datetime(2023, 1, 1)],
         [1, "first", 20, 20],
         [4, "new_row", 20, 20],
@@ -114,27 +114,27 @@ def test_complex_merge():
         [4.0, "new_row", 20, 0, 20],
         [5.0, "Jack", 66, 0, 66]
     ]
-    actual = schema.complex_merge(sheet1, sheet2,
+    actual = domain.complex_merge(sheet1, sheet2,
                                   left_on=[x.id for x in sheet1.cols[0:2]], right_on=[x.id for x in sheet2.cols[0:2]])
     assert str(actual) == str(expected)
 
 
 def test_update_diff():
-    sheet1 = schema.Sheet.from_table([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    sheet1 = domain.Sheet.from_table([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     target = (
         sheet1
         .drop(sheet1.rows[1].id, axis=0)
         .drop(sheet1.cols[0].id, axis=1)
     )
-    new_rows = schema.Sheet.from_table([[77, 88]], cols=target.cols)
-    target = schema.concat(target, new_rows)
+    new_rows = domain.Sheet.from_table([[77, 88]], cols=target.cols)
+    target = domain.concat(target, new_rows)
 
-    new_cols = schema.Sheet.from_table([[22], [22], [22]], rows=target.rows)
-    target = schema.concat(target, new_cols, axis=1)
+    new_cols = domain.Sheet.from_table([[22], [22], [22]], rows=target.rows)
+    target = domain.concat(target, new_cols, axis=1)
 
     target.table[0][0].value = 123_456
 
-    diff = schema.SheetDifference.from_sheets(sheet1, target)
+    diff = domain.SheetDifference.from_sheets(sheet1, target)
 
     assert len(diff.rows_deleted) == 1
     assert len(diff.cols_deleted) == 1
@@ -187,4 +187,3 @@ def test_update_diff():
         assert actual.value == 123_456
         assert actual.value == frame.loc[actual.row_id, actual.col_id].value
         assert sheet1.to_full_frame().loc[actual.row_id, actual.col_id].value == 2
-

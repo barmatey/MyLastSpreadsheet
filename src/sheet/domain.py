@@ -1,40 +1,34 @@
-from copy import deepcopy
 from datetime import datetime
-from typing import Literal, Union, Hashable, Sequence
+from typing import Sequence, Union, Literal
 from uuid import UUID, uuid4
 
 import pandas as pd
 from pydantic import BaseModel, Field
 
 from src.core import Table
+from src.helpers.arrays import flatten
 
 
 class Sindex(BaseModel):
     position: int
     size: int
+    sheet_id: UUID
     is_readonly: bool = False
     is_freeze: bool = False
     id: UUID = Field(default_factory=uuid4)
 
-    def __str__(self):
-        return f"{self.__class__.__name__.split('Sindex')[0]}({self.position})"
-
-    def __repr__(self):
-        return f"{self.__class__.__name__.split('Sindex')[0]}({self.position})"
+    def __eq__(self, other: 'Sindex'):
+        if self.id != other.id:
+            raise Exception
+        return self.model_dump() == other.model_dump()
 
 
 class RowSindex(Sindex):
     size: int = 30
 
-    def __hash__(self):
-        return self.id.__hash__()
-
 
 class ColSindex(Sindex):
     size: int = 120
-
-    def __hash__(self):
-        return self.id.__hash__()
 
 
 CellValue = Union[int, float, str, bool, None, datetime]
@@ -45,164 +39,231 @@ class Cell(BaseModel):
     value: CellValue
     row_id: UUID
     col_id: UUID
+    sheet_id: UUID
     background: str = 'white'
     id: UUID = Field(default_factory=uuid4)
 
-    def __str__(self):
-        return f"Cell(value={self.value})"
-
     def __repr__(self):
-        return f"Cell(value={self.value})"
+        return f"Cell({self.value})"
 
-    def __hash__(self):
-        return self.id.__hash__()
-
-    def __eq__(self, other: 'Cell'):
-        return self.value == other.value
-
-    def __add__(self, other: 'Cell'):
-        cell = Cell(row_id=self.id, col_id=self.col_id, background=self.background, value=self.value + other.value)
-        return cell
+    def __str__(self):
+        return f"Cell({self.value})"
 
 
-class Sheet:
-    def __init__(self, data: Table[Cell] = None, rows: list[RowSindex] = None, cols: list[ColSindex] = None,
-                 dtype=None, copy=None, sheet_id: UUID = None):
-        self.id = sheet_id if sheet_id is not None else uuid4()
-
-        self._row_dict: dict[UUID, RowSindex] = {}
-        self._col_dict: dict[UUID, ColSindex] = {}
-
-        index = []
-        for row in rows:
-            index.append(row.id)
-            self._row_dict[row.id] = row.model_copy(deep=True)
-
-        columns = []
-        for col in cols:
-            columns.append(col.id)
-            self._col_dict[col.id] = col.model_copy(deep=True)
-
-        self._frame = pd.DataFrame(deepcopy(data), index=index, columns=columns, dtype=dtype, copy=copy)
-
-    @property
-    def frame(self):
-        return self._frame
-
-    @property
-    def row_dict(self):
-        return self._row_dict
-
-    @property
-    def col_dict(self):
-        return self._col_dict
-
-    @property
-    def rows(self):
-        return [self._row_dict[x] for x in self._frame.index]
-
-    @property
-    def cols(self):
-        return [self._col_dict[x] for x in self._frame.columns]
+class SheetInfo(BaseModel):
+    title: str
+    id: UUID = Field(default_factory=uuid4)
 
 
+class Sheet(BaseModel):
+    sf: SheetInfo
+    rows: list[RowSindex]
+    cols: list[ColSindex]
+    table: Table[Cell]
+
+    @classmethod
+    def from_table(cls, table: Table[CellValue], rows: list[RowSindex] = None, cols: list[ColSindex] = None) -> 'Sheet':
+        sf = SheetInfo(title="")
+        rows = [RowSindex(position=i, sheet_id=sf.id) for i in range(0, len(table))] if rows is None else rows
+        cols = [ColSindex(position=j, sheet_id=sf.id) for j in range(0, len(table[0]))] if cols is None else cols
+        cells = []
+        for i, row in enumerate(table):
+            cells.append([Cell(value=value, row_id=rows[i].id, col_id=cols[j].id, sheet_id=sf.id)
+                          for j, value in enumerate(row)])
+        if len(rows) != len(table):
+            raise Exception
+        return cls(sf=sf, rows=rows, cols=cols, table=cells)
+
+    def drop(self, ids: Sequence[UUID] | UUID, axis: int, reindex=True, inplace=False) -> 'Sheet':
+        target = self if inplace else self.model_copy(deep=True)
+        ids = {ids} if isinstance(ids, UUID) else set(ids)
+        row_ids = [x.id for x in target.rows]
+        col_ids = [x.id for x in target.cols]
+
+        target.table = pd.DataFrame(target.table, index=row_ids, columns=col_ids).drop(ids, axis=axis).values.tolist()
+        if axis == 0:
+            target.rows = list(filter(lambda x: x.id not in ids, target.rows))
+        elif axis == 1:
+            target.cols = list(filter(lambda x: x.id not in ids, target.cols))
+        else:
+            raise Exception
+        if reindex:
+            target.reindex(axis, inplace=True)
+        return target
+
+    def reindex(self, axis: int, inplace=False) -> 'Sheet':
+        target = self if inplace else self.model_copy(deep=True)
+        if axis == 0:
+            for i, row in enumerate(target.rows):
+                row.position = i
+        elif axis == 1:
+            for j, col in enumerate(target.cols):
+                col.position = j
+        else:
+            raise Exception
+        return target
+
+    def resize(self, row_size: int = None, col_size: int = None, inplace=False) -> 'Sheet':
+        target = self if inplace else self.model_copy(deep=True)
+        if row_size is None:
+            row_size = len(target.frame.index)
+        if col_size is None:
+            col_size = len(target.frame.columns)
+
+        if len(target.rows) >= row_size:
+            rows_to_delete = [x.id for x in target.rows[row_size:]]
+            target.drop(rows_to_delete, axis=0, inplace=True, reindex=False)
+        else:
+            for i in range(len(target.rows), row_size):
+                row = RowSindex(position=i, sheet_id=target.sf.id)
+                cells = [Cell(value=None, row_id=row.id, col_id=col.id, sheet_id=target.sf.id) for col in target.cols]
+                target.rows.append(row)
+                target.table.append(cells)
+
+        if len(target.cols) >= col_size:
+            cols_to_delete = [x.id for x in target.cols[col_size:]]
+            target.drop(cols_to_delete, axis=1, inplace=True, reindex=False)
+        else:
+            for j in range(len(target.cols), col_size):
+                col = ColSindex(position=j, sheet_id=target.sf.id)
+                target.cols.append(col)
+                for i, row in enumerate(target.rows):
+                    target.table[i].append(Cell(value=None, row_id=row.id, col_id=col.id, sheet_id=target.sf.id))
+        return target
+
+    def replace_cell_values(self, table: Table[CellValue], inplace=False) -> 'Sheet':
+        target = self if inplace else self.model_copy(deep=True)
+        if len(table) != len(target.table):
+            raise Exception
+        for i, row in enumerate(table):
+            if len(row) != len(target.rows):
+                raise Exception
+            for j, value in enumerate(row):
+                target.table[i][j].value = value
+        return target
+
+    def to_simple_frame(self) -> pd.DataFrame:
+        index = [x.id for x in self.rows]
+        columns = [x.id for x in self.cols]
+        data = map(lambda row: map(lambda cell: cell.value, row), self.table)
+        df = pd.DataFrame(data, index, columns)
+        return df
+
+    def to_full_frame(self) -> pd.DataFrame:
+        index = [x.id for x in self.rows]
+        columns = [x.id for x in self.cols]
+        df = pd.DataFrame(self.table, index, columns)
+        return df
 
 
+def concat(lhs: Sheet, rhs: Sheet, axis=0, reindex=True) -> Sheet:
+    lhs = lhs.model_copy(deep=True)
+    rhs = rhs.model_copy(deep=True)
 
-class SheetDifference:
-    def __init__(self, old_sheet: Sheet, new_sheet: Sheet):
-        self._old_sheet = old_sheet
-        self._new_sheet = new_sheet
+    target = lhs
+    if axis == 0:
+        if len(lhs.cols) != len(rhs.cols):
+            raise Exception
+        target.rows.extend(rhs.rows)
+        target.table.extend(rhs.table)
+    elif axis == 1:
+        if len(lhs.rows) != len(rhs.rows):
+            raise Exception
+        target.cols.extend(rhs.cols)
+        target.table = pd.concat([pd.DataFrame(lhs.table), pd.DataFrame(rhs.table)], axis=1).values.tolist()
+    else:
+        raise Exception
+    if reindex:
+        target.reindex(axis, inplace=True)
+    return target
 
-        self.appended_rows: set[RowSindex] = set()
-        self.deleted_rows: set[RowSindex] = set()
-        self.moved_rows: set[RowSindex] = set()
 
-        self.appended_cols: set[ColSindex] = set()
-        self.deleted_cols: set[ColSindex] = set()
-        self.moved_cols: set[ColSindex] = set()
+def complex_merge(lhs: Sheet, rhs: Sheet, left_on: list[UUID], right_on: list[UUID]) -> Table[CellValue]:
+    names = [f"lvl{x + 1}" for x in range(0, len(left_on))]
 
-        self.deleted_cells: set[Cell] = set()
-        self.appended_cells: set[Cell] = set()
-        self.updated_cells: set[Cell] = set()
+    lhs = lhs.to_simple_frame()
+    lhs = lhs.set_index(left_on)
+    lhs.index = lhs.index.set_names(names)
+    lhs.columns = lhs.iloc[0]
+    lhs = lhs.iloc[1:]
 
-    def find_updated_cells(self):
-        common_rows = list(set(self._old_sheet.row_dict.keys()).intersection(self._new_sheet.row_dict.keys()))
-        common_cols = list(set(self._old_sheet.col_dict.keys()).intersection(self._new_sheet.col_dict.keys()))
-        old = self._old_sheet.frame.loc[common_rows, common_cols]
-        new = self._new_sheet.frame.loc[common_rows, common_cols]
-        diff: pd.DataFrame = old.compare(new, align_axis=0)
-        for col in diff.columns:
-            temp = diff[col].dropna()
-            for i in range(0, len(temp), 2):
-                self.updated_cells.add(temp[i + 1])
+    rhs = rhs.to_simple_frame()
+    rhs = rhs.set_index(right_on)
+    rhs.index = rhs.index.set_names(names)
+    rhs.columns = rhs.iloc[0]
+    rhs = rhs.iloc[1:]
 
-    def find_moved_rows(self):
-        for key, new_value in self._new_sheet.row_dict.items():
-            old_value = self._old_sheet.row_dict.get(key)
-            if old_value:
-                if old_value.position != new_value.position:
-                    self.moved_rows.add(new_value)
+    df = pd.concat([lhs, rhs]).fillna(0).groupby(names).sum().reset_index()
 
-    def find_moved_cols(self):
-        for key, new_value in self._new_sheet.col_dict.items():
-            old_value = self._old_sheet.col_dict.get(key)
-            if old_value:
-                if old_value.position != new_value.position:
-                    self.moved_cols.add(new_value)
+    # From frame to table
+    result = []
+    first_row = []
+    for col in df.columns:
+        if isinstance(col, pd.Timestamp):
+            first_row.append(
+                datetime(col.year, col.month, col.day, col.hour, col.minute, col.second, tzinfo=col.tzinfo)
+            )
+        else:
+            first_row.append(None)
+    result.append(first_row)
+    result.extend(df.values.tolist())
+    return result
 
-    def find_appended_rows(self):
-        appended = {
-            key: value
-            for key, value in self._new_sheet.row_dict.items()
-            if self._old_sheet.row_dict.get(key) is None
+
+class SheetDifference(BaseModel):
+    rows_created: list[RowSindex] = Field(default_factory=list)
+    rows_updated: list[RowSindex] = Field(default_factory=list)
+    rows_deleted: list[RowSindex] = Field(default_factory=list)
+    cols_created: list[ColSindex] = Field(default_factory=list)
+    cols_updated: list[ColSindex] = Field(default_factory=list)
+    cols_deleted: list[ColSindex] = Field(default_factory=list)
+    cells_created: list[Cell] = Field(default_factory=list)
+    cells_updated: list[Cell] = Field(default_factory=list)
+    cells_deleted: list[Cell] = Field(default_factory=list)
+
+    @classmethod
+    def from_sheets(cls, old: Sheet, actual: Sheet):
+        old_rows = {x.id: x for x in old.rows}
+        actual_rows = {x.id: x for x in actual.rows}
+
+        old_cols = {x.id: x for x in old.cols}
+        actual_cols = {x.id: x for x in actual.cols}
+
+        old_cells = {x.id: x for x in flatten(old.table)}
+        actual_cells = {x.id: x for x in flatten(actual.table)}
+
+        rows_created, rows_updated, rows_deleted = cls.compare_data(old_rows, actual_rows)
+        cols_created, cols_updated, cols_deleted = cls.compare_data(old_cols, actual_cols)
+        cells_created, cells_updated, cells_deleted = cls.compare_data(old_cells, actual_cells)
+        data = {
+            "rows_created": rows_created,
+            "rows_updated": rows_updated,
+            "rows_deleted": rows_deleted,
+            "cols_created": cols_created,
+            "cols_updated": cols_updated,
+            "cols_deleted": cols_deleted,
+            "cells_created": cells_created,
+            "cells_updated": cells_updated,
+            "cells_deleted": cells_deleted,
         }
-        self.appended_rows = self.appended_rows.union(appended.values())
-        self.appended_cells = self.appended_cells.union(
-            self._new_sheet.frame.filter(appended.keys(), axis=0).values.flatten().tolist()
-        )
 
-    def find_appended_cols(self):
-        appended = {
-            key: value
-            for key, value in self._new_sheet.col_dict.items()
-            if self._old_sheet.col_dict.get(key) is None
-        }
-        self.appended_cols = self.appended_cols.union(appended.values())
-        self.appended_cells = self.appended_cells.union(
-            self._new_sheet.frame.filter(appended.keys(), axis=1).values.flatten().tolist()
-        )
+        return cls(**data)
 
-    def find_deleted_rows(self):
-        deleted = {
-            key: value
-            for key, value in self._old_sheet.row_dict.items()
-            if self._new_sheet.row_dict.get(key) is None
-        }
-        self.deleted_rows = self.deleted_rows.union(deleted.values())
-        self.deleted_cells = self.deleted_cells.union(
-            self._old_sheet.frame.filter(deleted.keys(), axis=0).values.flatten().tolist())
+    @classmethod
+    def compare_data(cls, old: dict, actual: dict) -> tuple[list[Sindex], list[Sindex], list[Sindex]]:
+        """Return created, updated, deleted"""
+        created = []
+        updated = []
+        deleted = []
+        for actual_id, actual_value in actual.items():
+            old_value = old.get(actual_id)
+            if old_value is None:
+                created.append(actual_value)
+            elif old_value != actual_value:
+                updated.append(actual_value)
 
-    def find_deleted_cols(self):
-        deleted = {
-            key: value
-            for key, value in self._old_sheet.col_dict.items()
-            if self._new_sheet.col_dict.get(key) is None
-        }
-        self.deleted_cols = self.deleted_cols.union(deleted.values())
-        self.deleted_cells = self.deleted_cells.union(
-            self._old_sheet.frame.filter(deleted.keys(), axis=1).values.flatten().tolist()
-        )
+        for old_id, old_value in old.items():
+            if actual.get(old_id) is None:
+                deleted.append(old_value)
 
-    def find_updates(self):
-        self.find_appended_rows()
-        self.find_deleted_rows()
-        self.find_moved_rows()
-
-        self.find_appended_cols()
-        self.find_deleted_cols()
-        self.find_moved_cols()
-
-        self.find_updated_cells()
-
-
+        return created, updated, deleted
