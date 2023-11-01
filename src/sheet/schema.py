@@ -125,6 +125,17 @@ class Sheet(BaseModel):
                     target.table[i].append(Cell(value=None, row_id=row.id, col_id=col.id, sheet_id=target.sf.id))
         return target
 
+    def replace_cell_values(self, table: Table[CellValue], inplace=False) -> 'Sheet':
+        target = self if inplace else self.model_copy(deep=True)
+        if len(table) != len(target.table):
+            raise Exception
+        for i, row in enumerate(table):
+            if len(row) != len(target.rows):
+                raise Exception
+            for j, value in enumerate(row):
+                target.table[i][j].value = value
+        return target
+
     def to_simple_frame(self) -> pd.DataFrame:
         index = [x.id for x in self.rows]
         columns = [x.id for x in self.cols]

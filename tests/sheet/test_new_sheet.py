@@ -1,4 +1,5 @@
 from src.sheet import schema, usecases
+from src.helpers.arrays import flatten
 
 
 def test_drop():
@@ -30,6 +31,29 @@ def test_resize_sheet():
     assert len(actual.table) == 5
     for row in actual.table:
         assert len(row) == 5
+
+
+def test_replace_cell_values():
+    sheet1 = schema.Sheet.from_table([
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+    ])
+    actual = sheet1.replace_cell_values([
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+    ])
+    assert len(actual.rows) == len(sheet1.rows)
+    assert len(actual.cols) == len(sheet1.cols)
+    for lhs, rhs in zip(actual.rows, sheet1.rows):
+        assert lhs.id == rhs.id
+    for lhs, rhs in zip(actual.cols, sheet1.cols):
+        assert lhs.id == rhs.id
+    for lhs, rhs in zip(flatten(actual.table), flatten(sheet1.table)):
+        assert lhs.id == rhs.id
+    for i, cell in enumerate(flatten(actual.table), start=1):
+        assert cell.value == i
 
 
 

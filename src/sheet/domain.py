@@ -120,18 +120,6 @@ class Sheet:
         return sheet
 
 
-
-    def replace_cell_values(self, table: Table[CellValue], inplace=False) -> 'Sheet':
-        target = self if inplace else self.copy()
-        if len(table) != target._frame.shape[0]:
-            raise Exception
-        for i, row in enumerate(table):
-            if len(row) != target._frame.shape[1]:
-                raise Exception
-            for j, cell_value in enumerate(row):
-                target._frame.iloc[i, j].value = cell_value
-        return target
-
     def concat(self, other: 'Sheet', axis=0, inplace=False) -> 'Sheet':
         target = self if inplace else self.copy()
         if axis == 0:

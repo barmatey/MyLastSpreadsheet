@@ -15,15 +15,7 @@ def test_sum_two_sheets():
     assert actual == expected
 
 
-def test_drop():
-    sheet = Sheet.from_table([[1, 2], [3, 4], [5, 6]])
-    actual = sheet.drop(sheet.frame.index[1], axis=0).drop(sheet.frame.columns[0], axis=1)
-    assert len(actual.frame.index) == 2
-    assert len(actual.frame.columns) == 1
-    for i, row in enumerate(actual.rows):
-        assert row.position == i
-    for j, col in enumerate(actual.cols):
-        assert col.position == j
+
 
 
 def test_update_diff():
@@ -94,44 +86,9 @@ def test_update_diff():
         assert sheet1.frame.loc[actual.row_id, actual.col_id].value == 2
 
 
-def test_resize_sheet():
-    sheet1 = Sheet.from_table([
-        [1, 2, 3],
-        [4, 5, 6],
-        [7, 8, 9],
-    ])
-    actual = sheet1.resize_sheet(2, 2)
-    assert actual.frame.shape == (2, 2)
-    assert len(actual.row_dict) == 2
-    assert len(actual.col_dict) == 2
-
-    actual = sheet1.resize_sheet(5, 5)
-    assert actual.frame.shape == (5, 5)
-    assert len(actual.row_dict) == 5
-    assert len(actual.col_dict) == 5
 
 
-def test_replace_cell_values():
-    sheet1 = Sheet.from_table([
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-    ])
-    actual = sheet1.replace_cell_values([
-        [1, 2, 3],
-        [4, 5, 6],
-        [7, 8, 9],
-    ])
-    assert len(actual.row_dict) == len(sheet1.row_dict)
-    assert len(actual.col_dict) == len(sheet1.col_dict)
-    for lhs, rhs in zip(actual.frame.index, sheet1.frame.index):
-        assert lhs == rhs
-    for lhs, rhs in zip(actual.frame.columns, sheet1.frame.columns):
-        assert lhs == rhs
-    for lhs, rhs in zip(actual.frame.values.flatten(), sheet1.frame.values.flatten()):
-        assert lhs.id == rhs.id
-    for i, cell in enumerate(actual.frame.values.flatten(), start=1):
-        assert cell.value == i
+
 
 
 def test_complex_merge():

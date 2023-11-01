@@ -1,4 +1,4 @@
-def flatten_extend(matrix):
+def flatten(matrix):
     flat_list = []
     for row in matrix:
         flat_list.extend(row)
