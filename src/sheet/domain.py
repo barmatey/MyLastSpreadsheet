@@ -153,15 +153,8 @@ class Sheet:
                 target.reindex_cols()
         return target
 
-    def complex_merge(self, other: 'Sheet', left_on: Sequence, right_on: Sequence) -> 'Sheet':
-        target = self.copy()
-        df = pd.concat([target._frame, other], )
-        print()
-        print(target._frame.to_string())
-        return target
-
-    def resize_sheet(self, row_count: int = None, col_count: int = None) -> 'Sheet':
-        target = self.copy()
+    def resize_sheet(self, row_count: int = None, col_count: int = None, inplace=False) -> 'Sheet':
+        target = self if inplace else self.copy()
         if row_count is None:
             row_count = len(target.frame.index)
         if col_count is None:
@@ -189,8 +182,8 @@ class Sheet:
 
         return target
 
-    def replace_cell_values(self, table: Table[CellValue]) -> 'Sheet':
-        target = self.copy()
+    def replace_cell_values(self, table: Table[CellValue], inplace=False) -> 'Sheet':
+        target = self if inplace else self.copy()
         if len(table) != target._frame.shape[0]:
             raise Exception
         for i, row in enumerate(table):
@@ -200,8 +193,8 @@ class Sheet:
                 target._frame.iloc[i, j].value = cell_value
         return target
 
-    def concat(self, other: 'Sheet', axis=0) -> 'Sheet':
-        target = self.copy()
+    def concat(self, other: 'Sheet', axis=0, inplace=False) -> 'Sheet':
+        target = self if inplace else self.copy()
         if axis == 0:
             if target._frame.shape[1] != other._frame.shape[1]:
                 raise Exception
@@ -247,6 +240,10 @@ class Sheet:
         for row in self._frame.values:
             result.append([x.value for x in row])
         return result
+
+    def to_simple_frame(self) -> pd.DataFrame:
+        df = self._frame.apply(lambda x: x.apply(lambda y: y.value))
+        return df
 
 
 class SheetDifference:
@@ -344,3 +341,22 @@ class SheetDifference:
         self.find_moved_cols()
 
         self.find_updated_cells()
+
+
+def complex_merge(target_df: pd.DataFrame, from_df: pd.DataFrame, target_on, from_on) -> pd.DataFrame:
+    names = [f"lvl{x}" for x in range(0, len(target_on))]
+
+    target_df = target_df.copy()
+    target_df = target_df.set_index(target_on)
+    target_df.index = target_df.index.set_names(names)
+    target_df.columns = target_df.iloc[0]
+    target_df = target_df.iloc[1:]
+
+    from_df = from_df.copy()
+    from_df = from_df.set_index(from_on)
+    from_df.index = from_df.index.set_names(names)
+    from_df.columns = from_df.iloc[0]
+    from_df = from_df.iloc[1:]
+
+    result = pd.concat([target_df, from_df]).fillna(0).groupby(names).sum()
+    return result

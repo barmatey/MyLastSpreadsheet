@@ -130,9 +130,12 @@ def test_replace_cell_values():
         assert lhs == rhs
     for lhs, rhs in zip(actual.frame.values.flatten(), sheet1.frame.values.flatten()):
         assert lhs.id == rhs.id
+    for i, cell in enumerate(actual.frame.values.flatten(), start=1):
+        assert cell.value == i
 
 
 def test_complex_merge():
+    print()
     sheet1 = Sheet.from_table([
         [None, None, datetime(2021, 1, 1), datetime(2022, 1, 1), datetime(2023, 1, 1)],
         [1, "first", 10, 10, 10],
@@ -144,7 +147,12 @@ def test_complex_merge():
         [4, "new_row", 20, 20],
         [5, "Jack", 66, 66]
     ])
-    actual = sheet1.replace_cells(sheet2)
+    names = ["lvl1", "lvl2"]
+    from_df = sheet2.to_simple_frame()
+    target_df = sheet1.to_simple_frame()
+
+    actual = complex_merge(target_df, from_df,
+                           target_on=list(target_df.columns[0:2]), from_on=list(from_df.columns[0:2]))
 
     # print()
     # print(actual)
