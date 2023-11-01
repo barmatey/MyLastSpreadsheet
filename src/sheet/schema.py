@@ -16,6 +16,11 @@ class Sindex(BaseModel):
     is_freeze: bool = False
     id: UUID = Field(default_factory=uuid4)
 
+    def __eq__(self, other: 'Sindex'):
+        if self.id != other.id:
+            raise Exception
+        return self.model_dump() == other.model_dump()
+
 
 class RowSindex(Sindex):
     size: int = 30
@@ -196,3 +201,53 @@ def complex_merge(lhs: Sheet, rhs: Sheet, left_on: list[UUID], right_on: list[UU
     result.append(first_row)
     result.extend(df.values.tolist())
     return result
+
+
+class SheetDifference(BaseModel):
+    rows_created: list[RowSindex] = Field(default_factory=list)
+    rows_updated: list[RowSindex] = Field(default_factory=list)
+    rows_deleted: list[RowSindex] = Field(default_factory=list)
+    cols_created: list[ColSindex] = Field(default_factory=list)
+    cols_updated: list[ColSindex] = Field(default_factory=list)
+    cols_deleted: list[ColSindex] = Field(default_factory=list)
+    cells_created: list[Cell] = Field(default_factory=list)
+    cells_updated: list[Cell] = Field(default_factory=list)
+    cells_deleted: list[Cell] = Field(default_factory=list)
+
+    @classmethod
+    def from_sheets(cls, old: Sheet, actual: Sheet):
+        old_rows = {x.id: x for x in old.rows}
+        actual_rows = {x.id: x for x in actual.rows}
+
+        old_cols = {x.id: x for x in old.cols}
+        actual_cols = {x.id: x for x in actual.cols}
+
+        data = {"rows_created": (cls.find_sindexes(old_rows, actual_rows))[0],
+                "rows_updated": (cls.find_sindexes(old_rows, actual_rows))[1],
+                "rows_deleted": (cls.find_sindexes(old_rows, actual_rows))[2],
+                "cols_created": (cls.find_sindexes(old_cols, actual_cols))[0],
+                "cols_updated": (cls.find_sindexes(old_cols, actual_cols))[1],
+                "cols_deleted": (cls.find_sindexes(old_cols, actual_cols))[2],
+                "cels_created": [], "cells_updated": [],
+                "cells_deleted": []}
+
+        return cls(**data)
+
+    @classmethod
+    def find_sindexes(cls, old: dict, actual: dict) -> tuple[list[Sindex], list[Sindex], list[Sindex]]:
+        print("\n, FIND_SINDEXES")
+        created = []
+        updated = []
+        deleted = []
+        for actual_id, actual_value in actual.items():
+            old_value = old.get(actual_id)
+            if old_value is None:
+                created.append(actual_value)
+            elif old_value != actual_value:
+                updated.append(actual_value)
+
+        for old_id, old_value in old.items():
+            if actual.get(old_id) is None:
+                deleted.append(old_value)
+
+        return created, updated, deleted
