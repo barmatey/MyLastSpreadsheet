@@ -147,14 +147,20 @@ def test_complex_merge():
         [4, "new_row", 20, 20],
         [5, "Jack", 66, 66]
     ])
-    from_df = sheet2.to_simple_frame()
-    target_df = sheet1.to_simple_frame()
 
-    actual = complex_merge(target_df, from_df,
-                           target_on=list(target_df.columns[0:2]), from_on=list(from_df.columns[0:2]))
+    expected = [
+        [None, None, datetime(2021, 1, 1), datetime(2022, 1, 1), datetime(2023, 1, 1)],
+        [1.0, "first", 30, 10, 30],
+        [1.0, "second", 10, 10, 10],
+        [4.0, "new_row", 20, 0, 20],
+        [5.0, "Jack", 66, 0, 66]
+    ]
+    actual = (
+        ComplexMerge(sheet1, sheet2)
+        .merge(list(sheet1.frame.columns[0:2]), list(sheet2.frame.columns[0:2]))
+        .to_table()
+    )
+    assert str(actual) == str(expected)
 
-    actual_table = frame_to_table(actual)
-    print()
-    for x in actual_table:
-        print(x)
-    print()
+
+

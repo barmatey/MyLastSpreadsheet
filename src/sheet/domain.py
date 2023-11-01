@@ -343,27 +343,41 @@ class SheetDifference:
         self.find_updated_cells()
 
 
-def complex_merge(target_df: pd.DataFrame, from_df: pd.DataFrame, target_on, from_on) -> pd.DataFrame:
-    names = [f"lvl{x}" for x in range(0, len(target_on))]
+class ComplexMerge:
+    def __init__(self, target_sheet: Sheet, from_sheet: Sheet):
+        self._target = target_sheet
+        self._from = from_sheet
+        self._merged_df = None
 
-    target_df = target_df.copy()
-    target_df = target_df.set_index(target_on)
-    target_df.index = target_df.index.set_names(names)
-    target_df.columns = target_df.iloc[0]
-    target_df = target_df.iloc[1:]
+    def merge(self, target_on, from_on) -> 'ComplexMerge':
+        names = [f"lvl{x+1}" for x in range(0, len(target_on))]
 
-    from_df = from_df.copy()
-    from_df = from_df.set_index(from_on)
-    from_df.index = from_df.index.set_names(names)
-    from_df.columns = from_df.iloc[0]
-    from_df = from_df.iloc[1:]
+        target_df = self._target.to_simple_frame()
+        target_df = target_df.set_index(target_on)
+        target_df.index = target_df.index.set_names(names)
+        target_df.columns = target_df.iloc[0]
+        target_df = target_df.iloc[1:]
 
-    result = pd.concat([target_df, from_df]).fillna(0).groupby(names).sum()
-    return result
+        from_df = self._from.to_simple_frame()
+        from_df = from_df.set_index(from_on)
+        from_df.index = from_df.index.set_names(names)
+        from_df.columns = from_df.iloc[0]
+        from_df = from_df.iloc[1:]
 
+        self._merged_df = pd.concat([target_df, from_df]).fillna(0).groupby(names).sum()
+        return self
 
-def frame_to_table(df: pd.DataFrame) -> Table:
-    df = df.reset_index()
-    result = [list(df.columns)]
-    result.extend(df.values.tolist())
-    return result
+    def to_table(self) -> Table:
+        df = self._merged_df.reset_index()
+        result = []
+        first_row = []
+        for col in df.columns:
+            if isinstance(col, pd.Timestamp):
+                first_row.append(
+                    datetime(col.year, col.month, col.day, col.hour, col.minute, col.second, tzinfo=col.tzinfo)
+                )
+            else:
+                first_row.append(None)
+        result.append(first_row)
+        result.extend(df.values.tolist())
+        return result
