@@ -11,7 +11,7 @@ from src.base.broker import Broker
 from src.base.repo.repository import Repository
 from src.core import OrderBy, Table
 
-from src.spreadsheet import domain as sheet_domain
+from src.sheet import domain as sheet_domain
 from . import domain, subscriber, events
 
 
@@ -101,32 +101,7 @@ class SheetGateway(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def get_cell(self, sheet_id: UUID, row_pos: int, col_pos: int) -> domain.Cell:
-        raise NotImplemented
-
-    @abstractmethod
-    async def update_cell(self, cell: domain.Cell):
-        raise NotImplemented
-
-    @abstractmethod
-    async def append_rows_from_other_sheet(self, target_sheet_id: UUID, data: sheet_domain.Sheet) -> None:
-        raise NotImplemented
-
-    @abstractmethod
-    async def merge_sheets(self, target: sheet_domain.Sheet, data: sheet_domain.Sheet,
-                           merge_on: list[sheet_domain.ColSindex]) -> None:
-        raise NotImplemented
-
-    @abstractmethod
-    async def append_rows_from_table(self, sheet_id: UUID, table: Table[domain.Cell]):
-        raise NotImplemented
-
-    @abstractmethod
-    async def delete_rows_from_position(self, sheet_id: UUID, from_pos: int, count: int):
-        raise NotImplemented
-
-    @abstractmethod
-    async def group_new_row_data_with_sheet(self, sheet_id: UUID, table: Table[domain.Cell], on: list[int]):
+    async def update_sheet(self, data: sheet_domain.Sheet):
         raise NotImplemented
 
 
@@ -188,31 +163,32 @@ class Finrep:
     def get_as_table(self) -> Table[domain.Cell]:
         raise Exception
 
-    def to_sheet(self) -> sheet_domain.Sheet:
+    def to_sheet(self, sf: sheet_domain.SheetInfo) -> sheet_domain.Sheet:
         if self._report_df is None:
             raise Exception('report is None. Did you forgot create_report_df() function?')
 
-        sf = sheet_domain.SheetInfo()
         size = (len(self._report_df.index), len(self._report_df.columns))
 
-        rows = [sheet_domain.RowSindex(sf=sf, position=i) for i in range(0, size[0])]
+        rows = [sheet_domain.RowSindex(sheet_id=sf.id, position=i) for i in range(0, size[0])]
         rows[0].is_freeze = True
 
-        cols = [sheet_domain.ColSindex(sf=sf, position=j) for j in range(0, size[1])]
+        cols = [sheet_domain.ColSindex(sheet_id=sf.id, position=j) for j in range(0, size[1])]
         for j in range(0, len(self._ccols)):
             cols[j].is_freeze = True
 
-        cells = []
+        table = []
         for i in range(0, size[0]):
+            cells = []
             for j in range(0, size[1]):
                 cells.append(sheet_domain.Cell(
-                    row=rows[i],
-                    col=cols[j],
-                    sf=sf,
+                    row_id=rows[i].id,
+                    col_id=cols[j].id,
+                    sheet_id=sf.id,
                     value=self._report_df.iloc[i, j],
                     background="#F8FAFDFF" if i == 0 or j < len(self._ccols) else "white"
                 ))
-        return sheet_domain.Sheet(rows=rows, cols=cols, cells=cells, size=size, sf=sf)
+            table.append(cells)
+        return sheet_domain.Sheet(rows=rows, cols=cols, table=table, sf=sf)
 
     @staticmethod
     def _split_df_by_intervals(df: pd.DataFrame) -> pd.DataFrame:
@@ -265,9 +241,9 @@ class ReportPublisher(subscriber.SourceSubscriber):
             .drop_zero_cols()
             .round()
             .reset_indexes()
-            .to_sheet()
+            .to_sheet(sf=sheet_domain.SheetInfo(id=self._entity.sheet_info.id, title="Report"))
         )
-        await self._sheet_gw.append_rows_from_other_sheet(self._entity.sheet_info.id, data=sheet)
+        await self._sheet_gw.update_sheet(data=sheet)
         await self._broker.subscribe([source.source_info], self._entity)
 
     async def on_wires_appended(self, wires: list[domain.Wire]):
