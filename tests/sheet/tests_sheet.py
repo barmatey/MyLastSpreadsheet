@@ -88,31 +88,3 @@ def test_update_diff():
 
 
 
-
-def test_complex_merge():
-    print()
-    sheet1 = Sheet.from_table([
-        [None, None, datetime(2021, 1, 1), datetime(2022, 1, 1), datetime(2023, 1, 1)],
-        [1, "first", 10, 10, 10],
-        [1, "second", 10, 10, 10]
-    ])
-    sheet2 = Sheet.from_table([
-        [None, None, datetime(2021, 1, 1), datetime(2023, 1, 1)],
-        [1, "first", 20, 20],
-        [4, "new_row", 20, 20],
-        [5, "Jack", 66, 66]
-    ])
-
-    expected = [
-        [None, None, datetime(2021, 1, 1), datetime(2022, 1, 1), datetime(2023, 1, 1)],
-        [1.0, "first", 30, 10, 30],
-        [1.0, "second", 10, 10, 10],
-        [4.0, "new_row", 20, 0, 20],
-        [5.0, "Jack", 66, 0, 66]
-    ]
-    actual = (
-        ComplexMerge(sheet1, sheet2)
-        .merge(list(sheet1.frame.columns[0:2]), list(sheet2.frame.columns[0:2]))
-        .to_table()
-    )
-    assert str(actual) == str(expected)

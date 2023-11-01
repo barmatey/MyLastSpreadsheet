@@ -161,10 +161,38 @@ def concat(lhs: Sheet, rhs: Sheet, axis=0, reindex=True) -> Sheet:
         target.table = pd.concat([pd.DataFrame(lhs.table), pd.DataFrame(rhs.table)], axis=1).values
     else:
         raise Exception
-
     if reindex:
         target.reindex(axis, inplace=True)
-
     return target
 
 
+def complex_merge(lhs: Sheet, rhs: Sheet, left_on: list[UUID], right_on: list[UUID]) -> Table[CellValue]:
+    names = [f"lvl{x + 1}" for x in range(0, len(left_on))]
+
+    lhs = lhs.to_simple_frame()
+    lhs = lhs.set_index(left_on)
+    lhs.index = lhs.index.set_names(names)
+    lhs.columns = lhs.iloc[0]
+    lhs = lhs.iloc[1:]
+
+    rhs = rhs.to_simple_frame()
+    rhs = rhs.set_index(right_on)
+    rhs.index = rhs.index.set_names(names)
+    rhs.columns = rhs.iloc[0]
+    rhs = rhs.iloc[1:]
+
+    df = pd.concat([lhs, rhs]).fillna(0).groupby(names).sum().reset_index()
+
+    # From frame to table
+    result = []
+    first_row = []
+    for col in df.columns:
+        if isinstance(col, pd.Timestamp):
+            first_row.append(
+                datetime(col.year, col.month, col.day, col.hour, col.minute, col.second, tzinfo=col.tzinfo)
+            )
+        else:
+            first_row.append(None)
+    result.append(first_row)
+    result.extend(df.values.tolist())
+    return result
