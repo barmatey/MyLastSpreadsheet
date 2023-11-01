@@ -57,9 +57,9 @@ class SheetInfo(BaseModel):
 
 class Sheet(BaseModel):
     sf: SheetInfo
-    rows: list[RowSindex]
-    cols: list[ColSindex]
-    table: Table[Cell]
+    rows: list[RowSindex] = Field(default_factory=list)
+    cols: list[ColSindex] = Field(default_factory=list)
+    table: Table[Cell] = Field(default_factory=list)
 
     @classmethod
     def from_table(cls, table: Table[CellValue], rows: list[RowSindex] = None, cols: list[ColSindex] = None) -> 'Sheet':
