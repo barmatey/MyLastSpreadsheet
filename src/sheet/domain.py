@@ -360,3 +360,10 @@ def complex_merge(target_df: pd.DataFrame, from_df: pd.DataFrame, target_on, fro
 
     result = pd.concat([target_df, from_df]).fillna(0).groupby(names).sum()
     return result
+
+
+def frame_to_table(df: pd.DataFrame) -> Table:
+    df = df.reset_index()
+    result = [list(df.columns)]
+    result.extend(df.values.tolist())
+    return result

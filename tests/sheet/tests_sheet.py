@@ -147,12 +147,14 @@ def test_complex_merge():
         [4, "new_row", 20, 20],
         [5, "Jack", 66, 66]
     ])
-    names = ["lvl1", "lvl2"]
     from_df = sheet2.to_simple_frame()
     target_df = sheet1.to_simple_frame()
 
     actual = complex_merge(target_df, from_df,
                            target_on=list(target_df.columns[0:2]), from_on=list(from_df.columns[0:2]))
 
-    # print()
-    # print(actual)
+    actual_table = frame_to_table(actual)
+    print()
+    for x in actual_table:
+        print(x)
+    print()
