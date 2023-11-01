@@ -135,7 +135,6 @@ def test_replace_cell_values():
 
 
 def test_complex_merge():
-    print()
     sheet1 = Sheet.from_table([
         [None, None, datetime(2021, 1, 1), datetime(2022, 1, 1), datetime(2023, 1, 1)],
         [1, "first", 10, 10, 10],
@@ -161,6 +160,3 @@ def test_complex_merge():
         .to_table()
     )
     assert str(actual) == str(expected)
-
-
-
