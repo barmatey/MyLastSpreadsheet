@@ -125,12 +125,12 @@ class CellModel(Base):
             return "bool"
         raise TypeError
 
-    def to_entity(self):
+    def to_entity(self, row, col):
         return Cell(
             id=self.id,
             sheet_id=self.sheet_id,
-            row_id=self.row_sindex_id,
-            col_id=self.col_sindex_id,
+            row=row,
+            col=col,
             value=self.__get_value(self.value, self.dtype),
             background=self.background,
         )
@@ -143,8 +143,8 @@ class CellModel(Base):
             dtype=cls.__get_dtype(entity.value),
             background=entity.background,
             sheet_id=entity.sheet_id,
-            row_sindex_id=entity.row_id,
-            col_sindex_id=entity.col_id,
+            row_sindex_id=entity.row.id,
+            col_sindex_id=entity.col.id,
         )
 
 
@@ -310,6 +310,6 @@ class SheetPostgresRepo(SheetRepository):
                 last_row_pos += 1
             if data[1].position == 0:
                 cols.append(data[2].to_entity())
-            table[-1].append(data[3].to_entity())
+            table[-1].append(data[3].to_entity(row=rows[-1], col=cols[len(table[-1])]))
 
         return Sheet(sf=sf, rows=rows, cols=cols, table=table)

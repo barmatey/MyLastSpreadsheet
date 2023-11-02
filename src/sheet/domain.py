@@ -37,8 +37,8 @@ CellDtype = Literal["int", "float", "string", "bool", "datetime"]
 
 class Cell(BaseModel):
     value: CellValue
-    row_id: UUID
-    col_id: UUID
+    row: RowSindex
+    col: ColSindex
     sheet_id: UUID
     background: str = 'white'
     id: UUID = Field(default_factory=uuid4)
@@ -73,7 +73,7 @@ class Sheet(BaseModel):
         cols = [ColSindex(position=j, sheet_id=sf.id) for j in range(0, len(table[0]))] if cols is None else cols
         cells = []
         for i, row in enumerate(table):
-            cells.append([Cell(value=value, row_id=rows[i].id, col_id=cols[j].id, sheet_id=sf.id)
+            cells.append([Cell(value=value, row=rows[i], col=cols[j], sheet_id=sf.id)
                           for j, value in enumerate(row)])
         if len(rows) != len(table):
             raise Exception
@@ -121,7 +121,7 @@ class Sheet(BaseModel):
         else:
             for i in range(len(target.rows), row_size):
                 row = RowSindex(position=i, sheet_id=target.sf.id)
-                cells = [Cell(value=None, row_id=row.id, col_id=col.id, sheet_id=target.sf.id) for col in target.cols]
+                cells = [Cell(value=None, row=row, col=col, sheet_id=target.sf.id) for col in target.cols]
                 target.rows.append(row)
                 target.table.append(cells)
 
@@ -133,7 +133,7 @@ class Sheet(BaseModel):
                 col = ColSindex(position=j, sheet_id=target.sf.id)
                 target.cols.append(col)
                 for i, row in enumerate(target.rows):
-                    target.table[i].append(Cell(value=None, row_id=row.id, col_id=col.id, sheet_id=target.sf.id))
+                    target.table[i].append(Cell(value=None, row=row, col=col, sheet_id=target.sf.id))
         return target
 
     def replace_cell_values(self, table: Table[CellValue], inplace=False) -> 'Sheet':

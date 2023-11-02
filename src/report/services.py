@@ -187,8 +187,8 @@ class Finrep:
             cells = []
             for j in range(0, size[1]):
                 cells.append(sheet_domain.Cell(
-                    row_id=rows[i].id,
-                    col_id=cols[j].id,
+                    row=rows[i],
+                    col=cols[j],
                     sheet_id=sf.id,
                     value=self._report_df.iloc[i, j],
                     background="#F8FAFDFF" if i == 0 or j < len(self._ccols) else "white"

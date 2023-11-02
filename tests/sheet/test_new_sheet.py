@@ -166,10 +166,10 @@ def test_update_diff():
 
     frame = sheet1.to_full_frame()
     for actual in diff.cells_deleted:
-        expected = frame.loc[actual.row_id, actual.col_id]
+        expected = frame.loc[actual.row.id, actual.col.id]
         assert actual.value == expected.value
-        assert actual.row_id == expected.row_id
-        assert actual.col_id == expected.col_id
+        assert actual.row == expected.row
+        assert actual.col == expected.col
 
     expected = sheet1.rows[2:3]
     for actual in diff.rows_updated:
@@ -181,13 +181,13 @@ def test_update_diff():
 
     frame = target.to_full_frame()
     for actual in diff.cells_created:
-        expected = frame.loc[actual.row_id, actual.col_id]
+        expected = frame.loc[actual.row.id, actual.col.id]
         assert actual.value == expected.value
-        assert actual.row_id == expected.row_id
-        assert actual.col_id == expected.col_id
+        assert actual.row == expected.row
+        assert actual.col == expected.col
 
     frame = target.to_full_frame()
     for actual in diff.cells_updated:
         assert actual.value == 123_456
-        assert actual.value == frame.loc[actual.row_id, actual.col_id].value
-        assert sheet1.to_full_frame().loc[actual.row_id, actual.col_id].value == 2
+        assert actual.value == frame.loc[actual.row.id, actual.col.id].value
+        assert sheet1.to_full_frame().loc[actual.row.id, actual.col.id].value == 2
