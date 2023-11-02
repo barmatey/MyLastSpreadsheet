@@ -74,6 +74,7 @@ class ReportModel(Base):
     freq: Mapped[str] = mapped_column(String(16), nullable=False)
     plan_items: Mapped[JSON] = mapped_column(JSON, nullable=False)
     sheet_id: Mapped[UUID] = mapped_column(String(64), nullable=False)
+    linked_sheets: Mapped[JSON] = mapped_column(JSON, nullable=False)
     source_id: Mapped[UUID] = mapped_column(ForeignKey("source.id"))
 
     def to_entity(self) -> domain.Report:
@@ -96,7 +97,8 @@ class ReportModel(Base):
             source_info=source_info_model.to_entity(),
             sheet_info=domain.SheetInfo(id=report_model.sheet_id),
             interval=domain.Interval(start_date=report_model.start_date, end_date=report_model.end_date,
-                                     freq=report_model.freq)
+                                     freq=report_model.freq),
+            linked_sheets=[domain.SheetInfo(id=x.id) for x in report_model.linked_sheets]
         )
 
     @classmethod
@@ -108,6 +110,7 @@ class ReportModel(Base):
             sheet_id=str(entity.sheet_info.id),
             source_id=entity.source_info.id,
             **entity.interval.model_dump(),
+            linked_sheets=list(x.id for x in entity.linked_sheets),
         )
 
 

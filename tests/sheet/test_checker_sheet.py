@@ -3,7 +3,6 @@ from datetime import datetime
 import pytest
 
 import db
-from src.helpers.arrays import flatten
 from src.sheet import bootstrap, commands, domain
 
 

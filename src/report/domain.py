@@ -109,6 +109,7 @@ class Report(BaseModel):
     sheet_info: SheetInfo
     interval: Interval
     plan_items: PlanItems
+    linked_sheets: list[SheetInfo] = Field(default_factory=list)
     updated_at: datetime = Field(default_factory=datetime.now)
     id: UUID = Field(default_factory=uuid4)
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -126,7 +127,7 @@ class Report(BaseModel):
         return self.plan_items.order.bisect_left(key)
 
     @field_serializer('id')
-    def serialize_dt(self, uuid: UUID) -> str:
+    def serialize_id(self, uuid: UUID) -> str:
         return str(uuid)
 
     def to_json(self) -> dict:

@@ -13,8 +13,8 @@ class SheetGatewayAPI(SheetGateway):
     async def get_sheet_by_id(self, sheet_id: UUID) -> sheet_domain.Sheet:
         return await self._sheet_service.get_sheet_by_id(sheet_id)
 
-    async def create_sheet(self, table: Table[domain.CellValue] = None) -> UUID:
-        sheet = await self._sheet_service.create_sheet(table)
+    async def create_sheet(self, sheet: sheet_domain.Sheet) -> UUID:
+        sheet = await self._sheet_service.create_sheet(sheet)
         return sheet.sf.id
 
     async def update_sheet(self, data: sheet_domain.Sheet):

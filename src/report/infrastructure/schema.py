@@ -72,6 +72,7 @@ class ReportRetrieveSchema(BaseModel):
     category: str
     source_info: domain.SourceInfo
     sheet_info: domain.SheetInfo
+    linked_sheets: list[domain.SheetInfo]
 
     @classmethod
     def from_entity(cls, entity: domain.Report):
@@ -82,5 +83,6 @@ class ReportRetrieveSchema(BaseModel):
             interval=IntervalSchema.from_interval(entity.interval),
             updated_at=entity.updated_at,
             source_info=entity.source_info,
-            sheet_info=entity.sheet_info
+            sheet_info=entity.sheet_info,
+            linked_sheets=entity.linked_sheets,
         )

@@ -97,7 +97,7 @@ class SheetGateway(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def create_sheet(self, table: Table[domain.CellValue] = None) -> UUID:
+    async def create_sheet(self, sheet: sheet_domain.Sheet) -> UUID:
         raise NotImplemented
 
     @abstractmethod
@@ -308,6 +308,9 @@ class ReportService:
         await self._subfac.create_source_subscriber(report).follow_source(source)
         await self._repo.add_many([report])
         return report
+
+    async def append_sheet(self, report: domain.Report) -> domain.Report:
+        pass
 
     async def get_by_id(self, uuid: UUID) -> domain.Report:
         return await self._repo.get_one_by_id(uuid)

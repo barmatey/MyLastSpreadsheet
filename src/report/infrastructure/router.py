@@ -4,7 +4,6 @@ from uuid import UUID
 import pandas as pd
 from fastapi import APIRouter, Depends, UploadFile
 
-
 from src import helpers
 from src.core import OrderBy
 import db
@@ -183,6 +182,13 @@ async def create_report(data: schema.ReportCreateSchema,
         report = await cmd.execute()
         await session.commit()
         return report
+
+
+@router_report.post("/{report_id}")
+async def append_checker_sheet(report_id: UUID, get_asession=Depends(db.get_async_session)) -> domain.Report:
+    async with get_asession as session:
+        boot = bootstrap.Bootstrap(session)
+
 
 
 @router_report.get("/")
