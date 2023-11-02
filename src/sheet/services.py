@@ -116,3 +116,7 @@ class ReportSheetService:
         checker_sheet = domain.Sheet(sf=domain.SheetInfo(title="Checker"))
         checker_sheet_sub = self._subfac.create_sheet_subscriber(checker_sheet)
         await checker_sheet_sub.follow_sheet(base_sheet)
+
+        print()
+        print(checker_sheet_sub.entity)
+        raise Exception

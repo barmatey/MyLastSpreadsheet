@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 
 from src.base.broker import Broker
+from src.helpers.arrays import flatten
 from .. import domain, subscriber, services
 
 
@@ -35,12 +36,34 @@ class ReportCheckerSheet(subscriber.SheetSubscriber):
         self._broker = broker
 
     async def follow_sheet(self, pub: domain.Sheet):
-        self._entity = await self._sheet_service.merge(pub, self._entity)
+        if self._entity.size != (0, 0):
+            raise ValueError
+        sheet_id = self._entity.sf.id
+        rows = [domain.RowSindex(position=x.position, size=x.size, sheet_id=sheet_id) for x in pub.rows]
+        cols = [domain.ColSindex(position=x.position, size=x.size, sheet_id=sheet_id) for x in pub.cols]
+        table = []
+        for i, row in enumerate(rows):
+            cells = []
+            for j, col in enumerate(cols):
+                parent_cell = pub.table[i][j]
+                cell = domain.Cell(
+                    value=parent_cell.value if (parent_cell.row.is_freeze or parent_cell.col.is_freeze) else "JackDany",
+                    row=row,
+                    col=col,
+                    sheet_id=sheet_id,
+                    background=parent_cell.background if (
+                                parent_cell.row.is_freeze or parent_cell.col.is_freeze) else "red",
+                )
+                cells.append(cell)
+            table.append(cells)
+
+        self._entity = domain.Sheet(sf=self._entity.sf, rows=rows, cols=cols, table=table)
+
         for parent, child in zip(pub.rows, self._entity.rows):
             await self._broker.subscribe([parent], child)
         for parent, child in zip(pub.cols, self._entity.cols):
             await self._broker.subscribe([parent], child)
-        for parent, child in zip(pub.cells, self._entity.cells):
+        for parent, child in zip(flatten(pub.table), flatten(self._entity.table)):
             await self._broker.subscribe([parent], child)
 
     async def unfollow_sheet(self, pub: domain.Sheet):
@@ -112,5 +135,5 @@ class SubFactory(subscriber.SubscriberFactory):
 
     def create_sheet_subscriber(self, entity: BaseModel) -> subscriber.SheetSubscriber:
         if isinstance(entity, domain.Sheet):
-            return ReportCheckerSheet(entity, self._sheet_service, self._broker_service)
+            return ReportCheckerSheet(entity, self._broker_service)
         raise TypeError

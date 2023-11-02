@@ -2,4 +2,6 @@ from abc import ABC
 
 
 class Subscriber(ABC):
-    pass
+    @property
+    def entity(self):
+        raise NotImplemented

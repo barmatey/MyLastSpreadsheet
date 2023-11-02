@@ -9,11 +9,12 @@ class Bootstrap:
     def __init__(self, session):
         self._queue = eventbus.Queue()
         self._sheet_repo: services.SheetRepository = postgres.SheetPostgresRepo(session)
+
         self._sheet_service = services.SheetService(self._sheet_repo)
 
         self._broker = Broker(BrokerRepoPostgres(session))
         self._subfac = subfactory.SubFactory(self._sheet_service, self._broker)
-
+        self._report_sheet_service = services.ReportSheetService(repo=self._sheet_repo, subfac=self._subfac)
 
     def get_event_bus(self) -> eventbus.EventBus:
         bus = eventbus.EventBus(self._queue)
@@ -31,9 +32,11 @@ class Bootstrap:
     def get_sheet_service(self) -> services.SheetService:
         return self._sheet_service
 
+    def get_report_sheet_service(self) -> services.ReportSheetService:
+        return self._report_sheet_service
+
     def get_subfac(self) -> subfactory.SubFactory:
         return self._subfac
 
     def get_broker(self) -> Broker:
         return self._broker
-

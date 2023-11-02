@@ -79,6 +79,10 @@ class Sheet(BaseModel):
             raise Exception
         return cls(sf=sf, rows=rows, cols=cols, table=cells)
 
+    @property
+    def size(self) -> tuple[int, int]:
+        return len(self.rows), len(self.cols)
+
     def drop(self, ids: Sequence[UUID] | UUID, axis: int, reindex=True, inplace=False) -> 'Sheet':
         target = self if inplace else self.model_copy(deep=True)
         ids = {ids} if isinstance(ids, UUID) else set(ids)
