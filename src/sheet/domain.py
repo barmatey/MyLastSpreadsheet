@@ -49,6 +49,11 @@ class Cell(BaseModel):
     def __str__(self):
         return f"Cell({self.value})"
 
+    def __eq__(self, other: 'Cell'):
+        if self.id != other.id:
+            raise Exception
+        return self.value == other.value
+
 
 class SheetInfo(BaseModel):
     title: str
