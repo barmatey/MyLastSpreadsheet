@@ -142,9 +142,9 @@ class Sheet(BaseModel):
                 target.table[i][j].value = value
         return target
 
-    def to_simple_frame(self) -> pd.DataFrame:
-        index = [x.id for x in self.rows]
-        columns = [x.id for x in self.cols]
+    def to_simple_frame(self, index_key="id") -> pd.DataFrame:
+        index = [x.__getattribute__(index_key) for x in self.rows]
+        columns = [x.__getattribute__(index_key) for x in self.cols]
         data = map(lambda row: map(lambda cell: cell.value, row), self.table)
         df = pd.DataFrame(data, index, columns)
         return df
@@ -178,7 +178,7 @@ def concat(lhs: Sheet, rhs: Sheet, axis=0, reindex=True) -> Sheet:
     return target
 
 
-def complex_merge(lhs: Sheet, rhs: Sheet, left_on: list[UUID], right_on: list[UUID]) -> Table[CellValue]:
+def complex_merge(lhs: Sheet, rhs: Sheet, left_on: list[UUID], right_on: list[UUID], sort=False) -> Table[CellValue]:
     names = [f"lvl{x + 1}" for x in range(0, len(left_on))]
 
     lhs = lhs.to_simple_frame()
@@ -193,8 +193,7 @@ def complex_merge(lhs: Sheet, rhs: Sheet, left_on: list[UUID], right_on: list[UU
     rhs.columns = rhs.iloc[0]
     rhs = rhs.iloc[1:]
 
-    df = pd.concat([lhs, rhs]).fillna(0).groupby(names).sum().reset_index()
-
+    df = pd.concat([lhs, rhs]).fillna(0).groupby(names, sort=sort).sum().reset_index()
     # From frame to table
     result = []
     first_row = []

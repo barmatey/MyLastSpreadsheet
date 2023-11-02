@@ -156,7 +156,7 @@ async def test_report_sheet_reacts_on_wire_appended():
 
         updated = wire3.model_copy(deep=True)
         updated.sender = 99
-        cmd = commands.UpdateWires(source_info=source.source_info, wires=[updated], receiver=boot.get_source_service())
+        # cmd = commands.UpdateWires(source_info=source.source_info, wires=[updated], receiver=boot.get_source_service())
         # await cmd.execute()
 
         await bus.run()
@@ -166,4 +166,4 @@ async def test_report_sheet_reacts_on_wire_appended():
         boot = bootstrap.Bootstrap(session)
         sheet = await sheet_commands.GetSheetByUuid(uuid=report.sheet_info.id,
                                                     receiver=boot.get_sheet_service()).execute()
-        # print("\n", pd.DataFrame(sheet.as_table()).to_string())
+        print("\n", pd.DataFrame(sheet.to_simple_frame("position")).to_string())
