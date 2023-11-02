@@ -97,7 +97,7 @@ class SheetGateway(ABC):
         raise NotImplemented
 
     @abstractmethod
-    async def create_sheet(self, sheet: sheet_domain.Sheet) -> UUID:
+    async def create_sheet(self, sheet: sheet_domain.Sheet = None) -> UUID:
         raise NotImplemented
 
     @abstractmethod
