@@ -1,6 +1,6 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.sheet import services, domain
 
