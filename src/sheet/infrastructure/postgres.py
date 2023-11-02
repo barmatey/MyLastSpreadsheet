@@ -96,6 +96,8 @@ class CellModel(Base):
 
     @staticmethod
     def __get_value(value: str, dtype: CellDtype) -> CellValue:
+        if dtype == "string" and value == "None":
+            return None
         if dtype == "string":
             return value
         if dtype == "int":

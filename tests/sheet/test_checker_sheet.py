@@ -3,6 +3,7 @@ from datetime import datetime
 import pytest
 
 import db
+from src.helpers.arrays import flatten
 from src.sheet import bootstrap, commands, domain
 
 
@@ -33,5 +34,14 @@ async def test_create_report_checker_sheet():
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
         cmd = commands.CreateCheckerSheet(parent_sheet_id=parent_sheet.sf.id, receiver=boot.get_report_sheet_service())
-        result = await cmd.execute()
+        actual = await cmd.execute()
         await session.commit()
+
+    assert actual.size == parent_sheet.size
+    expected_values = [
+        None, datetime(2021, 1, 1), datetime(2022, 1, 1), datetime(2023, 1, 1),
+        "Revenue", "JackDany", "JackDany", "JackDany",
+        "Expenses", "JackDany", "JackDany", "JackDany",
+    ]
+    for a, expected in zip(actual.cells, expected_values):
+        assert a.value == expected
