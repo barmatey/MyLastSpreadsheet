@@ -84,8 +84,8 @@ async def test_create_profit_report():
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
         report = await commands.GetReportById(id=expected.id, receiver=boot.get_report_service()).execute()
-        sheet = await sheet_commands.GetSheetByUuid(uuid=report.sheet_info.id,
-                                                    receiver=boot.get_sheet_service()).execute()
+        sheet = await sheet_commands.GetSheetById(id=report.sheet_info.id,
+                                                  receiver=boot.get_sheet_service()).execute()
 
         print()
         df = pd.DataFrame(sheet.to_simple_frame())
@@ -164,6 +164,6 @@ async def test_report_sheet_reacts_on_wire_appended():
 
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
-        sheet = await sheet_commands.GetSheetByUuid(uuid=report.sheet_info.id,
-                                                    receiver=boot.get_sheet_service()).execute()
+        sheet = await sheet_commands.GetSheetById(id=report.sheet_info.id,
+                                                  receiver=boot.get_sheet_service()).execute()
         print("\n", pd.DataFrame(sheet.to_simple_frame("position")).to_string())

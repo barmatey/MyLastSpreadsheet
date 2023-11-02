@@ -17,6 +17,6 @@ router_sheet = APIRouter(
 async def get_sheet(sheet_id: UUID, get_asession=Depends(db.get_async_session)) -> domain.Sheet:
     async with get_asession as session:
         boot = bootstrap.Bootstrap(session)
-        cmd = commands.GetSheetByUuid(uuid=sheet_id, receiver=boot.get_sheet_service())
+        cmd = commands.GetSheetById(id=sheet_id, receiver=boot.get_sheet_service())
         sheet = await cmd.execute()
         return sheet

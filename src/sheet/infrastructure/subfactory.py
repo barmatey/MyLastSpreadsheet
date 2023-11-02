@@ -35,6 +35,10 @@ class ReportCheckerSheet(subscriber.SheetSubscriber):
         self._entity = entity
         self._broker = broker
 
+    @property
+    def entity(self) -> domain.Sheet:
+        return self._entity
+
     async def follow_sheet(self, pub: domain.Sheet):
         if self._entity.size != (0, 0):
             raise ValueError

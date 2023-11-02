@@ -5,20 +5,28 @@ from pydantic import BaseModel, ConfigDict, Field
 from src.sheet import services, domain
 
 
-class GetSheetByUuid(BaseModel):
-    uuid: UUID
-    receiver: services.SheetService
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    async def execute(self) -> domain.Sheet:
-        return await self.receiver.get_sheet_by_id(self.uuid)
-
-
-class CreateCheckerSheet(BaseModel):
+class GetSheetById(BaseModel):
     id: UUID
     receiver: services.SheetService
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def execute(self) -> domain.Sheet:
-        raise NotImplemented
+        return await self.receiver.get_sheet_by_id(self.id)
 
+
+class CreateSheet(BaseModel):
+    data: domain.Sheet
+    receiver: services.SheetService
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> domain.Sheet:
+        return await self.receiver.create_sheet(self.data)
+
+
+class CreateCheckerSheet(BaseModel):
+    parent_sheet_id: UUID
+    receiver: services.ReportSheetService
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> domain.Sheet:
+        return await self.receiver.create_checker_sheet(self.parent_sheet_id)

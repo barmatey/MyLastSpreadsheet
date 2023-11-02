@@ -111,12 +111,10 @@ class ReportSheetService:
         self._repo = repo
         self._subfac = subfac
 
-    async def create_checker_sheet(self, base_sheet_id: UUID):
+    async def create_checker_sheet(self, base_sheet_id: UUID) -> domain.Sheet:
         base_sheet = await self._repo.get_sheet_by_id(base_sheet_id)
         checker_sheet = domain.Sheet(sf=domain.SheetInfo(title="Checker"))
         checker_sheet_sub = self._subfac.create_sheet_subscriber(checker_sheet)
         await checker_sheet_sub.follow_sheet(base_sheet)
-
-        print()
-        print(checker_sheet_sub.entity)
-        raise Exception
+        await self._repo.add_sheet(checker_sheet_sub.entity)
+        return checker_sheet_sub.entity

@@ -14,6 +14,7 @@ from src.base.repo.postgres import Base, PostgresRepo
 
 from ..domain import SheetInfo, RowSindex, ColSindex, Cell, CellValue, CellDtype, Sheet
 from ..services import SheetRepository, CellRepository, Slice
+from ...helpers.arrays import flatten
 
 
 class SheetInfoModel(Base):
@@ -274,10 +275,10 @@ class SheetPostgresRepo(SheetRepository):
 
     async def add_sheet(self, sheet: Sheet):
         await self._sf_repo.add_many([sheet.sf])
-        if len(sheet.rows) and len(sheet.cols) and len(sheet.cells):
+        if len(sheet.rows) and len(sheet.cols) and len(sheet.table):
             await self._row_repo.add_many(sheet.rows)
             await self._col_repo.add_many(sheet.cols)
-            await self._cell_repo.add_many(sheet.cells)
+            await self._cell_repo.add_many(flatten(sheet.table))
 
     async def get_sheet_by_id(self, uuid: UUID) -> Sheet:
         stmt = (
