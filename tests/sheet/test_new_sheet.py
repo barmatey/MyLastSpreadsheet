@@ -207,4 +207,3 @@ def test_cell_contains_right_sindex_references_after_sheet_copy():
         for j, col in enumerate(sheet1.cols):
             assert id(row) == id(sheet1.table[i][j].row)
             assert id(col) == id(sheet1.table[i][j].col)
-

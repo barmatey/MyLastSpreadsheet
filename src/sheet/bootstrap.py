@@ -14,6 +14,7 @@ class Bootstrap:
         self._broker = Broker(BrokerRepoPostgres(session))
         self._subfac = subfactory.SubFactory(self._sheet_service, self._broker)
 
+
     def get_event_bus(self) -> eventbus.EventBus:
         bus = eventbus.EventBus(self._queue)
 

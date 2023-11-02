@@ -11,7 +11,7 @@ class GetSheetByUuid(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def execute(self) -> domain.Sheet:
-        return await self.receiver.get_by_id(self.uuid)
+        return await self.receiver.get_sheet_by_id(self.uuid)
 
 
 class CreateCheckerSheet(BaseModel):

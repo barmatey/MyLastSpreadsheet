@@ -66,9 +66,18 @@ class UpdateSheetFromDifference:
         await self._repo.cell_repo.remove_many(filter_by={"id.__in": [x.id for x in diff.cells_deleted]})
 
 
+class CellService:
+    def __init__(self, repo: SheetRepository):
+        self._repo = repo
+
+    async def update_many(self, data: list[domain.Cell]) -> None:
+        await self._repo.cell_repo.update_many(data)
+
+
 class SheetService:
     def __init__(self, repo: SheetRepository):
         self._repo = repo
+        self.cell_service = CellService(repo)
 
     async def create_sheet(self, sheet: domain.Sheet = None) -> domain.Sheet:
         if sheet is None:
@@ -76,7 +85,7 @@ class SheetService:
         await self._repo.add_sheet(sheet)
         return sheet
 
-    async def get_by_id(self, sheet_id: UUID) -> domain.Sheet:
+    async def get_sheet_by_id(self, sheet_id: UUID) -> domain.Sheet:
         return await self._repo.get_sheet_by_id(sheet_id)
 
     async def update_sheet(self, sheet: domain.Sheet) -> None:
