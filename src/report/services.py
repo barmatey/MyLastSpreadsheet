@@ -104,6 +104,10 @@ class SheetGateway(ABC):
     async def update_sheet(self, data: sheet_domain.Sheet):
         raise NotImplemented
 
+    @abstractmethod
+    async def merge_sheets(self, target_sheet_id: UUID, data: sheet_domain.Sheet, merge_on: list[int]):
+        raise NotImplemented
+
 
 class Finrep:
     def __init__(self, wire_df: pd.DataFrame, ccols: list[domain.Ccol], interval: domain.Interval):
@@ -163,9 +167,11 @@ class Finrep:
     def get_as_table(self) -> Table[domain.Cell]:
         raise Exception
 
-    def to_sheet(self, sf: sheet_domain.SheetInfo) -> sheet_domain.Sheet:
+    def to_sheet(self, sf: sheet_domain.SheetInfo = None) -> sheet_domain.Sheet:
         if self._report_df is None:
             raise Exception('report is None. Did you forgot create_report_df() function?')
+        if sf is None:
+            sf = sheet_domain.SheetInfo(title="Report")
 
         size = (len(self._report_df.index), len(self._report_df.columns))
 
@@ -258,15 +264,13 @@ class ReportPublisher(subscriber.SourceSubscriber):
             .reset_indexes()
             .to_sheet()
         )
-        target = await self._sheet_gw.get_sheet_by_id(self._entity.sheet_info.id)
-        group_col_indexes: list[sheet_domain.ColSindex] = [target.cols[x]
-                                                           for x in range(0, len(self._entity.plan_items.ccols))]
-        await self._sheet_gw.merge_sheets(target, sheet, merge_on=group_col_indexes)
+        merge_on = list(range(0, len(self._entity.plan_items.ccols)))
+        await self._sheet_gw.merge_sheets(self._entity.sheet_info.id, sheet, merge_on)
 
     async def on_wires_deleted(self, wires: list[domain.Wire]):
         wires = pd.DataFrame([x.model_dump(exclude={'source_info'}) for x in wires])
         wires["amount"] = -wires["amount"]
-        table = (
+        sheet = (
             Finrep(wires, self._entity.plan_items.ccols, self._entity.interval)
             .validate()
             .create_report_df()
@@ -276,9 +280,8 @@ class ReportPublisher(subscriber.SourceSubscriber):
             .reset_indexes()
             .to_sheet()
         )
-        group_col_indexes = list(range(0, len(self._entity.plan_items.ccols)))
-        target = await self._sheet_gw.get_sheet_by_id(self._entity.sheet_info.id)
-        await self._sheet_gw.merge_sheets(target, table, merge_on=group_col_indexes)
+        merge_on = list(range(0, len(self._entity.plan_items.ccols)))
+        await self._sheet_gw.merge_sheets(self._entity.sheet_info.id, sheet, merge_on)
 
 
 class ReportService:

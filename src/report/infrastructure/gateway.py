@@ -19,3 +19,6 @@ class SheetGatewayAPI(SheetGateway):
 
     async def update_sheet(self, data: sheet_domain.Sheet):
         await self._sheet_service.update_sheet(data)
+
+    async def merge_sheets(self, target_sheet_id: UUID, data: sheet_domain.Sheet, merge_on: list[int]):
+        await self._sheet_service.complex_merge(target_sheet_id, data, merge_on, merge_on)

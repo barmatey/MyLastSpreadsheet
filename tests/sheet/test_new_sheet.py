@@ -27,6 +27,10 @@ def test_resize_sheet():
     assert len(actual.table) == 2
     assert len(actual.table[0]) == len(actual.table[1]) == 2
 
+    actual = sheet1.resize(3, 3)
+    assert len(actual.rows) == 3
+    assert len(actual.cols) == 3
+
     actual = sheet1.resize(5, 5)
     assert len(actual.rows) == 5
     assert len(actual.cols) == 5

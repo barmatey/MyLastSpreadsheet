@@ -136,8 +136,8 @@ class Sheet(BaseModel):
         if len(table) != len(target.table):
             raise Exception
         for i, row in enumerate(table):
-            if len(row) != len(target.rows):
-                raise Exception
+            if len(row) != len(target.cols):
+                raise Exception(f"{len(row)} != {len(target.cols)}")
             for j, value in enumerate(row):
                 target.table[i][j].value = value
         return target

@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
+import pandas as pd
+
 from src.base.repo.repository import Repository
 from . import domain
 
@@ -82,4 +84,18 @@ class SheetService:
     async def update_sheet(self, sheet: domain.Sheet) -> None:
         old_sheet = await self._repo.get_sheet_by_id(sheet.sf.id)
         diff = domain.SheetDifference.from_sheets(old_sheet, sheet)
+        await UpdateSheetFromDifference(repo=self._repo).update(diff)
+
+    async def complex_merge(self, target_id: UUID, data: domain.Sheet, target_on: list[int], data_on: list[int]):
+        target = await self._repo.get_sheet_by_id(target_id)
+        table = domain.complex_merge(
+            lhs=target,
+            rhs=data,
+            left_on=[target.cols[x].id for x in target_on],
+            right_on=[data.cols[x].id for x in data_on],
+        )
+        print()
+        print(pd.DataFrame(table).to_string())
+        merged = target.resize(len(table), len(table[0])).replace_cell_values(table, inplace=True)
+        diff = domain.SheetDifference.from_sheets(target, merged)
         await UpdateSheetFromDifference(repo=self._repo).update(diff)
