@@ -191,3 +191,20 @@ def test_update_diff():
         assert actual.value == 123_456
         assert actual.value == frame.loc[actual.row.id, actual.col.id].value
         assert sheet1.to_full_frame().loc[actual.row.id, actual.col.id].value == 2
+
+
+def test_cell_contains_right_sindex_references():
+    sheet1 = domain.Sheet.from_table([[1, 2, 3], [4, 5, 6]])
+    for i, row in enumerate(sheet1.rows):
+        for j, col in enumerate(sheet1.cols):
+            assert id(row) == id(sheet1.table[i][j].row)
+            assert id(col) == id(sheet1.table[i][j].col)
+
+
+def test_cell_contains_right_sindex_references_after_sheet_copy():
+    sheet1 = domain.Sheet.from_table([[1, 2, 3], [4, 5, 6]]).reindex(axis=0)
+    for i, row in enumerate(sheet1.rows):
+        for j, col in enumerate(sheet1.cols):
+            assert id(row) == id(sheet1.table[i][j].row)
+            assert id(col) == id(sheet1.table[i][j].col)
+

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Sequence, Union, Literal
+from typing import Sequence, Union, Literal, Any
 from uuid import UUID, uuid4
 
 import pandas as pd
