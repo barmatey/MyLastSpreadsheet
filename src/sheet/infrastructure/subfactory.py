@@ -6,6 +6,29 @@ from .. import subscriber
 from .. import services
 
 
+class ReportChecker(subscriber.CellSubscriber):
+    def __init__(self, entity: domain.Cell, broker: Broker):
+        self._entity = entity
+        self._broker = broker
+
+    async def follow_cells(self, pubs: list[domain.Cell]):
+        if len(pubs) != 1:
+            raise Exception
+        old = self._entity.model_copy(deep=True)
+        self._entity.value = pubs[0].value
+        await self._broker.subscribe(pubs, self._entity)
+        await self._sheet_service.update_cells([self._entity], [old])
+
+    async def unfollow_cells(self, pubs: list[domain.Cell]):
+        pass
+
+    async def on_cell_updated(self, old: domain.Cell, actual: domain.Cell):
+        pass
+
+    async def on_cell_deleted(self, pub: domain.Cell):
+        pass
+
+
 class CellSelfSubscriber(subscriber.CellSubscriber):
     def __init__(self, entity: domain.Cell, sheet_service: services.SheetService, broker_service: Broker):
         self._sheet_service = sheet_service

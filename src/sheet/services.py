@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from src.base.repo.repository import Repository
-from . import domain
+from . import domain, subscriber
 
 Slice = tuple[int, int] | int
 
@@ -95,3 +95,15 @@ class SheetService:
         merged = target.resize(len(table), len(table[0])).replace_cell_values(table, inplace=True)
         diff = domain.SheetDifference.from_sheets(target, merged)
         await UpdateSheetFromDifference(repo=self._repo).update(diff)
+
+
+class ReportSheetService:
+    def __init__(self, repo: SheetRepository, subfac: subscriber.SubscriberFactory):
+        self._repo = repo
+        self._subfac = subfac
+
+    async def create_checker_sheet(self, base_sheet_id: UUID):
+        base_sheet = await self._repo.get_sheet_by_id(base_sheet_id)
+        checker_sheet = domain.Sheet(sf=domain.SheetInfo(title="Checker"))
+        checker_sheet_sub = self._subfac.create_sheet_subscriber(checker_sheet)
+        await checker_sheet_sub.follow_sheet(base_sheet)
