@@ -1,7 +1,7 @@
 import src.sheet.handlers
 from src.base.broker import Broker, BrokerRepoPostgres
 from ..base import eventbus
-from . import services
+from . import services, domain
 from .infrastructure import postgres, subfactory
 
 
@@ -39,4 +39,7 @@ class Bootstrap:
         return self._subfac
 
     def get_broker(self) -> Broker:
+        self._broker.register(domain.RowSindex, self._sheet_repo.row_repo.get_many_by_id)
+        self._broker.register(domain.ColSindex, self._sheet_repo.col_repo.get_many_by_id)
+        self._broker.register(domain.Cell, self._sheet_repo.cell_repo.get_many_by_id)
         return self._broker

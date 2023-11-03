@@ -46,3 +46,16 @@ async def test_create_report_checker_sheet():
     ]
     actual_values = [x.value for x in actual.cells]
     assert str(actual_values) == str(expected_values)
+
+    async with db.get_async_session() as session:
+        boot = bootstrap.Bootstrap(session)
+        broker = boot.get_broker()
+        for parent_row in parent_sheet.rows:
+            subs = await broker.get_subs(parent_row)
+            if parent_row.is_freeze:
+                assert len(subs) == 1
+            else:
+                assert len(subs) == 2
+        for parent_col in parent_sheet.cols:
+            subs = await broker.get_subs(parent_col)
+            assert len(subs) == 1
