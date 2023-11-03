@@ -35,6 +35,10 @@ class SheetRepository(ABC):
     def cell_repo(self) -> CellRepository:
         raise NotImplemented
 
+    @property
+    def formula_repo(self) -> Repository[domain.Formula]:
+        raise NotImplemented
+
     @abstractmethod
     async def add_sheet(self, sheet: domain.Sheet):
         raise NotImplemented

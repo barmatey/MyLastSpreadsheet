@@ -45,15 +45,13 @@ class Sum(Formula):
 
 
 class Sub(Formula):
-    minuend: int = 0
-    subtrahend: Union[int, float] = 0
-    minuted_pubs: set[UUID] = Field(default_factory=set)
-    subtrahend_pubs: set[UUID] = Field(default_factory=set)
+    minuend: dict[UUID, Union[int, float]]
+    subtrahend: dict[UUID, Union[int, float]]
     id: UUID = Field(default_factory=uuid4)
 
     @property
     def value(self):
-        return self.minuend - self.subtrahend
+        return sum(self.minuend.values()) - sum(self.subtrahend.values())
 
 
 class Cell(BaseModel):

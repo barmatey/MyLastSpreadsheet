@@ -94,18 +94,14 @@ class ReportCheckerSheet(subscriber.SheetSubscriber):
 
                         minuend = table[-1][j]
                         subtrahend = parent_cell
-                        formula = domain.Sub()
-                        formula.minuend = minuend.value
-                        formula.minuted_pubs.add(minuend.id)
-                        formula.subtrahend = subtrahend.value
-                        formula.subtrahend_pubs.add(subtrahend.id)
+                        formula = domain.Sub(
+                            minuend={minuend.id: minuend.value},
+                            subtrahend={subtrahend.id: subtrahend.value}
+                        )
                         await self._broker.subscribe([minuend, subtrahend], formula)
 
             table.append(cells)
         self._entity = domain.Sheet(sf=self._entity.sf, rows=rows, cols=cols, table=table).drop(rows[1].id, axis=0)
-
-        print()
-        print(self._entity.to_simple_frame(index_key="position"))
 
     async def unfollow_sheet(self, pub: domain.Sheet):
         pass
