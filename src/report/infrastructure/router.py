@@ -188,7 +188,10 @@ async def create_report(data: schema.ReportCreateSchema,
 async def append_checker_sheet(report_id: UUID, get_asession=Depends(db.get_async_session)) -> domain.Report:
     async with get_asession as session:
         boot = bootstrap.Bootstrap(session)
-
+        report = await commands.GetReportById(id=report_id, receiver=boot.get_report_service()).execute()
+        report = await commands.AppendCheckerSheet(report=report, receiver=boot.get_report_service())
+        await session.commit()
+        return report
 
 
 @router_report.get("/")

@@ -126,6 +126,16 @@ class CreateReport(BaseModel):
         return report
 
 
+class AppendCheckerSheet(BaseModel):
+    report: domain.Report
+    receiver: services.ReportService
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> domain.Report:
+        report = await self.receiver.append_checker_sheet(self.report)
+        return report
+
+
 class GetReportById(BaseModel):
     id: UUID
     receiver: services.ReportService
@@ -150,4 +160,3 @@ class DeleteReportById(BaseModel):
 
     async def execute(self) -> None:
         await self.receiver.delete_many(filter_by={"id": self.id})
-

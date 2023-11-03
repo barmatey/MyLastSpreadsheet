@@ -101,6 +101,10 @@ class SheetGateway(ABC):
         raise NotImplemented
 
     @abstractmethod
+    async def create_checker_sheet(self, base_sheet_id: UUID) -> UUID:
+        raise NotImplemented
+
+    @abstractmethod
     async def update_sheet(self, data: sheet_domain.Sheet):
         raise NotImplemented
 
@@ -309,8 +313,12 @@ class ReportService:
         await self._repo.add_many([report])
         return report
 
-    async def append_sheet(self, report: domain.Report) -> domain.Report:
-        pass
+    async def append_checker_sheet(self, report: domain.Report) -> domain.Report:
+        report = report.model_copy(deep=True)
+        checker_sheet_id = await self._gateway.create_checker_sheet(report.sheet_info.id)
+        report.linked_sheets.append(domain.SheetInfo(id=checker_sheet_id))
+        await self._repo.update_one(report)
+        return report
 
     async def get_by_id(self, uuid: UUID) -> domain.Report:
         return await self._repo.get_one_by_id(uuid)
