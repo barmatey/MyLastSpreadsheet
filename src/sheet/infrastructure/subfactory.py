@@ -43,32 +43,57 @@ class ReportCheckerSheet(subscriber.SheetSubscriber):
         if self._entity.size != (0, 0):
             raise ValueError
         sheet_id = self._entity.sf.id
-        rows = [domain.RowSindex(position=x.position, size=x.size, sheet_id=sheet_id) for x in pub.rows]
-        cols = [domain.ColSindex(position=x.position, size=x.size, sheet_id=sheet_id) for x in pub.cols]
+
+        rows = []
+        for parent_row in pub.rows:
+            input_row = domain.RowSindex(position=len(rows), size=parent_row.size, sheet_id=sheet_id)
+            checker_row = domain.RowSindex(position=len(rows) + 1, size=parent_row.size, sheet_id=sheet_id)
+            await self._broker.subscribe([parent_row], input_row)
+            if not parent_row.is_freeze:
+                await self._broker.subscribe([parent_row], checker_row)
+            rows.append(input_row)
+            rows.append(checker_row)
+
+        cols = []
+        for parent_col in pub.cols:
+            col = domain.ColSindex(position=parent_col.position, size=parent_col.size, sheet_id=sheet_id)
+            await self._broker.subscribe([parent_col], col)
+            cols.append(col)
+
         table = []
         for i, row in enumerate(rows):
             cells = []
             for j, col in enumerate(cols):
-                parent_cell = pub.table[i][j]
-                cell = domain.Cell(
-                    value=parent_cell.value if (parent_cell.row.is_freeze or parent_cell.col.is_freeze) else "JackDany",
-                    row=row,
-                    col=col,
-                    sheet_id=sheet_id,
-                    background=parent_cell.background if (
-                                parent_cell.row.is_freeze or parent_cell.col.is_freeze) else "red",
-                )
-                cells.append(cell)
+                # Input row
+                if i % 2 == 0:
+                    parent_cell = pub.table[int(i / 2)][j]
+                    # Index cell
+                    if parent_cell.col.is_freeze or parent_cell.row.is_freeze:
+                        value = parent_cell.value
+                        bkg = parent_cell.background
+                        cell = domain.Cell(row=row, col=col, sheet_id=sheet_id, value=value, background=bkg)
+                        cells.append(cell)
+                        await self._broker.subscribe([parent_cell], cell)
+                    # Input cell
+                    else:
+                        cells.append(domain.Cell(row=row, col=col, sheet_id=sheet_id, value=0,
+                                                 background=parent_cell.background))
+                # Checker row
+                else:
+                    parent_cell = pub.table[int((i - 1) / 2)][j]
+                    # Blank cell
+                    if parent_cell.col.is_freeze or parent_cell.row.is_freeze:
+                        cells.append(domain.Cell(row=row, col=col, sheet_id=sheet_id, value="",
+                                                 background=parent_cell.background))
+                    # Formula cell
+                    else:
+                        cells.append(domain.Cell(row=row, col=col, sheet_id=sheet_id, value=-parent_cell.value,
+                                                 background=parent_cell.background))
             table.append(cells)
+        self._entity = domain.Sheet(sf=self._entity.sf, rows=rows, cols=cols, table=table).drop(rows[1].id, axis=0)
 
-        self._entity = domain.Sheet(sf=self._entity.sf, rows=rows, cols=cols, table=table)
-
-        for parent, child in zip(pub.rows, self._entity.rows):
-            await self._broker.subscribe([parent], child)
-        for parent, child in zip(pub.cols, self._entity.cols):
-            await self._broker.subscribe([parent], child)
-        for parent, child in zip(flatten(pub.table), flatten(self._entity.table)):
-            await self._broker.subscribe([parent], child)
+        print()
+        print(self._entity.to_simple_frame(index_key="position"))
 
     async def unfollow_sheet(self, pub: domain.Sheet):
         pass

@@ -36,11 +36,13 @@ async def test_create_report_checker_sheet():
         actual = await cmd.execute()
         await session.commit()
 
-    assert actual.size == parent_sheet.size
+    assert actual.size == (parent_sheet.size[0] * 2 - 1, parent_sheet.size[1])
     expected_values = [
         None, datetime(2021, 1, 1), datetime(2022, 1, 1), datetime(2023, 1, 1),
-        "Revenue", "JackDany", "JackDany", "JackDany",
-        "Expenses", "JackDany", "JackDany", "JackDany",
+        "Revenue", 0, 0, 0,
+        "", -100, -200, -300,
+        "Expenses", 0, 0, 0,
+        "", -50, -75, -175,
     ]
-    for a, expected in zip(actual.cells, expected_values):
-        assert a.value == expected
+    actual_values = [x.value for x in actual.cells]
+    assert str(actual_values) == str(expected_values)

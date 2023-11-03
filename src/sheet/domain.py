@@ -66,6 +66,13 @@ class Sheet(BaseModel):
     cols: list[ColSindex] = Field(default_factory=list)
     table: Table[Cell] = Field(default_factory=list)
 
+    def __init__(self, **data: Any):
+        super().__init__(**data)
+        if len(self.rows) != len(self.table):
+            raise ValueError(f" {len(self.rows)} != {len(self.table)}")
+        if len(self.table) and len(self.table[0]) != len(self.cols):
+            raise ValueError(f"{len(self.table[0])} != {len(self.cols)}")
+
     @classmethod
     def from_table(cls, table: Table[CellValue], rows: list[RowSindex] = None, cols: list[ColSindex] = None) -> 'Sheet':
         sf = SheetInfo(title="")
