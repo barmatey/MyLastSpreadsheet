@@ -35,6 +35,27 @@ CellValue = Union[int, float, str, bool, None, datetime]
 CellDtype = Literal["int", "float", "string", "bool", "datetime"]
 
 
+class Formula(BaseModel):
+    pass
+
+
+class Sum(Formula):
+    value: Union[int, float] = 0
+    id: UUID = Field(default_factory=uuid4)
+
+
+class Sub(Formula):
+    minuend: int = 0
+    subtrahend: Union[int, float] = 0
+    minuted_pubs: set[UUID] = Field(default_factory=set)
+    subtrahend_pubs: set[UUID] = Field(default_factory=set)
+    id: UUID = Field(default_factory=uuid4)
+
+    @property
+    def value(self):
+        return self.minuend - self.subtrahend
+
+
 class Cell(BaseModel):
     value: CellValue
     row: RowSindex

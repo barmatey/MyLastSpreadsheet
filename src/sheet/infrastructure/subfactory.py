@@ -67,7 +67,7 @@ class ReportCheckerSheet(subscriber.SheetSubscriber):
                 # Input row
                 if i % 2 == 0:
                     parent_cell = pub.table[int(i / 2)][j]
-                    # Index cell
+                    # Index cell (always equal parent cell)
                     if parent_cell.col.is_freeze or parent_cell.row.is_freeze:
                         value = parent_cell.value
                         bkg = parent_cell.background
@@ -87,8 +87,20 @@ class ReportCheckerSheet(subscriber.SheetSubscriber):
                                                  background=parent_cell.background))
                     # Formula cell
                     else:
-                        cells.append(domain.Cell(row=row, col=col, sheet_id=sheet_id, value=-parent_cell.value,
-                                                 background=parent_cell.background))
+                        value = -parent_cell.value
+                        bkg = parent_cell.background
+                        cell = domain.Cell(row=row, col=col, sheet_id=sheet_id, value=value, background=bkg)
+                        cells.append(cell)
+
+                        minuend = table[-1][j]
+                        subtrahend = parent_cell
+                        formula = domain.Sub()
+                        formula.minuend = minuend.value
+                        formula.minuted_pubs.add(minuend.id)
+                        formula.subtrahend = subtrahend.value
+                        formula.subtrahend_pubs.add(subtrahend.id)
+                        await self._broker.subscribe([minuend, subtrahend], formula)
+
             table.append(cells)
         self._entity = domain.Sheet(sf=self._entity.sf, rows=rows, cols=cols, table=table).drop(rows[1].id, axis=0)
 
