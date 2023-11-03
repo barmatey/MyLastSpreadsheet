@@ -98,7 +98,7 @@ class ReportModel(Base):
             sheet_info=domain.SheetInfo(id=report_model.sheet_id),
             interval=domain.Interval(start_date=report_model.start_date, end_date=report_model.end_date,
                                      freq=report_model.freq),
-            linked_sheets=[domain.SheetInfo(id=x.id) for x in report_model.linked_sheets]
+            linked_sheets=[domain.SheetInfo(id=x) for x in report_model.linked_sheets]
         )
 
     @classmethod
@@ -110,7 +110,7 @@ class ReportModel(Base):
             sheet_id=str(entity.sheet_info.id),
             source_id=entity.source_info.id,
             **entity.interval.model_dump(),
-            linked_sheets=list(x.id for x in entity.linked_sheets),
+            linked_sheets=list(str(x.id) for x in entity.linked_sheets),
         )
 
 

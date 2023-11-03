@@ -189,7 +189,7 @@ async def append_checker_sheet(report_id: UUID, get_asession=Depends(db.get_asyn
     async with get_asession as session:
         boot = bootstrap.Bootstrap(session)
         report = await commands.GetReportById(id=report_id, receiver=boot.get_report_service()).execute()
-        report = await commands.AppendCheckerSheet(report=report, receiver=boot.get_report_service())
+        report = await commands.AppendCheckerSheet(report=report, receiver=boot.get_report_service()).execute()
         await session.commit()
         return report
 
