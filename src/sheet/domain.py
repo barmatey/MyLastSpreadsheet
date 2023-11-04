@@ -116,14 +116,21 @@ class Sum(Formula):
 
 
 class Sub(Formula):
-    value: Union[int, float] = 0
+    _value: Union[int, float] = PrivateAttr()
     id: UUID = Field(default_factory=uuid4)
+
+    def __init__(self, value, **data: Any):
+        super().__init__(**data)
+        self._value = value
+
+    @property
+    def value(self):
+        return self._value
 
     def to_json(self):
         return {
             "id": str(self.id),
-            "minuend": {str(key): value for key, value in self.minuend.items()},
-            "subtrahend": {str(key): value for key, value in self.subtrahend.items()},
+            "value": self.value,
         }
 
 

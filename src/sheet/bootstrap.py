@@ -16,7 +16,7 @@ class Bootstrap:
         self._sheet_service = services.SheetService(self._sheet_repo, cell_service, formula_service)
 
         self._subfac = subfactory.SubFactory(self._sheet_service, self.get_broker())
-        self._report_sheet_service = services.ReportSheetService(repo=self._sheet_repo, subfac=self._subfac)
+        self._report_sheet_service = services.ReportSheetService(repo=self._sheet_repo, broker=self._broker)
 
     def get_event_bus(self) -> eventbus.EventBus:
         bus = eventbus.EventBus(self._queue)

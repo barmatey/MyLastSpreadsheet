@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Iterable
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from src.base.repo.repository import Repository
 from . import domain, subscriber
@@ -94,10 +94,6 @@ class FormulaService:
         self._repo = repo
         self._broker = broker
 
-    async def create_many(self, data: list[domain.Formula]) -> Iterable[domain.Formula]:
-        await self._repo.formula_repo.add_many(data)
-        return data
-
     async def create_one(self, parents: list[domain.Cell], target: domain.Cell, key: str) -> domain.Formula:
         if key == "SUM":
             formula = domain.Sum(cell_id=target.id, value=0)
@@ -105,7 +101,6 @@ class FormulaService:
             raise ValueError
 
         await formula.follow_cells(parents)
-        formula.parse_events()
         await self._repo.formula_repo.add_many([formula])
         await self._broker.subscribe(parents, formula)
         await self._broker.subscribe([formula], target)
@@ -148,15 +143,84 @@ class SheetService:
         await UpdateSheetFromDifference(repo=self._repo).update(diff)
 
 
-class ReportSheetService:
-    def __init__(self, repo: SheetRepository, subfac: subscriber.SubscriberFactory):
+class CreateReportChecker:
+    def __init__(self, repo: SheetRepository, broker: Broker):
         self._repo = repo
-        self._subfac = subfac
+        self._broker = broker
+
+    async def create(self, base_sheet: domain.Sheet):
+        sheet_id = uuid4()
+        rows = []
+        for parent_row in base_sheet.rows:
+            input_row = domain.RowSindex(position=len(rows), size=parent_row.size, sheet_id=sheet_id)
+            checker_row = domain.RowSindex(position=len(rows) + 1, size=parent_row.size, sheet_id=sheet_id)
+            await self._broker.subscribe([parent_row], input_row)
+            if not parent_row.is_freeze:
+                await self._broker.subscribe([parent_row], checker_row)
+            rows.append(input_row)
+            rows.append(checker_row)
+
+        cols = []
+        for parent_col in base_sheet.cols:
+            col = domain.ColSindex(position=parent_col.position, size=parent_col.size, sheet_id=sheet_id)
+            await self._broker.subscribe([parent_col], col)
+            cols.append(col)
+
+        table = []
+        formulas = []
+        for i, row in enumerate(rows):
+            cells = []
+            for j, col in enumerate(cols):
+                # Input row
+                if i % 2 == 0:
+                    parent_cell = base_sheet.table[int(i / 2)][j]
+                    # Index cell (always equal parent cell)
+                    if parent_cell.col.is_freeze or parent_cell.row.is_freeze:
+                        value = parent_cell.value
+                        bkg = parent_cell.background
+                        cell = domain.Cell(row=row, col=col, sheet_id=sheet_id, value=value, background=bkg)
+                        cells.append(cell)
+                        await self._broker.subscribe([parent_cell], cell)
+                    # Input cell
+                    else:
+                        cells.append(domain.Cell(row=row, col=col, sheet_id=sheet_id, value=0,
+                                                 background=parent_cell.background))
+                # Checker row
+                else:
+                    parent_cell = base_sheet.table[int((i - 1) / 2)][j]
+                    # Blank cell
+                    if parent_cell.col.is_freeze or parent_cell.row.is_freeze:
+                        cells.append(domain.Cell(row=row, col=col, sheet_id=sheet_id, value="",
+                                                 background=parent_cell.background))
+                    # Formula cell
+                    else:
+                        value = -parent_cell.value
+                        bkg = parent_cell.background
+                        cell = domain.Cell(row=row, col=col, sheet_id=sheet_id, value=value, background=bkg)
+                        cells.append(cell)
+
+                        minuend = table[-1][j]
+                        subtrahend = parent_cell
+                        formula = domain.Sub(
+                            value=minuend.value - subtrahend.value,
+                            cell_id=cell.id,
+                        )
+                        formulas.append(formula)
+                        await self._broker.subscribe([minuend, subtrahend], formula)
+            table.append(cells)
+        sheet = domain.Sheet(sf=domain.SheetInfo(id=sheet_id, title="Checker"),
+                             rows=rows, cols=cols, table=table).drop(rows[1].id, axis=0)
+        await self._repo.add_sheet(sheet)
+        await self._repo.formula_repo.add_many(formulas)
+
+        return sheet
+
+
+class ReportSheetService:
+    def __init__(self, repo: SheetRepository, broker: Broker):
+        self._repo = repo
+        self._broker = broker
 
     async def create_checker_sheet(self, base_sheet_id: UUID) -> domain.Sheet:
         base_sheet = await self._repo.get_sheet_by_id(base_sheet_id)
-        checker_sheet = domain.Sheet(sf=domain.SheetInfo(title="Checker"))
-        await self._repo.add_sheet(checker_sheet)
-        checker_sheet_sub = self._subfac.create_sheet_subscriber(checker_sheet)
-        await checker_sheet_sub.follow_sheet(base_sheet)
-        return checker_sheet_sub.entity
+        return await CreateReportChecker(self._repo, self._broker).create(base_sheet)
