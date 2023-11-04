@@ -1,3 +1,4 @@
+from typing import Iterable
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -21,6 +22,15 @@ class CreateSheet(BaseModel):
 
     async def execute(self) -> domain.Sheet:
         return await self.receiver.create_sheet(self.data)
+
+
+class UpdateCells(BaseModel):
+    data: Iterable[domain.Cell]
+    receiver: services.SheetService
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> None:
+        await self.receiver.cell_service.update_many(self.data)
 
 
 class CreateCheckerSheet(BaseModel):

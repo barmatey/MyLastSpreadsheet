@@ -22,11 +22,7 @@ async def test_create_report_checker_sheet():
         [None, datetime(2021, 1, 1), datetime(2022, 1, 1), datetime(2023, 1, 1)],
         ["Revenue", 100, 200, 300],
         ["Expenses", 50, 75, 175],
-    ])
-    parent_sheet.rows[0].is_freeze = True
-    parent_sheet.rows[0].is_readonly = True
-    parent_sheet.cols[0].is_freeze = True
-    parent_sheet.cols[0].is_readonly = True
+    ], freeze_rows=1, freeze_cols=1)
 
     parent_sheet = await create_sheet(parent_sheet)
 
@@ -59,3 +55,4 @@ async def test_create_report_checker_sheet():
         for parent_col in parent_sheet.cols:
             subs = await broker.get_subs(parent_col)
             assert len(subs) == 1
+

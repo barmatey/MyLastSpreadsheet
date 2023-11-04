@@ -108,10 +108,17 @@ class Sheet(BaseModel):
             raise ValueError(f"{len(self.table[0])} != {len(self.cols)}")
 
     @classmethod
-    def from_table(cls, table: Table[CellValue], rows: list[RowSindex] = None, cols: list[ColSindex] = None) -> 'Sheet':
+    def from_table(cls, table: Table[CellValue], rows: list[RowSindex] = None, cols: list[ColSindex] = None,
+                   freeze_rows: int = 0, freeze_cols: int = 0) -> 'Sheet':
         sf = SheetInfo(title="")
         rows = [RowSindex(position=i, sheet_id=sf.id) for i in range(0, len(table))] if rows is None else rows
+        for i in range(0, freeze_rows):
+            rows[i].is_freeze = True
+
         cols = [ColSindex(position=j, sheet_id=sf.id) for j in range(0, len(table[0]))] if cols is None else cols
+        for j in range(0, freeze_cols):
+            cols[j].is_freeze = True
+
         cells = []
         for i, row in enumerate(table):
             cells.append([Cell(value=value, row=rows[i], col=cols[j], sheet_id=sf.id)
