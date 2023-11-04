@@ -4,19 +4,21 @@ from typing import Sequence, Union, Literal, Any, Iterable
 from uuid import UUID, uuid4
 
 import pandas as pd
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 from src.core import Table
+from src.base import eventbus
 from src.helpers.arrays import flatten
 
 
-class Sindex(BaseModel):
+class Sindex(eventbus.EventMaker):
     position: int
     size: int
     sheet_id: UUID
     is_readonly: bool = False
     is_freeze: bool = False
     id: UUID = Field(default_factory=uuid4)
+    events: list[eventbus.Event] = Field(default_factory=list)
 
     def __eq__(self, other: 'Sindex'):
         if self.id != other.id:
@@ -36,11 +38,11 @@ CellValue = Union[int, float, str, bool, None, datetime]
 CellDtype = Literal["int", "float", "string", "bool", "datetime"]
 
 
-class Cell(BaseModel):
-    value: CellValue
+class Cell(eventbus.EventMaker):
     row: RowSindex
     col: ColSindex
     sheet_id: UUID
+    _value: CellValue = PrivateAttr()
     background: str = 'white'
     id: UUID = Field(default_factory=uuid4)
 
@@ -50,14 +52,32 @@ class Cell(BaseModel):
     def __str__(self):
         return f"Cell({self.value})"
 
+    def __init__(self, value, **data):
+        super().__init__(**data)
+        self._value = value
+
     def __eq__(self, other: 'Cell'):
         if self.id != other.id:
             raise Exception
         return self.value == other.value
 
+    @property
+    def value(self):
+        return self._value
 
-class Formula(BaseModel):
+    @value.setter
+    def value(self, value: CellValue):
+        old = self.model_copy()
+        self._value = value
+        self.events.append(eventbus.Updated(key="CellUpdated", old_entity=old, actual_entity=self))
+
+    async def on_cell_updated(self, old: 'Cell', actual: 'Cell'):
+        self.value = actual.value
+
+
+class Formula(eventbus.EventMaker):
     cell_id: UUID
+    events: list[eventbus.Event] = Field(default_factory=list)
 
     @property
     def value(self):
@@ -80,11 +100,15 @@ class Sum(Formula):
         return self._value
 
     async def follow_cells(self, pubs: list[Cell]):
+        old = self.model_copy()
         for cell in pubs:
             self._value += cell.value
+        self.events.append(eventbus.Updated(key="FormulaUpdated", old_entity=old, actual_entity=self))
 
     async def on_cell_updated(self, old: Cell, actual: Cell):
+        old_value = self.model_copy()
         self._value = self._value - old.value + actual.value
+        self.events.append(eventbus.Updated(key="FormulaUpdated", old_entity=old_value, actual_entity=self))
 
 
 class Sub(Formula):

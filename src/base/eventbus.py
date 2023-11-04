@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Generic, TypeVar, Callable
+from typing import Generic, TypeVar, Callable, Sequence
 from uuid import UUID, uuid4
 
 from loguru import logger
@@ -24,6 +24,15 @@ class Deleted(Event, Generic[T]):
     id: UUID = Field(default_factory=uuid4)
 
 
+class EventMaker(BaseModel):
+    events: list[Event] = Field(default_factory=list)
+
+    def parse_events(self) -> list[Event]:
+        events = self.events
+        self.events = []
+        return events
+
+
 class Queue:
     def __init__(self):
         self._queue: deque = deque()
@@ -34,8 +43,12 @@ class Queue:
 
     def popleft(self) -> Event:
         event = self._queue.popleft()
-        logger.debug(f"EXTRACT: {event}")
+        logger.debug(f"EXTRACT: {event.key}")
         return event
+
+    def extend(self, events: Sequence[Event]):
+        for x in events:
+            self.append(x)
 
     @property
     def empty(self):

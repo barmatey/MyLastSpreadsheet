@@ -17,8 +17,8 @@ async def create_sheet(sheet: domain.Sheet):
 @pytest.mark.asyncio
 async def test_formula_cells_react_on_parent_changes():
     sheet = domain.Sheet.from_table([
-        [1, 2, 3],
-        [4, 5, 6],
+        [0, 1, 1],
+        [1, 1, 1],
     ])
     sheet = await create_sheet(sheet)
     target_cell = sheet.cells[5]
@@ -31,12 +31,12 @@ async def test_formula_cells_react_on_parent_changes():
             receiver=boot.get_sheet_service(),
         )
         formula = await cmd.execute()
-        assert formula.value == 6
+        assert formula.value == 2
         await session.commit()
 
     async with db.get_async_session() as session:
         cell = sheet.cells[0].model_copy()
-        cell.value = 1000
+        cell.value = 20
         boot = bootstrap.Bootstrap(session)
         cmd = commands.UpdateCells(
             data=[cell],
@@ -50,4 +50,4 @@ async def test_formula_cells_react_on_parent_changes():
     async with db.get_async_session() as session:
         boot = bootstrap.Bootstrap(session)
         target_cell = await boot.get_sheet_service().cell_service.get_by_id(target_cell.id)
-        assert target_cell.value == 1005
+        assert target_cell.value == 22

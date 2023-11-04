@@ -1,7 +1,7 @@
 import src.sheet.handlers
 from src.base.broker import Broker, BrokerRepoPostgres
 from ..base import eventbus
-from . import services, domain
+from . import services, domain, handlers
 from .infrastructure import postgres, subfactory
 
 
@@ -21,11 +21,14 @@ class Bootstrap:
     def get_event_bus(self) -> eventbus.EventBus:
         bus = eventbus.EventBus(self._queue)
 
-        handler = src.sheet.handlers.CellHandler(self._subfac, self._broker)
+        handler = src.sheet.handlers.CellHandler(self._queue, self._broker, self._sheet_repo)
         bus.register("CellUpdated", handler.handle_cell_updated)
         bus.register("CellDeleted", handler.handle_cell_deleted)
 
-        handler = src.sheet.handlers.SindexHandler(self._subfac, self._broker)
+        handler = handlers.FormulaHandler(self._queue, self._broker, self._sheet_repo)
+        bus.register("FormulaUpdated", handler.handle_formula_updated)
+
+        handler = src.sheet.handlers.SindexHandler(self._queue, self._broker, self._sheet_repo)
         bus.register("SindexUpdated", handler.handle_sindex_updated)
         bus.register("SindexDeleted", handler.handle_sindex_deleted)
 
