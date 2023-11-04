@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from datetime import datetime
 from typing import Sequence, Union, Literal, Any
 from uuid import UUID, uuid4
@@ -36,12 +37,17 @@ CellDtype = Literal["int", "float", "string", "bool", "datetime"]
 
 
 class Formula(BaseModel):
-    pass
+    @abstractmethod
+    def to_json(self):
+        raise NotImplemented
 
 
 class Sum(Formula):
     value: Union[int, float] = 0
     id: UUID = Field(default_factory=uuid4)
+
+    def to_json(self):
+        return {"id": str(self.id), "value": self.value, }
 
 
 class Sub(Formula):
@@ -52,6 +58,13 @@ class Sub(Formula):
     @property
     def value(self):
         return sum(self.minuend.values()) - sum(self.subtrahend.values())
+
+    def to_json(self):
+        return {
+            "id": str(self.id),
+            "minuend": {str(key): value for key, value in self.minuend.items()},
+            "subtrahend": {str(key): value for key, value in self.subtrahend.items()},
+        }
 
 
 class Cell(BaseModel):

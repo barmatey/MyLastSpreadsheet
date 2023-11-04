@@ -121,4 +121,5 @@ class ReportSheetService:
         checker_sheet_sub = self._subfac.create_sheet_subscriber(checker_sheet)
         await checker_sheet_sub.follow_sheet(base_sheet)
         await self._repo.add_sheet(checker_sheet_sub.entity)
+        await self._repo.formula_repo.add_many(checker_sheet_sub.secondary_data["formulas"])
         return checker_sheet_sub.entity

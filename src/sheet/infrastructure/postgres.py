@@ -3,7 +3,7 @@ from typing import Type
 from uuid import UUID
 
 import pandas as pd
-from sqlalchemy import select, Integer, ForeignKey, String, Boolean
+from sqlalchemy import select, Integer, ForeignKey, String, Boolean, JSON
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql.functions import count
@@ -12,7 +12,7 @@ from src.core import OrderBy
 from src.base.repo.repository import Repository
 from src.base.repo.postgres import Base, PostgresRepo
 
-from ..domain import SheetInfo, RowSindex, ColSindex, Cell, CellValue, CellDtype, Sheet
+from ..domain import SheetInfo, RowSindex, ColSindex, Cell, CellValue, CellDtype, Sheet, Formula
 from ..services import SheetRepository, CellRepository, Slice
 from ...helpers.arrays import flatten
 
@@ -149,6 +149,15 @@ class CellModel(Base):
             row_sindex_id=entity.row.id,
             col_sindex_id=entity.col.id,
         )
+
+
+class FormulaModel(Base):
+    __tablename__ = "formula"
+    data: Mapped[JSON] = mapped_column(JSON)
+    formula_key: Mapped[String] = mapped_column(String(16))
+
+    def to_entity(self, **kwargs) -> Formula:
+
 
 
 class SheetInfoPostgresRepo(PostgresRepo):
