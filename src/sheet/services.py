@@ -3,7 +3,7 @@ from typing import Iterable
 from uuid import UUID, uuid4
 
 from src.base.repo.repository import Repository
-from . import domain, subscriber
+from . import domain
 from ..base.broker import Broker
 from ..base.eventbus import Queue, Updated
 
