@@ -5,6 +5,7 @@ from uuid import UUID
 from src.base.repo.repository import Repository
 from . import domain, subscriber
 from ..base.broker import Broker
+from ..base.eventbus import Queue, Updated
 
 Slice = tuple[int, int] | int
 
@@ -73,14 +74,19 @@ class UpdateSheetFromDifference:
 
 
 class CellService:
-    def __init__(self, repo: SheetRepository):
+    def __init__(self, repo: SheetRepository, queue: Queue):
+        self._queue = queue
         self._repo = repo
 
     async def get_by_id(self, cell_id: UUID) -> domain.Cell:
         return await self._repo.cell_repo.get_one_by_id(cell_id)
 
     async def update_many(self, data: list[domain.Cell]) -> None:
+        actuals = {x.id: x for x in data}
+        olds = {x.id: x for x in await self._repo.cell_repo.get_many_by_id(actuals.keys())}
         await self._repo.cell_repo.update_many(data)
+        for key in actuals:
+            self._queue.append(event=Updated(key="CellUpdated", old_entity=olds[key], actual_entity=actuals[key]))
 
 
 class FormulaService:
@@ -98,7 +104,7 @@ class FormulaService:
         else:
             raise ValueError
 
-        formula.follow_cells(parents)
+        await formula.follow_cells(parents)
         await self._repo.formula_repo.add_many([formula])
         await self._broker.subscribe(parents, formula)
         await self._broker.subscribe([formula], target)

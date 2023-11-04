@@ -249,15 +249,15 @@ class CellPostgresRepo(PostgresRepo, services.CellRepository):
 
     async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[domain.Cell]:
         stmt = (
-            select(CellModel)
+            select(SheetInfoModel, RowSindexModel, ColSindexModel, CellModel)
             .join(SheetInfoModel, CellModel.sheet_id == SheetInfoModel.id)
             .join(RowSindexModel, CellModel.row_sindex_id == RowSindexModel.id)
             .join(ColSindexModel, CellModel.col_sindex_id == ColSindexModel.id)
             .where(CellModel.id.in_(ids))
         )
         stmt = self._expand_statement(stmt, order_by=order_by)
-        data = await self._session.scalars(stmt)
-        entities: list[domain.Cell] = [x.to_entity() for x in data]
+        data = await self._session.execute(stmt)
+        entities: list[domain.Cell] = [x[3].to_entity(x[1].to_entity(), x[2].to_entity()) for x in data]
         return entities
 
     async def get_one_by_id(self, uuid: UUID) -> domain.Cell:

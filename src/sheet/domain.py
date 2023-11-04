@@ -79,9 +79,12 @@ class Sum(Formula):
     def value(self):
         return self._value
 
-    def follow_cells(self, pubs: list[Cell]):
+    async def follow_cells(self, pubs: list[Cell]):
         for cell in pubs:
             self._value += cell.value
+
+    async def on_cell_updated(self, old: Cell, actual: Cell):
+        self._value = self._value - old.value + actual.value
 
 
 class Sub(Formula):

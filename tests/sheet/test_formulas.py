@@ -44,5 +44,10 @@ async def test_formula_cells_react_on_parent_changes():
         )
         await cmd.execute()
 
+        await boot.get_event_bus().run()
+        await session.commit()
+
+    async with db.get_async_session() as session:
+        boot = bootstrap.Bootstrap(session)
         target_cell = await boot.get_sheet_service().cell_service.get_by_id(target_cell.id)
         assert target_cell.value == 1005

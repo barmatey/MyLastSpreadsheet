@@ -109,7 +109,6 @@ class Broker:
             if temp.get(x["key"]) is None:
                 temp[x["key"]] = set()
             temp[x["key"]].add(x["id"])
-
         result: list[BaseModel] = []
         for key, ids in temp.items():
             getter = self._getter[key]

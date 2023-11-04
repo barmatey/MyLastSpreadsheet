@@ -170,7 +170,7 @@ class SubFactory(subscriber.SubscriberFactory):
         if isinstance(entity, domain.Cell):
             return CellSelfSubscriber(entity, self._sheet_service, self._broker_service)
         if isinstance(entity, domain.Sum):
-            return
+            return entity
         raise TypeError
 
     def create_sindex_subscriber(self, entity: domain.Sindex) -> subscriber.SindexSubscriber:

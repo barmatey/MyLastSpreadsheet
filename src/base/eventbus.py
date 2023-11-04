@@ -2,6 +2,7 @@ from collections import deque
 from typing import Generic, TypeVar, Callable
 from uuid import UUID, uuid4
 
+from loguru import logger
 from pydantic import BaseModel, Field
 
 T = TypeVar("T")
@@ -28,10 +29,13 @@ class Queue:
         self._queue: deque = deque()
 
     def append(self, event: Event):
+        logger.debug(f"APPEND: {event.key}")
         self._queue.append(event)
 
     def popleft(self) -> Event:
-        return self._queue.popleft()
+        event = self._queue.popleft()
+        logger.debug(f"EXTRACT: {event}")
+        return event
 
     @property
     def empty(self):

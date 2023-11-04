@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, Iterable
+from typing import Generic, TypeVar, Iterable, Sequence
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -27,7 +27,7 @@ class Repository(ABC, Generic[T]):
         raise NotImplemented
 
     @abstractmethod
-    async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[T]:
+    async def get_many_by_id(self, ids: Iterable[UUID], order_by: OrderBy = None) -> list[T]:
         raise NotImplemented
 
     @abstractmethod
