@@ -89,8 +89,12 @@ class Formula(eventbus.EventMaker):
 
 
 class Sum(Formula):
-    _value: Union[int, float] = 0
+    _value: Union[int, float] = PrivateAttr()
     id: UUID = Field(default_factory=uuid4)
+
+    def __init__(self, value, **data: Any):
+        super().__init__(**data)
+        self._value = value
 
     def to_json(self):
         return {"id": str(self.id), "value": self.value, }

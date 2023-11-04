@@ -100,11 +100,12 @@ class FormulaService:
 
     async def create_one(self, parents: list[domain.Cell], target: domain.Cell, key: str) -> domain.Formula:
         if key == "SUM":
-            formula = domain.Sum(cell_id=target.id)
+            formula = domain.Sum(cell_id=target.id, value=0)
         else:
             raise ValueError
 
         await formula.follow_cells(parents)
+        formula.parse_events()
         await self._repo.formula_repo.add_many([formula])
         await self._broker.subscribe(parents, formula)
         await self._broker.subscribe([formula], target)

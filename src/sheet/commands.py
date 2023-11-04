@@ -25,7 +25,7 @@ class CreateSheet(BaseModel):
 
 
 class UpdateCells(BaseModel):
-    data: Iterable[domain.Cell]
+    data: list[domain.Cell]
     receiver: services.SheetService
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
