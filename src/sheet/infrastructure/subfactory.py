@@ -5,20 +5,17 @@ from .. import domain, subscriber, services
 from ... import helpers
 
 
-class ReportCheckerCell(subscriber.CellSubscriber):
-    def __init__(self, entity: domain.Cell, sheet_service: services.SheetService, broker: Broker):
+class SumFormula(subscriber.CellSubscriber):
+    def __init__(self, entity: domain.Formula, broker: Broker, sheet_service: services.SheetService):
         self._entity = entity
-        self._sheet_service = sheet_service
         self._broker = broker
+        self._sheet_service = sheet_service
 
     async def follow_cells(self, pubs: list[domain.Cell]):
-        if len(pubs) != 1:
-            raise Exception
-        pub = pubs[0]
-        _old = self._entity.model_copy()
-        self._entity.value = pub.value if (pub.row.is_freeze or pub.col.is_freeze) else None
+        for cell in pubs:
+            self._entity.value += cell.value
+        await self._sheet_service.formula_service.update_many([self._entity])
         await self._broker.subscribe(pubs, self._entity)
-        await self._sheet_service.cell_service.update_many([self._entity])
 
     async def unfollow_cells(self, pubs: list[domain.Cell]):
         raise NotImplemented
@@ -98,8 +95,7 @@ class ReportCheckerSheet(subscriber.SheetSubscriber):
                         minuend = table[-1][j]
                         subtrahend = parent_cell
                         formula = domain.Sub(
-                            minuend={minuend.id: minuend.value},
-                            subtrahend={subtrahend.id: subtrahend.value},
+                            value=minuend.value - subtrahend.value,
                             cell_id=cell.id,
                         )
                         formulas.append(formula)
@@ -170,8 +166,12 @@ class SubFactory(subscriber.SubscriberFactory):
         self._sheet_service = sheet_service
         self._broker_service = broker_service
 
-    def create_cell_subscriber(self, entity: domain.Cell) -> subscriber.CellSubscriber:
-        return CellSelfSubscriber(entity, self._sheet_service, self._broker_service)
+    def create_cell_subscriber(self, entity: BaseModel) -> subscriber.CellSubscriber:
+        if isinstance(entity, domain.Cell):
+            return CellSelfSubscriber(entity, self._sheet_service, self._broker_service)
+        if isinstance(entity, domain.Sum):
+            return
+        raise TypeError
 
     def create_sindex_subscriber(self, entity: domain.Sindex) -> subscriber.SindexSubscriber:
         return SindexSelfSubscriber(entity, self._sheet_service, self._broker_service)

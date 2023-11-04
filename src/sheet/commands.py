@@ -33,6 +33,18 @@ class UpdateCells(BaseModel):
         await self.receiver.cell_service.update_many(self.data)
 
 
+class CreateFormula(BaseModel):
+    parents: list[domain.Cell]
+    target: domain.Cell
+    formula_key: str
+    receiver: services.SheetService
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def execute(self) -> domain.Formula:
+        formula = await self.receiver.formula_service.create_one(self.parents, self.target, self.formula_key)
+        return formula
+
+
 class CreateCheckerSheet(BaseModel):
     parent_sheet_id: UUID
     receiver: services.ReportSheetService

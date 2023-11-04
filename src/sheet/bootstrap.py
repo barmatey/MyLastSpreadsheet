@@ -8,11 +8,13 @@ from .infrastructure import postgres, subfactory
 class Bootstrap:
     def __init__(self, session):
         self._queue = eventbus.Queue()
-        self._sheet_repo: services.SheetRepository = postgres.SheetPostgresRepo(session)
-
-        self._sheet_service = services.SheetService(self._sheet_repo)
-
         self._broker = Broker(BrokerRepoPostgres(session))
+
+        self._sheet_repo: services.SheetRepository = postgres.SheetPostgresRepo(session)
+        cell_service = services.CellService(self._sheet_repo)
+        formula_service = services.FormulaService(self._sheet_repo, self._broker)
+        self._sheet_service = services.SheetService(self._sheet_repo, cell_service, formula_service)
+
         self._subfac = subfactory.SubFactory(self._sheet_service, self._broker)
         self._report_sheet_service = services.ReportSheetService(repo=self._sheet_repo, subfac=self._subfac)
 

@@ -260,6 +260,18 @@ class CellPostgresRepo(PostgresRepo, services.CellRepository):
         entities: list[domain.Cell] = [x.to_entity() for x in data]
         return entities
 
+    async def get_one_by_id(self, uuid: UUID) -> domain.Cell:
+        stmt = (
+            select(SheetInfoModel, RowSindexModel, ColSindexModel, CellModel)
+            .join(SheetInfoModel, CellModel.sheet_id == SheetInfoModel.id)
+            .join(RowSindexModel, CellModel.row_sindex_id == RowSindexModel.id)
+            .join(ColSindexModel, CellModel.col_sindex_id == ColSindexModel.id)
+            .where(CellModel.id == uuid)
+        )
+        data = await self._session.execute(stmt)
+        entities: list[domain.Cell] = [x[3].to_entity(x[1].to_entity(), x[2].to_entity()) for x in data]
+        return entities.pop()
+
 
 class SheetPostgresRepo(services.SheetRepository):
     def __init__(self, session: AsyncSession):

@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from datetime import datetime
-from typing import Sequence, Union, Literal, Any
+from typing import Sequence, Union, Literal, Any, Iterable
 from uuid import UUID, uuid4
 
 import pandas as pd
@@ -36,39 +36,6 @@ CellValue = Union[int, float, str, bool, None, datetime]
 CellDtype = Literal["int", "float", "string", "bool", "datetime"]
 
 
-class Formula(BaseModel):
-    cell_id: UUID
-
-    @abstractmethod
-    def to_json(self):
-        raise NotImplemented
-
-
-class Sum(Formula):
-    value: Union[int, float] = 0
-    id: UUID = Field(default_factory=uuid4)
-
-    def to_json(self):
-        return {"id": str(self.id), "value": self.value, }
-
-
-class Sub(Formula):
-    minuend: dict[UUID, Union[int, float]]
-    subtrahend: dict[UUID, Union[int, float]]
-    id: UUID = Field(default_factory=uuid4)
-
-    @property
-    def value(self):
-        return sum(self.minuend.values()) - sum(self.subtrahend.values())
-
-    def to_json(self):
-        return {
-            "id": str(self.id),
-            "minuend": {str(key): value for key, value in self.minuend.items()},
-            "subtrahend": {str(key): value for key, value in self.subtrahend.items()},
-        }
-
-
 class Cell(BaseModel):
     value: CellValue
     row: RowSindex
@@ -87,6 +54,46 @@ class Cell(BaseModel):
         if self.id != other.id:
             raise Exception
         return self.value == other.value
+
+
+class Formula(BaseModel):
+    cell_id: UUID
+
+    @property
+    def value(self):
+        raise NotImplemented
+
+    @abstractmethod
+    def to_json(self):
+        raise NotImplemented
+
+
+class Sum(Formula):
+    _value: Union[int, float] = 0
+    id: UUID = Field(default_factory=uuid4)
+
+    def to_json(self):
+        return {"id": str(self.id), "value": self.value, }
+
+    @property
+    def value(self):
+        return self._value
+
+    def follow_cells(self, pubs: list[Cell]):
+        for cell in pubs:
+            self._value += cell.value
+
+
+class Sub(Formula):
+    value: Union[int, float] = 0
+    id: UUID = Field(default_factory=uuid4)
+
+    def to_json(self):
+        return {
+            "id": str(self.id),
+            "minuend": {str(key): value for key, value in self.minuend.items()},
+            "subtrahend": {str(key): value for key, value in self.subtrahend.items()},
+        }
 
 
 class SheetInfo(BaseModel):

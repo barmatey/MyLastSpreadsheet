@@ -4,6 +4,7 @@ from uuid import UUID
 
 from src.base.repo.repository import Repository
 from . import domain, subscriber
+from ..base.broker import Broker
 
 Slice = tuple[int, int] | int
 
@@ -75,24 +76,43 @@ class CellService:
     def __init__(self, repo: SheetRepository):
         self._repo = repo
 
+    async def get_by_id(self, cell_id: UUID) -> domain.Cell:
+        return await self._repo.cell_repo.get_one_by_id(cell_id)
+
     async def update_many(self, data: list[domain.Cell]) -> None:
         await self._repo.cell_repo.update_many(data)
 
 
 class FormulaService:
-    def __init__(self, repo: SheetRepository):
+    def __init__(self, repo: SheetRepository, broker: Broker):
         self._repo = repo
+        self._broker = broker
 
-    async def create_many(self, data: Iterable[domain.Formula]) -> Iterable[domain.Formula]:
+    async def create_many(self, data: list[domain.Formula]) -> Iterable[domain.Formula]:
         await self._repo.formula_repo.add_many(data)
         return data
 
+    async def create_one(self, parents: list[domain.Cell], target: domain.Cell, key: str) -> domain.Formula:
+        if key == "SUM":
+            formula = domain.Sum(cell_id=target.id)
+        else:
+            raise ValueError
+
+        formula.follow_cells(parents)
+        await self._repo.formula_repo.add_many([formula])
+        await self._broker.subscribe(parents, formula)
+        await self._broker.subscribe([formula], target)
+        return formula
+
+    async def update_many(self, data: list[domain.Formula]) -> None:
+        await self._repo.formula_repo.update_many(data)
+
 
 class SheetService:
-    def __init__(self, repo: SheetRepository):
+    def __init__(self, repo: SheetRepository, cell_service: CellService, formula_service: FormulaService):
         self._repo = repo
-        self.cell_service = CellService(repo)
-        self.formula_service = FormulaService(repo)
+        self.cell_service = cell_service
+        self.formula_service = formula_service
 
     async def create_sheet(self, sheet: domain.Sheet = None) -> domain.Sheet:
         if sheet is None:
