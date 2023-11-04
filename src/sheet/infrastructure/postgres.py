@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Type
 from uuid import UUID
 
-import pandas as pd
 from sqlalchemy import select, Integer, ForeignKey, String, Boolean, JSON
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -11,10 +10,9 @@ from sqlalchemy.sql.functions import count
 from src.core import OrderBy
 from src.base.repo.repository import Repository
 from src.base.repo.postgres import Base, PostgresRepo
+from src.helpers.arrays import flatten
 
-from ..domain import SheetInfo, RowSindex, ColSindex, Cell, CellValue, CellDtype, Sheet, Formula
-from ..services import SheetRepository, CellRepository, Slice
-from ...helpers.arrays import flatten
+from .. import domain, services
 
 
 class SheetInfoModel(Base):
@@ -24,11 +22,11 @@ class SheetInfoModel(Base):
     col_sindexes = relationship('ColSindexModel')
     cells = relationship('CellModel')
 
-    def to_entity(self) -> SheetInfo:
-        return SheetInfo(id=self.id, title=self.title)
+    def to_entity(self) -> domain.SheetInfo:
+        return domain.SheetInfo(id=self.id, title=self.title)
 
     @classmethod
-    def from_entity(cls, entity: SheetInfo):
+    def from_entity(cls, entity: domain.SheetInfo):
         return cls(
             id=entity.id,
             title=entity.title,
@@ -44,12 +42,12 @@ class RowSindexModel(Base):
     is_freeze: Mapped[bool] = mapped_column(Boolean, nullable=False)
     cells = relationship('CellModel')
 
-    def to_entity(self) -> RowSindex:
-        return RowSindex(id=self.id, sheet_id=self.sheet_id, position=self.position,
-                         is_readonly=self.is_readonly, is_freeze=self.is_freeze, size=self.size)
+    def to_entity(self) -> domain.RowSindex:
+        return domain.RowSindex(id=self.id, sheet_id=self.sheet_id, position=self.position,
+                                is_readonly=self.is_readonly, is_freeze=self.is_freeze, size=self.size)
 
     @classmethod
-    def from_entity(cls, entity: RowSindex):
+    def from_entity(cls, entity: domain.RowSindex):
         return cls(
             position=entity.position,
             id=entity.id,
@@ -69,12 +67,12 @@ class ColSindexModel(Base):
     is_freeze: Mapped[bool] = mapped_column(Boolean, nullable=False)
     cells = relationship('CellModel')
 
-    def to_entity(self) -> ColSindex:
-        return ColSindex(id=self.id, sheet_id=self.sheet_id, position=self.position,
-                         is_readonly=self.is_readonly, is_freeze=self.is_freeze, size=self.size)
+    def to_entity(self) -> domain.ColSindex:
+        return domain.ColSindex(id=self.id, sheet_id=self.sheet_id, position=self.position,
+                                is_readonly=self.is_readonly, is_freeze=self.is_freeze, size=self.size)
 
     @classmethod
-    def from_entity(cls, entity: ColSindex):
+    def from_entity(cls, entity: domain.ColSindex):
         return cls(
             position=entity.position,
             id=entity.id,
@@ -93,9 +91,10 @@ class CellModel(Base):
     sheet_id: Mapped[UUID] = mapped_column(ForeignKey("sheet.id"))
     row_sindex_id: Mapped[UUID] = mapped_column(ForeignKey("row_sindex.id"))
     col_sindex_id: Mapped[UUID] = mapped_column(ForeignKey("col_sindex.id"))
+    formulas = relationship('FormulaModel')
 
     @staticmethod
-    def __get_value(value: str, dtype: CellDtype) -> CellValue:
+    def __get_value(value: str, dtype: domain.CellDtype) -> domain.CellValue:
         if dtype == "string" and value == "None":
             return None
         if dtype == "string":
@@ -113,7 +112,7 @@ class CellModel(Base):
         raise TypeError(f"{value}, {dtype}")
 
     @staticmethod
-    def __get_dtype(value: CellValue) -> CellDtype:
+    def __get_dtype(value: domain.CellValue) -> domain.CellDtype:
         if value is None:
             return "string"
         if isinstance(value, int):
@@ -129,7 +128,7 @@ class CellModel(Base):
         raise TypeError
 
     def to_entity(self, row, col):
-        return Cell(
+        return domain.Cell(
             id=self.id,
             sheet_id=self.sheet_id,
             row=row,
@@ -139,7 +138,7 @@ class CellModel(Base):
         )
 
     @classmethod
-    def from_entity(cls, entity: Cell):
+    def from_entity(cls, entity: domain.Cell):
         return cls(
             id=entity.id,
             value=str(entity.value),
@@ -154,10 +153,21 @@ class CellModel(Base):
 class FormulaModel(Base):
     __tablename__ = "formula"
     data: Mapped[JSON] = mapped_column(JSON)
+    cell_id: Mapped[UUID] = mapped_column(ForeignKey("cell.id"))
     formula_key: Mapped[String] = mapped_column(String(16))
 
-    def to_entity(self, **kwargs) -> Formula:
+    def to_entity(self, **kwargs) -> domain.Formula:
+        if self.formula_key == "SUM":
+            return domain.Sum(**self.data, cell_id=self.cell_id)
+        if self.formula_key == "SUB":
+            return domain.Sub(**self.data, cell_id=self.cell_id)
 
+    @classmethod
+    def from_entity(cls, entity: domain.Formula):
+        if isinstance(entity, domain.Sum):
+            return cls(id=entity.id, data=entity.to_json(), formula_key="SUM", cell_id=entity.cell_id)
+        if isinstance(entity, domain.Sub):
+            return cls(id=entity.id, data=entity.to_json(), formula_key="SUB", cell_id=entity.cell_id)
 
 
 class SheetInfoPostgresRepo(PostgresRepo):
@@ -188,12 +198,12 @@ class ColPostgresRepo(SindexPostgresRepo):
         super().__init__(session, model)
 
 
-class CellPostgresRepo(PostgresRepo, CellRepository):
+class CellPostgresRepo(PostgresRepo, services.CellRepository):
     def __init__(self, session: AsyncSession, model: Type[Base] = CellModel):
         super().__init__(session, model)
 
-    async def get_sliced_cells(self, sheet_id: UUID, slice_rows: Slice = None,
-                               slice_cols: Slice = None) -> list[Cell]:
+    async def get_sliced_cells(self, sheet_id: UUID, slice_rows: services.Slice = None,
+                               slice_cols: services.Slice = None) -> list[domain.Cell]:
         stmt = (
             select(CellModel)
             .join(SheetInfoModel, CellModel.sheet_id == SheetInfoModel.id)
@@ -218,14 +228,14 @@ class CellPostgresRepo(PostgresRepo, CellRepository):
 
         stmt = stmt.where(*filters).order_by(RowSindexModel.position, ColSindexModel.position)
         data = await self._session.scalars(stmt)
-        entities: list[Cell] = [x.to_entity() for x in data]
+        entities: list[domain.Cell] = [x.to_entity() for x in data]
         return entities
 
     async def update_cell_by_position(self, sheet_id: UUID, row_pos: int, col_pos: int, data: dict):
         raise NotImplemented
 
     async def get_many(self, filter_by: dict = None, order_by: OrderBy = None,
-                       slice_from=None, slice_to=None) -> list[Cell]:
+                       slice_from=None, slice_to=None) -> list[domain.Cell]:
         stmt = (
             select(CellModel)
             .join(SheetInfoModel, CellModel.sheet_id == SheetInfoModel.id)
@@ -234,10 +244,10 @@ class CellPostgresRepo(PostgresRepo, CellRepository):
         )
         stmt = self._expand_statement(stmt, filter_by, order_by, slice_from, slice_to)
         data = await self._session.scalars(stmt)
-        entities: list[Cell] = [x.to_entity() for x in data]
+        entities: list[domain.Cell] = [x.to_entity() for x in data]
         return entities
 
-    async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[Cell]:
+    async def get_many_by_id(self, ids: list[UUID], order_by: OrderBy = None) -> list[domain.Cell]:
         stmt = (
             select(CellModel)
             .join(SheetInfoModel, CellModel.sheet_id == SheetInfoModel.id)
@@ -247,32 +257,37 @@ class CellPostgresRepo(PostgresRepo, CellRepository):
         )
         stmt = self._expand_statement(stmt, order_by=order_by)
         data = await self._session.scalars(stmt)
-        entities: list[Cell] = [x.to_entity() for x in data]
+        entities: list[domain.Cell] = [x.to_entity() for x in data]
         return entities
 
 
-class SheetPostgresRepo(SheetRepository):
+class SheetPostgresRepo(services.SheetRepository):
     def __init__(self, session: AsyncSession):
-        self._sf_repo: Repository[SheetInfo] = SheetInfoPostgresRepo(session)
-        self._row_repo: Repository[RowSindex] = RowPostgresRepo(session)
-        self._col_repo: Repository[ColSindex] = ColPostgresRepo(session)
-        self._cell_repo: CellRepository = CellPostgresRepo(session)
+        self._sf_repo: Repository[domain.SheetInfo] = SheetInfoPostgresRepo(session)
+        self._row_repo: Repository[domain.RowSindex] = RowPostgresRepo(session)
+        self._col_repo: Repository[domain.ColSindex] = ColPostgresRepo(session)
+        self._cell_repo: services.CellRepository = CellPostgresRepo(session)
+        self._formula_repo: Repository[domain.Formula] = FormulaPostgresRepo(session)
         self._session = session
 
     @property
-    def row_repo(self) -> Repository[RowSindex]:
+    def row_repo(self) -> Repository[domain.RowSindex]:
         return self._row_repo
 
     @property
-    def col_repo(self) -> Repository[ColSindex]:
+    def col_repo(self) -> Repository[domain.ColSindex]:
         return self._col_repo
 
     @property
-    def cell_repo(self) -> CellRepository:
+    def cell_repo(self) -> services.CellRepository:
         return self._cell_repo
 
     @property
-    def sheet_info_repo(self) -> Repository[SheetInfo]:
+    def formula_repo(self) -> Repository[domain.Formula]:
+        return self._formula_repo
+
+    @property
+    def sheet_info_repo(self) -> Repository[domain.SheetInfo]:
         return self._sf_repo
 
     async def get_sheet_size(self, sheet_uuid: UUID) -> tuple[int, int]:
@@ -284,14 +299,14 @@ class SheetPostgresRepo(SheetRepository):
 
         return row_result, col_result
 
-    async def add_sheet(self, sheet: Sheet):
+    async def add_sheet(self, sheet: domain.Sheet):
         await self._sf_repo.add_many([sheet.sf])
         if len(sheet.rows) and len(sheet.cols) and len(sheet.table):
             await self._row_repo.add_many(sheet.rows)
             await self._col_repo.add_many(sheet.cols)
             await self._cell_repo.add_many(flatten(sheet.table))
 
-    async def get_sheet_by_id(self, uuid: UUID) -> Sheet:
+    async def get_sheet_by_id(self, uuid: UUID) -> domain.Sheet:
         stmt = (
             select(SheetInfoModel, RowSindexModel, ColSindexModel, CellModel)
             .join(SheetInfoModel, CellModel.sheet_id == SheetInfoModel.id)
@@ -306,7 +321,7 @@ class SheetPostgresRepo(SheetRepository):
             result = list(await self._session.scalars(stmt))
             if len(result) != 1:
                 raise LookupError
-            return Sheet(sf=SheetInfo(id=result[0].id, title=result[0].title))
+            return domain.Sheet(sf=domain.SheetInfo(id=result[0].id, title=result[0].title))
 
         rows = []
         cols = []
@@ -324,4 +339,9 @@ class SheetPostgresRepo(SheetRepository):
                 cols.append(data[2].to_entity())
             table[-1].append(data[3].to_entity(row=rows[-1], col=cols[len(table[-1])]))
 
-        return Sheet(sf=sf, rows=rows, cols=cols, table=table)
+        return domain.Sheet(sf=sf, rows=rows, cols=cols, table=table)
+
+
+class FormulaPostgresRepo(PostgresRepo):
+    def __init__(self, session: AsyncSession, model: Type[Base] = FormulaModel):
+        super().__init__(session, model)

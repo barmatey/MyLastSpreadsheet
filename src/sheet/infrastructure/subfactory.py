@@ -1,8 +1,8 @@
 from pydantic import BaseModel
 
 from src.base.broker import Broker
-from src.helpers.arrays import flatten
 from .. import domain, subscriber, services
+from ... import helpers
 
 
 class ReportCheckerCell(subscriber.CellSubscriber):
@@ -15,7 +15,7 @@ class ReportCheckerCell(subscriber.CellSubscriber):
         if len(pubs) != 1:
             raise Exception
         pub = pubs[0]
-        old = self._entity.model_copy()
+        _old = self._entity.model_copy()
         self._entity.value = pub.value if (pub.row.is_freeze or pub.col.is_freeze) else None
         await self._broker.subscribe(pubs, self._entity)
         await self._sheet_service.cell_service.update_many([self._entity])
@@ -31,14 +31,16 @@ class ReportCheckerCell(subscriber.CellSubscriber):
 
 
 class ReportCheckerSheet(subscriber.SheetSubscriber):
-    def __init__(self, entity: domain.Sheet, broker: Broker):
+    def __init__(self, entity: domain.Sheet, broker: Broker, sheet_service: services.SheetService):
         self._entity = entity
         self._broker = broker
+        self._sheet_service = sheet_service
 
     @property
     def entity(self) -> domain.Sheet:
         return self._entity
 
+    @helpers.decorators.async_timeit
     async def follow_sheet(self, pub: domain.Sheet):
         if self._entity.size != (0, 0):
             raise ValueError
@@ -61,6 +63,7 @@ class ReportCheckerSheet(subscriber.SheetSubscriber):
             cols.append(col)
 
         table = []
+        formulas = []
         for i, row in enumerate(rows):
             cells = []
             for j, col in enumerate(cols):
@@ -96,12 +99,15 @@ class ReportCheckerSheet(subscriber.SheetSubscriber):
                         subtrahend = parent_cell
                         formula = domain.Sub(
                             minuend={minuend.id: minuend.value},
-                            subtrahend={subtrahend.id: subtrahend.value}
+                            subtrahend={subtrahend.id: subtrahend.value},
+                            cell_id=cell.id,
                         )
+                        formulas.append(formula)
                         await self._broker.subscribe([minuend, subtrahend], formula)
-
             table.append(cells)
         self._entity = domain.Sheet(sf=self._entity.sf, rows=rows, cols=cols, table=table).drop(rows[1].id, axis=0)
+        await self._sheet_service.update_sheet(self._entity)
+        await self._sheet_service.formula_service.create_many(formulas)
 
     async def unfollow_sheet(self, pub: domain.Sheet):
         pass
@@ -122,7 +128,7 @@ class CellSelfSubscriber(subscriber.CellSubscriber):
     async def follow_cells(self, pubs: list[domain.Cell]):
         if len(pubs) != 1:
             raise Exception
-        old = self._entity.model_copy(deep=True)
+        _old = self._entity.model_copy(deep=True)
         self._entity.value = pubs[0].value
         await self._broker_service.subscribe(pubs, self._entity)
         await self._sheet_service.cell_service.update_many([self._entity])
@@ -135,7 +141,7 @@ class CellSelfSubscriber(subscriber.CellSubscriber):
         await self._sheet_service.cell_service.update_many([actual])
 
     async def on_cell_deleted(self, pub: domain.Cell):
-        old = self._entity.model_copy()
+        _old = self._entity.model_copy()
         self._entity.value = "REF_ERROR"
         await self._sheet_service.cell_service.update_many([self._entity])
 
@@ -172,5 +178,5 @@ class SubFactory(subscriber.SubscriberFactory):
 
     def create_sheet_subscriber(self, entity: BaseModel) -> subscriber.SheetSubscriber:
         if isinstance(entity, domain.Sheet):
-            return ReportCheckerSheet(entity, self._broker_service)
+            return ReportCheckerSheet(entity, self._broker_service, self._sheet_service)
         raise TypeError

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Iterable
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -11,7 +11,7 @@ T = TypeVar("T", bound=BaseModel)
 
 class Repository(ABC, Generic[T]):
     @abstractmethod
-    async def add_many(self, data: list[T]):
+    async def add_many(self, data: Iterable[T]):
         raise NotImplemented
 
     @abstractmethod

@@ -37,6 +37,8 @@ CellDtype = Literal["int", "float", "string", "bool", "datetime"]
 
 
 class Formula(BaseModel):
+    cell_id: UUID
+
     @abstractmethod
     def to_json(self):
         raise NotImplemented

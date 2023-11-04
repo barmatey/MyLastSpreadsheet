@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Iterable
 from uuid import UUID
 
 from src.base.repo.repository import Repository
@@ -78,10 +79,20 @@ class CellService:
         await self._repo.cell_repo.update_many(data)
 
 
+class FormulaService:
+    def __init__(self, repo: SheetRepository):
+        self._repo = repo
+
+    async def create_many(self, data: Iterable[domain.Formula]) -> Iterable[domain.Formula]:
+        await self._repo.formula_repo.add_many(data)
+        return data
+
+
 class SheetService:
     def __init__(self, repo: SheetRepository):
         self._repo = repo
         self.cell_service = CellService(repo)
+        self.formula_service = FormulaService(repo)
 
     async def create_sheet(self, sheet: domain.Sheet = None) -> domain.Sheet:
         if sheet is None:
@@ -118,8 +129,7 @@ class ReportSheetService:
     async def create_checker_sheet(self, base_sheet_id: UUID) -> domain.Sheet:
         base_sheet = await self._repo.get_sheet_by_id(base_sheet_id)
         checker_sheet = domain.Sheet(sf=domain.SheetInfo(title="Checker"))
+        await self._repo.add_sheet(checker_sheet)
         checker_sheet_sub = self._subfac.create_sheet_subscriber(checker_sheet)
         await checker_sheet_sub.follow_sheet(base_sheet)
-        await self._repo.add_sheet(checker_sheet_sub.entity)
-        await self._repo.formula_repo.add_many(checker_sheet_sub.secondary_data["formulas"])
         return checker_sheet_sub.entity
