@@ -18,12 +18,21 @@ class Sindex(eventbus.EventMaker):
     is_readonly: bool = False
     is_freeze: bool = False
     id: UUID = Field(default_factory=uuid4)
-    events: list[eventbus.Event] = Field(default_factory=list)
 
     def __eq__(self, other: 'Sindex'):
         if self.id != other.id:
             raise Exception
         return self.model_dump() == other.model_dump()
+
+    def to_json(self):
+        return {
+            "position": self.position,
+            "size": self.size,
+            "sheet_id": str(self.sheet_id),
+            "is_readonly": self.is_readonly,
+            "is_freeze": self.is_freeze,
+            "id": str(self.id),
+        }
 
 
 class RowSindex(Sindex):
@@ -73,6 +82,16 @@ class Cell(eventbus.EventMaker):
 
     async def on_cell_updated(self, old: 'Cell', actual: 'Cell'):
         self.value = actual.value
+
+    def to_json(self):
+        return {
+            "id": str(self.id),
+            "sheet_id": str(self.sheet_id),
+            "background": self.background,
+            "value": str(self.value) if isinstance(self.value, datetime) else self.value,
+            "row": self.row.to_json(),
+            "col": self.col.to_json(),
+        }
 
 
 class Formula(eventbus.EventMaker):
@@ -137,6 +156,12 @@ class Sub(Formula):
 class SheetInfo(BaseModel):
     title: str
     id: UUID = Field(default_factory=uuid4)
+
+    def to_json(self):
+        return {
+            "title": self.title,
+            "id": str(self.id),
+        }
 
 
 class Sheet(BaseModel):
@@ -260,6 +285,21 @@ class Sheet(BaseModel):
         columns = [x.id for x in self.cols]
         df = pd.DataFrame(self.table, index, columns)
         return df
+
+    def to_json(self):
+        rows = [x.to_json() for x in self.rows]
+        cols = [x.to_json() for x in self.cols]
+        table = []
+        for row in self.table:
+            table.append([])
+            for cell in row:
+                table[-1].append(cell.to_json())
+        return {
+            "sf": self.sf.to_json(),
+            "rows": rows,
+            "cols": cols,
+            "table": table,
+        }
 
 
 def concat(lhs: Sheet, rhs: Sheet, axis=0, reindex=True) -> Sheet:

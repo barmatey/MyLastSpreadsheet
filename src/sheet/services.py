@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 
 from src.base.repo.repository import Repository
 from . import domain
+from .. import helpers
 from ..base.broker import Broker
 from ..base.eventbus import Queue, Updated
 
@@ -207,6 +208,7 @@ class CreateReportChecker:
                         )
                         formulas.append(formula)
                         await self._broker.subscribe([minuend, subtrahend], formula)
+                        await self._broker.subscribe([formula], cell)
             table.append(cells)
         sheet = domain.Sheet(sf=domain.SheetInfo(id=sheet_id, title="Checker"),
                              rows=rows, cols=cols, table=table).drop(rows[1].id, axis=0)

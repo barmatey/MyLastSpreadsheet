@@ -27,7 +27,7 @@ async def get_async_session() -> AsyncSession:
             err = err[0:5_000]
         logger.error(err)
         await session.rollback()
-        raise
+        raise 
     finally:
         await session.close()
         logger.info(f"session closed")
