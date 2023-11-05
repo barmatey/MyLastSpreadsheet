@@ -11,6 +11,7 @@ from src.core import OrderBy
 from src.base.repo.repository import Repository
 from src.base.repo.postgres import Base, PostgresRepo
 from src.helpers.arrays import flatten
+from . import helpers
 
 from .. import domain, services
 
@@ -93,47 +94,13 @@ class CellModel(Base):
     col_sindex_id: Mapped[UUID] = mapped_column(ForeignKey("col_sindex.id"))
     formulas = relationship('FormulaModel')
 
-    @staticmethod
-    def __get_value(value: str, dtype: domain.CellDtype) -> domain.CellValue:
-        if dtype == "string" and value == "None":
-            return None
-        if dtype == "string":
-            return value
-        if dtype == "int":
-            return int(value)
-        if dtype == "float":
-            return float(value)
-        if dtype == "bool" and value == "True":
-            return True
-        if dtype == "bool" and value == "False":
-            return False
-        if dtype == "datetime":
-            return datetime.fromisoformat(value)
-        raise TypeError(f"{value}, {dtype}")
-
-    @staticmethod
-    def __get_dtype(value: domain.CellValue) -> domain.CellDtype:
-        if value is None:
-            return "string"
-        if isinstance(value, int):
-            return "int"
-        if isinstance(value, str):
-            return "string"
-        if isinstance(value, float):
-            return "float"
-        if isinstance(value, datetime):
-            return "datetime"
-        if isinstance(value, bool):
-            return "bool"
-        raise TypeError
-
     def to_entity(self, row, col):
         return domain.Cell(
             id=self.id,
             sheet_id=self.sheet_id,
             row=row,
             col=col,
-            value=self.__get_value(self.value, self.dtype),
+            value=helpers.get_value(self.value, self.dtype),
             background=self.background,
         )
 
@@ -142,7 +109,7 @@ class CellModel(Base):
         return cls(
             id=entity.id,
             value=str(entity.value),
-            dtype=cls.__get_dtype(entity.value),
+            dtype=helpers.get_dtype(entity.value),
             background=entity.background,
             sheet_id=entity.sheet_id,
             row_sindex_id=entity.row.id,

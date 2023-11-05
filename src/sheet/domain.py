@@ -55,15 +55,15 @@ class Cell(eventbus.EventMaker):
     background: str = 'white'
     id: UUID = Field(default_factory=uuid4)
 
+    def __init__(self, value, **data):
+        super().__init__(**data)
+        self._value = value
+
     def __repr__(self):
         return f"Cell({self.value})"
 
     def __str__(self):
         return f"Cell({self.value})"
-
-    def __init__(self, value, **data):
-        super().__init__(**data)
-        self._value = value
 
     def __eq__(self, other: 'Cell'):
         if self.id != other.id:
