@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from .. import domain
 from . import helpers
+from ...core import Table
 
 
 class SindexSchema(BaseModel):
@@ -55,4 +56,26 @@ class CellSchema(BaseModel):
             row_id=cell.row.id,
             col_id=cell.col.id,
             sheet_id=cell.sheet_id,
+        )
+
+
+class SheetSchema(BaseModel):
+    id: UUID
+    rows: list[SindexSchema]
+    cols: list[SindexSchema]
+    table: Table[CellSchema]
+
+    @classmethod
+    def from_sheet(cls, sheet: domain.Sheet) -> 'SheetSchema':
+        table = []
+        for row in sheet.table:
+            table.append([])
+            for cell in row:
+                table[-1].append(CellSchema.from_cell(cell))
+
+        return cls(
+            id=sheet.sf.id,
+            rows=[SindexSchema.from_sindex(x) for x in sheet.rows],
+            cols=[SindexSchema.from_sindex(x) for x in sheet.cols],
+            table=table,
         )
