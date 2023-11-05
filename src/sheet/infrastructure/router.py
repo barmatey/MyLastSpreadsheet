@@ -6,6 +6,7 @@ import db
 from src import helpers
 
 from .. import domain,  bootstrap, commands
+from . import schema
 
 router_sheet = APIRouter(
     prefix='/sheet',
@@ -15,12 +16,12 @@ router_sheet = APIRouter(
 
 @router_sheet.get("/{sheet_id}")
 @helpers.decorators.async_timeit
-async def get_sheet(sheet_id: UUID, get_asession=Depends(db.get_async_session)) -> JSONResponse:
+async def get_sheet(sheet_id: UUID, get_asession=Depends(db.get_async_session)) -> schema.SheetSchema:
     async with get_asession as session:
         boot = bootstrap.Bootstrap(session)
         cmd = commands.GetSheetById(id=sheet_id, receiver=boot.get_sheet_service())
         sheet = await cmd.execute()
-        return JSONResponse(content=sheet.to_json())
+        return schema.SheetSchema.from_sheet(sheet)
 
 
 router_cell = APIRouter(

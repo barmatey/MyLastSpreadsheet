@@ -9,9 +9,9 @@ from ...core import Table
 
 class SindexSchema(BaseModel):
     id: UUID
-    position: bool
-    scroll: bool
-    size: bool
+    position: int
+    scroll: int
+    size: int
     is_readonly: bool
     is_freeze: bool
     sheet_id: UUID
