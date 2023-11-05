@@ -44,4 +44,5 @@ class Bootstrap:
         self._broker.register(domain.ColSindex, self._sheet_repo.col_repo.get_many_by_id)
         self._broker.register(domain.Cell, self._sheet_repo.cell_repo.get_many_by_id)
         self._broker.register(domain.Sum, self._sheet_repo.formula_repo.get_many_by_id)
+        self._broker.register(domain.Sub, self._sheet_repo.formula_repo.get_many_by_id)
         return self._broker

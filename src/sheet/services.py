@@ -83,11 +83,11 @@ class CellService:
         return await self._repo.cell_repo.get_one_by_id(cell_id)
 
     async def update_many(self, data: list[domain.Cell]) -> None:
-        actuals = {x.id: x for x in data}
-        olds = {x.id: x for x in await self._repo.cell_repo.get_many_by_id(actuals.keys())}
-        await self._repo.cell_repo.update_many(data)
-        for key in actuals:
-            self._queue.append(event=Updated(key="CellUpdated", old_entity=olds[key], actual_entity=actuals[key]))
+        cells = {x.id: x for x in await self._repo.cell_repo.get_many_by_id([x.id for x in data])}
+        for new_cell in data:
+            key = new_cell.id
+            cells[key].value = new_cell.value
+            self._queue.extend(cells[key].parse_events())
 
 
 class FormulaService:
@@ -203,7 +203,8 @@ class CreateReportChecker:
                         minuend = table[-1][j]
                         subtrahend = parent_cell
                         formula = domain.Sub(
-                            value=minuend.value - subtrahend.value,
+                            minuend=(minuend.id, minuend.value),
+                            subtrahend=(subtrahend.id, subtrahend.value),
                             cell_id=cell.id,
                         )
                         formulas.append(formula)

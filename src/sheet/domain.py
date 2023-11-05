@@ -135,21 +135,29 @@ class Sum(Formula):
 
 
 class Sub(Formula):
-    _value: Union[int, float] = PrivateAttr()
+    minuend: tuple[UUID, Union[int, float]]
+    subtrahend: tuple[UUID, Union[int, float]]
     id: UUID = Field(default_factory=uuid4)
-
-    def __init__(self, value, **data: Any):
-        super().__init__(**data)
-        self._value = value
 
     @property
     def value(self):
-        return self._value
+        return self.minuend[1] - self.subtrahend[1]
+
+    async def on_cell_updated(self, old: Cell, actual: Cell):
+        old_value = self.model_copy()
+        if actual.id == self.minuend[0]:
+            self.minuend = (self.minuend[0], float(actual.value))
+        elif actual.id == self.subtrahend[0]:
+            self.subtrahend = (self.subtrahend[0], float(actual.value))
+        else:
+            raise Exception
+        self.events.append(eventbus.Updated(key="FormulaUpdated", old_entity=old_value, actual_entity=self))
 
     def to_json(self):
         return {
             "id": str(self.id),
-            "value": self.value,
+            "minuend": [str(self.minuend[0]), self.minuend[1]],
+            "subtrahend": [str(self.subtrahend[0]), self.subtrahend[1]],
         }
 
 
