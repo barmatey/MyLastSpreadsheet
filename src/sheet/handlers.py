@@ -15,7 +15,7 @@ class FormulaHandler(Handler):
         await self._repo.formula_repo.update_one(event.actual_entity)
         for sub in await self._broker.get_subs(event.actual_entity):
             await sub.on_cell_updated(old=event.old_entity, actual=event.actual_entity)
-            self._queue.extend(sub.parse_events())
+            self._queue.extend(sub.events.parse_events())
 
 
 class CellHandler(Handler):
@@ -23,7 +23,7 @@ class CellHandler(Handler):
         await self._repo.cell_repo.update_one(event.actual_entity)
         for sub in await self._broker.get_subs(event.actual_entity):
             await sub.on_cell_updated(old=event.old_entity, actual=event.actual_entity)
-            self._queue.extend(sub.parse_events())
+            self._queue.extend(sub.events.parse_events())
 
     async def handle_cell_deleted(self, event: eventbus.Deleted[domain.Cell]):
         raise NotImplemented

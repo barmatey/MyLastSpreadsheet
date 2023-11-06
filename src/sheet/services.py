@@ -87,7 +87,7 @@ class CellService:
         for new_cell in data:
             key = new_cell.id
             cells[key].value = new_cell.value
-            self._queue.extend(cells[key].parse_events())
+            self._queue.extend(cells[key].events.parse_events())
 
 
 class FormulaService:
