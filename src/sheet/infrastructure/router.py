@@ -32,21 +32,16 @@ router_cell = APIRouter(
 
 @router_cell.patch("/{cell_id}")
 @helpers.decorators.async_timeit
-async def update_cell(cell: domain.Cell, get_asession=Depends(db.get_async_session)) -> domain.Cell:
+async def update_cell(cell: domain.Cell, get_asession=Depends(db.get_async_session)) -> schema.CellSchema:
     async with get_asession as session:
         boot = bootstrap.Bootstrap(session)
         cmd = commands.UpdateCells(data=[cell], receiver=boot.get_sheet_service())
         await cmd.execute()
         await boot.get_event_bus().run()
         await session.commit()
-        return cell
+        return schema.CellSchema.from_cell(cell)
 
 
 @router_cell.patch("/")
 async def update_cells(data: list[domain.Cell], get_asession=Depends(db.get_async_session)) -> int:
-    async with get_asession as session:
-        boot = bootstrap.Bootstrap(session)
-        cmd = commands.UpdateCells(data=data, receiver=boot.get_sheet_service())
-        await cmd.execute()
-        await session.commit()
-        return 1
+    raise NotImplemented

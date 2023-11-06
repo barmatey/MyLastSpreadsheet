@@ -88,7 +88,9 @@ class Cell(Base):
         self.events.push_event(eventbus.Updated(key="CellUpdated", old_entity=old, actual_entity=self))
 
     async def on_cell_updated(self, old: 'Cell', actual: 'Cell'):
-        self.value = actual.value
+        old = self.model_copy()
+        self._value = actual.value
+        self.events.push_event(eventbus.Updated(key="CellUpdated", old_entity=old, actual_entity=self))
 
     def to_json(self):
         return {

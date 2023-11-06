@@ -48,7 +48,7 @@ class CellSchema(BaseModel):
             id=cell.id,
             value=str(cell.value),
             dtype=helpers.get_dtype(cell.value),
-            is_readonly=False,
+            is_readonly=cell.is_readonly,
             is_filtred=True,
             is_index=False,
             background=cell.background,

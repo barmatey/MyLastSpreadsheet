@@ -182,7 +182,8 @@ class CreateReportChecker:
                     if parent_cell.col.is_freeze or parent_cell.row.is_freeze:
                         value = parent_cell.value
                         bkg = parent_cell.background
-                        cell = domain.Cell(row=row, col=col, sheet_id=sheet_id, value=value, background=bkg)
+                        cell = domain.Cell(row=row, col=col, sheet_id=sheet_id, value=value, background=bkg,
+                                           is_readonly=True)
                         cells.append(cell)
                         await self._broker.subscribe([parent_cell], cell)
                     # Input cell
@@ -195,12 +196,13 @@ class CreateReportChecker:
                     # Blank cell
                     if parent_cell.col.is_freeze or parent_cell.row.is_freeze:
                         cells.append(domain.Cell(row=row, col=col, sheet_id=sheet_id, value="",
-                                                 background=parent_cell.background))
+                                                 background=parent_cell.background, is_readonly=True))
                     # Formula cell
                     else:
                         value = -parent_cell.value
                         bkg = parent_cell.background
-                        cell = domain.Cell(row=row, col=col, sheet_id=sheet_id, value=value, background=bkg)
+                        cell = domain.Cell(row=row, col=col, sheet_id=sheet_id, value=value, background=bkg,
+                                           is_readonly=True)
                         cells.append(cell)
 
                         minuend = table[-1][j]
