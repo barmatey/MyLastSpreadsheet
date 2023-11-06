@@ -1,28 +1,33 @@
 from abc import abstractmethod
 from datetime import datetime
-from typing import Sequence, Union, Literal, Any, Iterable
+from typing import Sequence, Union, Literal, Any
 from uuid import UUID, uuid4
 
 import pandas as pd
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, ConfigDict
 
 from src.core import Table
 from src.base import eventbus
 from src.helpers.arrays import flatten
 
 
-class Sindex(eventbus.EventMaker):
+class Base(BaseModel):
+    id: UUID = Field(default_factory=uuid4)
+    events: eventbus.EventStore = Field(default_factory=eventbus.EventStore)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class Sindex(Base):
     position: int
     size: int
     sheet_id: UUID
     is_readonly: bool = False
     is_freeze: bool = False
-    id: UUID = Field(default_factory=uuid4)
 
     def __eq__(self, other: 'Sindex'):
         if self.id != other.id:
             raise Exception
-        return self.model_dump() == other.model_dump()
+        return self.model_dump(exclude={'events'}) == other.model_dump(exclude={'events'})
 
     def to_json(self):
         return {
@@ -47,13 +52,12 @@ CellValue = Union[int, float, str, bool, None, datetime]
 CellDtype = Literal["int", "float", "string", "bool", "datetime"]
 
 
-class Cell(eventbus.EventMaker):
+class Cell(Base):
     row: RowSindex
     col: ColSindex
     sheet_id: UUID
     _value: CellValue = PrivateAttr()
     background: str = 'white'
-    id: UUID = Field(default_factory=uuid4)
 
     def __init__(self, value, **data):
         super().__init__(**data)
@@ -78,7 +82,7 @@ class Cell(eventbus.EventMaker):
     def value(self, value: CellValue):
         old = self.model_copy()
         self._value = value
-        self.events.append(eventbus.Updated(key="CellUpdated", old_entity=old, actual_entity=self))
+        self.events.push_event(eventbus.Updated(key="CellUpdated", old_entity=old, actual_entity=self))
 
     async def on_cell_updated(self, old: 'Cell', actual: 'Cell'):
         self.value = actual.value
@@ -94,9 +98,8 @@ class Cell(eventbus.EventMaker):
         }
 
 
-class Formula(eventbus.EventMaker):
+class Formula(Base):
     cell_id: UUID
-    events: list[eventbus.Event] = Field(default_factory=list)
 
     @property
     def value(self):
@@ -109,7 +112,6 @@ class Formula(eventbus.EventMaker):
 
 class Sum(Formula):
     _value: Union[int, float] = PrivateAttr()
-    id: UUID = Field(default_factory=uuid4)
 
     def __init__(self, value, **data: Any):
         super().__init__(**data)
@@ -126,18 +128,17 @@ class Sum(Formula):
         old = self.model_copy()
         for cell in pubs:
             self._value += cell.value
-        self.events.append(eventbus.Updated(key="FormulaUpdated", old_entity=old, actual_entity=self))
+        self.events.push_event(eventbus.Updated(key="FormulaUpdated", old_entity=old, actual_entity=self))
 
     async def on_cell_updated(self, old: Cell, actual: Cell):
         old_value = self.model_copy()
         self._value = self._value - old.value + actual.value
-        self.events.append(eventbus.Updated(key="FormulaUpdated", old_entity=old_value, actual_entity=self))
+        self.events.push_event(eventbus.Updated(key="FormulaUpdated", old_entity=old_value, actual_entity=self))
 
 
 class Sub(Formula):
     minuend: tuple[UUID, Union[int, float]]
     subtrahend: tuple[UUID, Union[int, float]]
-    id: UUID = Field(default_factory=uuid4)
 
     @property
     def value(self):
@@ -151,7 +152,7 @@ class Sub(Formula):
             self.subtrahend = (self.subtrahend[0], float(actual.value))
         else:
             raise Exception
-        self.events.append(eventbus.Updated(key="FormulaUpdated", old_entity=old_value, actual_entity=self))
+        self.events.push_event(eventbus.Updated(key="FormulaUpdated", old_entity=old_value, actual_entity=self))
 
     def to_json(self):
         return {
@@ -177,6 +178,8 @@ class Sheet(BaseModel):
     rows: list[RowSindex] = Field(default_factory=list)
     cols: list[ColSindex] = Field(default_factory=list)
     table: Table[Cell] = Field(default_factory=list)
+    events: eventbus.EventStore = Field(default_factory=eventbus.EventStore)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __init__(self, **data: Any):
         super().__init__(**data)
