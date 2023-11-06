@@ -24,12 +24,16 @@ class Deleted(Event, Generic[T]):
     id: UUID = Field(default_factory=uuid4)
 
 
-class EventMaker(BaseModel):
-    events: list[Event] = Field(default_factory=list)
+class EventStore:
+    def __init__(self):
+        self._events = []
+
+    def push_event(self, event: Event):
+        self._events.append(event)
 
     def parse_events(self) -> list[Event]:
-        events = self.events
-        self.events = []
+        events = self._events
+        self._events = []
         return events
 
 
