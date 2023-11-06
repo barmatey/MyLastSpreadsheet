@@ -56,6 +56,7 @@ class Cell(Base):
     row: RowSindex
     col: ColSindex
     sheet_id: UUID
+    is_readonly: bool = False
     _value: CellValue = PrivateAttr()
     background: str = 'white'
 
@@ -80,6 +81,8 @@ class Cell(Base):
 
     @value.setter
     def value(self, value: CellValue):
+        if self.is_readonly:
+            raise Exception("this cell is readonly")
         old = self.model_copy()
         self._value = value
         self.events.push_event(eventbus.Updated(key="CellUpdated", old_entity=old, actual_entity=self))

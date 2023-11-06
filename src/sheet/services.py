@@ -83,7 +83,10 @@ class CellService:
         return await self._repo.cell_repo.get_one_by_id(cell_id)
 
     async def update_many(self, data: list[domain.Cell]) -> None:
-        cells = {x.id: x for x in await self._repo.cell_repo.get_many_by_id([x.id for x in data])}
+        cells: dict[UUID, domain.Cell] = {
+            x.id: x
+            for x in await self._repo.cell_repo.get_many_by_id([x.id for x in data])
+        }
         for new_cell in data:
             key = new_cell.id
             cells[key].value = new_cell.value

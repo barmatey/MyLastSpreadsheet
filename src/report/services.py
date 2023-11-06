@@ -195,7 +195,8 @@ class Finrep:
                     col=cols[j],
                     sheet_id=sf.id,
                     value=self._report_df.iloc[i, j],
-                    background="#F8FAFDFF" if i == 0 or j < len(self._ccols) else "white"
+                    background="#F8FAFDFF" if i == 0 or j < len(self._ccols) else "white",
+                    is_readonly=True,
                 ))
             table.append(cells)
         return sheet_domain.Sheet(rows=rows, cols=cols, table=table, sf=sf)
